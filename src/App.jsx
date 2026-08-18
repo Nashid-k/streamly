@@ -216,7 +216,11 @@ function Layout({ children }) {
                            initial={{ opacity: 0, y: 10 }}
                            animate={{ opacity: 1, y: 0 }}
                            transition={{ delay: i * 0.05, duration: 0.2 }}
-                           onClick={() => navigate(`/movie/${r.source}/${r.id}`)}
+                           onClick={() => {
+                             navigate(`/movie/${r.source}/${r.id}`);
+                             setQuery('');
+                             setShowDropdown(false);
+                           }}
                            style={{
                              display: 'flex',
                              alignItems: 'center',
