@@ -133,7 +133,7 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
   useEffect(() => {
     const timer = setInterval(() => {
       setFeaturedIndex(prev => prev + 1);
-    }, 10000);
+    }, 15000);
     return () => clearInterval(timer);
   }, []);
 
