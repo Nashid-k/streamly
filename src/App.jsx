@@ -197,15 +197,25 @@ function Layout({ children }) {
                   }}
                 >
                   {loading ? (
-                     <div style={{padding:'3rem', textAlign:'center', color:'#a1a1aa'}}>
-                       <div className="spinner" style={{ margin: '0 auto 1rem', width: '24px', height: '24px', borderWidth: '2px' }}></div>
-                       Searching across platforms...
+                     <div style={{display:'flex', flexDirection:'column'}}>
+                       {[1, 2, 3, 4].map((i) => (
+                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                           <div className="skeleton" style={{ width: '50px', height: '75px', borderRadius: '4px' }}></div>
+                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                             <div className="skeleton" style={{ width: '60%', height: '1rem', borderRadius: '4px' }}></div>
+                             <div className="skeleton" style={{ width: '30%', height: '0.8rem', borderRadius: '4px' }}></div>
+                           </div>
+                         </div>
+                       ))}
                      </div>
                   ) : results.length > 0 ? (
                      <div style={{display:'flex', flexDirection:'column'}}>
                        {results.map((r, i) => (
-                         <div 
+                         <motion.div 
                            key={`${r.id}-${i}`}
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           transition={{ delay: i * 0.05, duration: 0.2 }}
                            onClick={() => navigate(`/movie/${r.source}/${r.id}`)}
                            style={{
                              display: 'flex',
@@ -228,7 +238,7 @@ function Layout({ children }) {
                                <span className={`source-tag source-${r.source}`} style={{ padding: '0px 6px', fontSize: '0.6rem' }}>{r.sourceName}</span>
                              </div>
                            </div>
-                         </div>
+                         </motion.div>
                        ))}
                      </div>
                   ) : (
