@@ -27,9 +27,25 @@ export default function PersonDetails() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <h3>Loading actor profile...</h3>
+      <div className="main-content" style={{ padding: '0 3rem' }}>
+        <div style={{ marginBottom: '2rem' }}>
+           <div className="skeleton" style={{ width: '80px', height: '36px', borderRadius: '100px' }}></div>
+        </div>
+        <div style={{ display: 'flex', gap: '3rem', flexWrap: 'wrap', marginBottom: '4rem' }}>
+          <div className="skeleton" style={{ width: '300px', height: '450px', borderRadius: '1.25rem', flexShrink: 0 }}></div>
+          <div style={{ flex: 1, minWidth: '300px', paddingTop: '1rem' }}>
+            <div className="skeleton skeleton-title" style={{ width: '50%', height: '3.5rem', marginBottom: '1.5rem' }}></div>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem' }}>
+              <div className="skeleton" style={{ width: '80px', height: '2rem', borderRadius: '8px' }}></div>
+              <div className="skeleton" style={{ width: '120px', height: '2rem', borderRadius: '8px' }}></div>
+            </div>
+            <div className="skeleton" style={{ width: '200px', height: '1.5rem', marginBottom: '1.5rem' }}></div>
+            <div className="skeleton" style={{ width: '100%', height: '1.2rem', marginBottom: '0.8rem' }}></div>
+            <div className="skeleton" style={{ width: '95%', height: '1.2rem', marginBottom: '0.8rem' }}></div>
+            <div className="skeleton" style={{ width: '90%', height: '1.2rem', marginBottom: '0.8rem' }}></div>
+            <div className="skeleton" style={{ width: '80%', height: '1.2rem', marginBottom: '0.8rem' }}></div>
+          </div>
+        </div>
       </div>
     );
   }

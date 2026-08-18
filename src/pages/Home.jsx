@@ -266,7 +266,15 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
   return (
     <div className="main-content" style={{ paddingBottom: '2rem' }}>
       <AnimatePresence mode="wait">
-        {activeFeaturedMovie && (
+        {loading && !activeFeaturedMovie ? (
+          <motion.div 
+            key="skeleton-hero"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="skeleton skeleton-hero" 
+          />
+        ) : activeFeaturedMovie ? (
           <motion.div 
             key={activeFeaturedMovie.id}
             className="hero-container"
@@ -350,7 +358,7 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
             </motion.div>
           </div>
         </motion.div>
-      )}
+      ) : null}
       </AnimatePresence>
 
       {/* Categories Section */}
@@ -360,9 +368,17 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
         </div>
         
         {loading ? (
-          <div className="loading-container" style={{ minHeight: '30vh' }}>
-            <div className="spinner"></div>
-            <h3>Curating your feed...</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+            {[1, 2].map((rail) => (
+              <div key={rail}>
+                <div className="skeleton skeleton-title"></div>
+                <div className="skeleton-rail">
+                  {[1, 2, 3, 4, 5, 6].map((card) => (
+                    <div key={card} className="skeleton skeleton-card"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         ) : categories.length === 0 ? (
            <h3 style={{ textAlign: 'center', color: '#a1a1aa' }}>No titles found</h3>

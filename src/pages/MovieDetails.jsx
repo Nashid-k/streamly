@@ -220,9 +220,25 @@ export default function MovieDetails() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <h2>Loading details...</h2>
+      <div className="main-content" style={{ padding: '0 3rem' }}>
+        <div className="details-content-wrapper">
+          <div className="skeleton details-poster-large"></div>
+          <div className="details-text" style={{ flex: 1 }}>
+            <div className="skeleton skeleton-title" style={{ width: '60%', height: '3rem', marginBottom: '1.5rem' }}></div>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+              <div className="skeleton" style={{ width: '40px', height: '1.2rem' }}></div>
+              <div className="skeleton" style={{ width: '60px', height: '1.2rem' }}></div>
+              <div className="skeleton" style={{ width: '80px', height: '1.2rem' }}></div>
+            </div>
+            <div className="skeleton" style={{ width: '100%', height: '1rem', marginBottom: '0.8rem' }}></div>
+            <div className="skeleton" style={{ width: '90%', height: '1rem', marginBottom: '0.8rem' }}></div>
+            <div className="skeleton" style={{ width: '95%', height: '1rem', marginBottom: '2rem' }}></div>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="skeleton" style={{ width: '120px', height: '48px', borderRadius: '100px' }}></div>
+              <div className="skeleton" style={{ width: '120px', height: '48px', borderRadius: '100px' }}></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
