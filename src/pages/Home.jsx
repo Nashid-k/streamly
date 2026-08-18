@@ -216,7 +216,9 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
       
       if (filter === 'series') filtered = filtered.filter(m => m.isSeries);
       else if (filter === 'movies') filtered = filtered.filter(m => !m.isSeries);
-      else if (filter === 'anime') filtered = filtered.filter(m => cat.name.toLowerCase().includes('anime') || (m.genres?.includes('Animation') && m.audioLanguages?.includes('Japanese')));
+      else if (filter === 'anime') {
+        if (!cat.name.toLowerCase().includes('anime')) continue;
+      }
       else if (filter === 'new') filtered = filtered.sort((a, b) => b.releaseYear - a.releaseYear).slice(0, 30);
       
       if (filter === 'all' || filter === 'series' || filter === 'movies' || filter === 'anime') {
