@@ -234,7 +234,7 @@ a {
   left: 0;
   padding: var(--spacing-3xl);
   color: white;
-  max-width: 800px;
+  max-width: 1200px;
   z-index: 2;
 }
 
