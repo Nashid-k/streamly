@@ -262,6 +262,8 @@ function Layout({ children }) {
   );
 }
 
+import { ServerWakeupNotification } from './ServerWakeupNotification';
+
 function PlaceholderPage({ title }) {
   return (
     <div style={{ padding: '6rem 2rem', textAlign: 'center', color: '#a1a1aa' }}>
@@ -275,6 +277,7 @@ function App() {
   return (
     <Router>
       <NavigationLoader />
+      <ServerWakeupNotification />
       <Layout>
         <Routes>
           <Route path="/" element={<HomePage filter="all" title="Trending Across Platforms" />} />
