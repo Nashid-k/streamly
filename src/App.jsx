@@ -148,6 +148,9 @@ function Layout({ children }) {
             <Link to="/new" className={`nav-item ${location.pathname.includes('/new') ? 'active' : ''}`}>
               New & Popular
             </Link>
+            <Link to="/anime" className={`nav-item ${location.pathname.includes('/anime') ? 'active' : ''}`}>
+              Anime
+            </Link>
             <Link to="/mylist" className={`nav-item ${location.pathname.includes('/mylist') ? 'active' : ''}`}>
               My List
             </Link>
@@ -298,6 +301,7 @@ function App() {
           <Route path="/series" element={<HomePage filter="series" title="Top TV Series" />} />
           <Route path="/movies" element={<HomePage filter="movies" title="Blockbuster Movies" />} />
           <Route path="/new" element={<HomePage filter="new" title="New & Popular Arrivals" />} />
+          <Route path="/anime" element={<HomePage filter="anime" title="Anime Collection" />} />
           <Route path="/mylist" element={<HomePage filter="mylist" title="Your Watchlist" />} />
           <Route path="/movie/:platform/:id" element={<MovieDetails />} />
           <Route path="/person/:id" element={<PersonDetails />} />

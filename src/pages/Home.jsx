@@ -216,9 +216,10 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
       
       if (filter === 'series') filtered = filtered.filter(m => m.isSeries);
       else if (filter === 'movies') filtered = filtered.filter(m => !m.isSeries);
+      else if (filter === 'anime') filtered = filtered.filter(m => cat.name.toLowerCase().includes('anime') || (m.genres?.includes('Animation') && m.audioLanguages?.includes('Japanese')));
       else if (filter === 'new') filtered = filtered.sort((a, b) => b.releaseYear - a.releaseYear).slice(0, 30);
       
-      if (filter === 'all' || filter === 'series' || filter === 'movies') {
+      if (filter === 'all' || filter === 'series' || filter === 'movies' || filter === 'anime') {
           // deterministic pseudo-random sort using id to prevent blinking across renders
           filtered = filtered.sort((a, b) => (a.id * 13 % 10) - (b.id * 13 % 10));
       }
@@ -236,6 +237,7 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
       featuredMovies.forEach(fm => {
         if (filter === 'series' && fm.isSeries) pool.push(fm);
         else if (filter === 'movies' && !fm.isSeries) pool.push(fm);
+        else if (filter === 'anime' && (fm.genres?.includes('Animation') && fm.audioLanguages?.includes('Japanese'))) pool.push(fm);
         else if (filter === 'all' || filter === 'new' || filter === 'mylist') pool.push(fm);
       });
     }
