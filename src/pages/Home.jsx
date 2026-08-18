@@ -245,10 +245,8 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
       });
     }
     
-    // Sort stably so we don't blink on updates, but initial index is random
-    
-    const premiumPool = pool.filter(m => m.logoUrl);
-    const finalPool = premiumPool.length > 0 ? premiumPool : pool;
+    // Limit to top 10 to keep the banner high-quality and relevant
+    const finalPool = pool.slice(0, 10);
     if (finalPool.length === 0) return null;
     return finalPool[featuredIndex % finalPool.length];
   }, [featuredMovie, categories, featuredIndex, filter]);
