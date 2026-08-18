@@ -467,7 +467,7 @@ export default function MovieDetails() {
                     animate="show"
                   >
                     {[
-                      { icon: <Calendar size={15} />, label: movie.releaseYear, bg: 'rgba(255,255,255,0.06)' },
+                      { icon: <Calendar size={15} />, label: (movie.isUpcoming && movie.releaseDate) ? new Date(movie.releaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : movie.releaseYear, bg: 'rgba(255,255,255,0.06)' },
                       { icon: <Clock size={15} />, label: movie.duration || (movie.isSeries ? 'Series' : 'Movie'), bg: 'rgba(255,255,255,0.06)' },
                       ...(movie.imdbRating > 0 ? [{ icon: '⭐', label: movie.imdbRating, bg: 'rgba(251,191,36,0.1)', color: '#fbbf24' }] : []),
                       { icon: <Star size={15} fill="#fbbf24" color="#fbbf24" />, label: movie.maturityRating || 'PG', bg: 'rgba(251,191,36,0.08)', color: '#fbbf24' },
@@ -525,19 +525,25 @@ export default function MovieDetails() {
               animate="show"
             >
               {[
-                {
+                ...(movie.isUpcoming ? [] : [{
                   cls: 'btn btn-primary',
                   style: { fontSize: '1.05rem', padding: '1rem 2rem' },
                   onClick: () => { setPlayMode('movie'); setIsPlaying(true); setPlayingEpisode(1); updateProgress({ ...movie, source: platform, sourceName }, movie.isSeries ? 1 : null, movie.isSeries ? 1 : null); },
                   children: <><Play size={20} fill="currentColor" stroke="none" /> Play Now</>
-                },
+                }]),
+                ...(movie.isUpcoming && movie.trailerUrl ? [{
+                  cls: 'btn btn-primary',
+                  style: { fontSize: '1.05rem', padding: '1rem 2rem' },
+                  onClick: () => { setPlayMode('trailer'); setIsPlaying(true); },
+                  children: <><Play size={20} fill="currentColor" stroke="none" /> Watch Trailer</>
+                }] : []),
                 {
                   cls: 'btn btn-glass',
                   style: { fontSize: '1.05rem', padding: '1rem 2rem' },
                   onClick: () => toggleMyList(movie),
                   children: <>{isInList(movie.id) ? <Check size={20} color="#4ade80" /> : <Plus size={20} />} {isInList(movie.id) ? 'Added' : 'My List'}</>
                 },
-                ...(movie.trailerUrl ? [{
+                ...(!movie.isUpcoming && movie.trailerUrl ? [{
                   cls: 'btn btn-glass',
                   style: { fontSize: '1.05rem', padding: '1rem 2rem', background: 'transparent', borderColor: 'rgba(255,255,255,0.25)' },
                   onClick: () => { setPlayMode('trailer'); setIsPlaying(true); },
@@ -907,16 +913,18 @@ export default function MovieDetails() {
                 )}
                 {playMode === 'trailer' && (
                   <>
-                    <motion.button
-                      className="btn btn-primary"
-                      onClick={() => { setPlayMode('movie'); setPlayingEpisode(1); updateProgress({ ...movie, source: platform, sourceName }, movie.isSeries ? 1 : null, movie.isSeries ? 1 : null); }}
-                      style={{ padding: '0.5rem 1.5rem', fontSize: '0.92rem' }}
-                      whileHover={{ scale: 1.04, y: -1 }}
-                      whileTap={{ scale: 0.96 }}
-                    >
-                      <Play size={15} fill="currentColor" stroke="none" />
-                      Play {movie.isSeries ? 'Series' : 'Movie'}
-                    </motion.button>
+                    {!movie.isUpcoming && (
+                      <motion.button
+                        className="btn btn-primary"
+                        onClick={() => { setPlayMode('movie'); setPlayingEpisode(1); updateProgress({ ...movie, source: platform, sourceName }, movie.isSeries ? 1 : null, movie.isSeries ? 1 : null); }}
+                        style={{ padding: '0.5rem 1.5rem', fontSize: '0.92rem' }}
+                        whileHover={{ scale: 1.04, y: -1 }}
+                        whileTap={{ scale: 0.96 }}
+                      >
+                        <Play size={15} fill="currentColor" stroke="none" />
+                        Play {movie.isSeries ? 'Series' : 'Movie'}
+                      </motion.button>
+                    )}
                     <motion.button
                       onClick={() => setIsPlaying(false)}
                       style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', marginLeft: '0.25rem' }}
