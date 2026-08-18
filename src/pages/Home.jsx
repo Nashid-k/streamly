@@ -114,7 +114,7 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
   const [loading, setLoading] = useState(!CACHED_RAW_CATEGORIES);
   const [showDesc, setShowDesc] = useState(false);
   const [descTimeout, setDescTimeout] = useState(null);
-  const [featuredMovie, setFeaturedMovie] = useState(CACHED_FEATURED || null);
+  const [featuredMovies, setFeaturedMovies] = useState(CACHED_FEATURED || []);
   const [featuredIndex, setFeaturedIndex] = useState(() => Math.floor(Math.random() * 20));
   const [visibleCatCount, setVisibleCatCount] = useState(2);
   const { continueWatching } = useContinueWatching();
@@ -146,7 +146,7 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
   useEffect(() => {
     if (CACHED_RAW_CATEGORIES) {
       setRawCategories(CACHED_RAW_CATEGORIES);
-      setFeaturedMovie(CACHED_FEATURED);
+      setFeaturedMovies(CACHED_FEATURED);
       setLoading(false);
       return;
     }
@@ -157,10 +157,10 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
       const featuredPromise = fetch(`${API_URL}/movies/featured?platform=nflix`)
         .then(res => res.json())
         .then(data => {
-          if (data) {
-            const fm = { ...data, source: 'nflix', sourceName: 'Netflix' };
-            CACHED_FEATURED = fm;
-            setFeaturedMovie(fm);
+          if (Array.isArray(data) && data.length > 0) {
+            const mapped = data.map(m => ({ ...m, source: 'nflix', sourceName: 'Netflix' }));
+            CACHED_FEATURED = mapped;
+            setFeaturedMovies(mapped);
           }
         })
         .catch(() => {});
@@ -203,7 +203,7 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
     } else {
       FETCH_PROMISE.then(() => {
         setRawCategories(CACHED_RAW_CATEGORIES || []);
-        setFeaturedMovie(CACHED_FEATURED || null);
+        setFeaturedMovies(CACHED_FEATURED || null);
         setLoading(false);
       });
     }
@@ -232,10 +232,12 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
 
   const activeFeaturedMovie = useMemo(() => {
     let pool = [];
-    if (featuredMovie) {
-      if (filter === 'series' && featuredMovie.isSeries) pool.push(featuredMovie);
-      else if (filter === 'movies' && !featuredMovie.isSeries) pool.push(featuredMovie);
-      else if (filter === 'all' || filter === 'new' || filter === 'mylist') pool.push(featuredMovie);
+    if (featuredMovies.length > 0) {
+      featuredMovies.forEach(fm => {
+        if (filter === 'series' && fm.isSeries) pool.push(fm);
+        else if (filter === 'movies' && !fm.isSeries) pool.push(fm);
+        else if (filter === 'all' || filter === 'new' || filter === 'mylist') pool.push(fm);
+      });
     }
     if (categories.length > 0) {
       categories.forEach(c => {
@@ -245,11 +247,15 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
       });
     }
     
+    // Prioritize movies with title logos for a premium banner experience
+    const premiumPool = pool.filter(m => m.logoUrl);
+    const poolToUse = premiumPool.length >= 3 ? premiumPool : pool;
+    
     // Limit to top 10 to keep the banner high-quality and relevant
-    const finalPool = pool.slice(0, 10);
+    const finalPool = poolToUse.slice(0, 10);
     if (finalPool.length === 0) return null;
     return finalPool[featuredIndex % finalPool.length];
-  }, [featuredMovie, categories, featuredIndex, filter]);
+  }, [featuredMovies, categories, featuredIndex, filter]);
 
   const handleMouseEnterDesc = () => {
     if (descTimeout) clearTimeout(descTimeout);
