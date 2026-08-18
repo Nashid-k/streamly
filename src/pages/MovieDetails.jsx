@@ -117,6 +117,7 @@ export default function MovieDetails() {
   const [movie, setMovie] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [episodesLoading, setEpisodesLoading] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [episodes, setEpisodes] = useState([]);
 
@@ -124,9 +125,15 @@ export default function MovieDetails() {
   const { updateProgress } = useContinueWatching();
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const [iframeLoading, setIframeLoading] = useState(false);
   const [playMode, setPlayMode] = useState('movie');
   const [playingServerIndex, setPlayingServerIndex] = useState(0);
   const [playingEpisode, setPlayingEpisode] = useState(1);
+
+  // Trigger loading state when iframe src/key is about to change
+  useEffect(() => {
+    if (isPlaying) setIframeLoading(true);
+  }, [isPlaying, playMode, playingServerIndex, playingEpisode, selectedSeason]);
   const castRailRef = useRef(null);
   const pageRef = useRef(null);
 
@@ -166,11 +173,14 @@ export default function MovieDetails() {
   useEffect(() => {
     if (movie && movie.isSeries && movie.id === id) {
       let isMounted = true;
+      setEpisodesLoading(true);
+      setEpisodes([]); // clear stale episodes immediately
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
       fetch(`${API_URL}/movies/${id}/season/${selectedSeason}?platform=${platform}`)
         .then(res => res.json())
         .then(data => { if (isMounted && Array.isArray(data)) setEpisodes(data); })
-        .catch(console.error);
+        .catch(console.error)
+        .finally(() => { if (isMounted) setEpisodesLoading(false); });
       return () => { isMounted = false; };
     }
   }, [selectedSeason, movie, id, platform]);
@@ -643,7 +653,7 @@ export default function MovieDetails() {
                                 onMouseEnter={e => e.currentTarget.style.borderColor = '#fb923c'}
                                 onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
                               >
-                                <img src={img} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={img} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />
                               </div>
                               <div style={{ textAlign: 'center', width: '100%' }}>
                                 <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#f4f4f5', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
@@ -725,64 +735,83 @@ export default function MovieDetails() {
 
           <motion.div
             style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}
+            key={`season-${selectedSeason}-${episodesLoading}`}
             variants={episodesContainerVariants}
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-60px' }}
           >
-            {episodes.map((ep, idx) => (
-              <motion.div
-                key={ep.id || idx}
-                variants={episodeVariants}
-                whileHover={{ y: -6, scale: 1.015 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: platform, sourceName }, selectedSeason, ep.episodeNumber); }}
-                style={{ background: '#0a0a0d', borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
-                transition={{ type: 'spring', stiffness: 320, damping: 24 }}
-              >
-                <div style={{ position: 'relative', aspectRatio: '16/9', background: '#18181b', overflow: 'hidden' }}>
-                  {ep.thumbnailUrl && (
-                    <motion.img
-                      src={ep.thumbnailUrl}
-                      alt={ep.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      whileHover={{ scale: 1.06 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
-                    />
-                  )}
-                  <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.82)', padding: '2px 8px', borderRadius: '5px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em' }}>
-                    {ep.duration}
+            {episodesLoading ? (
+              // Skeleton placeholders while episodes load
+              Array.from({ length: 6 }).map((_, idx) => (
+                <div key={idx} style={{ background: '#0a0a0d', borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="skeleton" style={{ width: '100%', aspectRatio: '16/9' }}></div>
+                  <div style={{ padding: '1rem 1.1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div className="skeleton" style={{ height: '1rem', width: '60%', borderRadius: '4px' }}></div>
+                    <div className="skeleton" style={{ height: '0.8rem', width: '90%', borderRadius: '4px' }}></div>
+                    <div className="skeleton" style={{ height: '0.8rem', width: '75%', borderRadius: '4px' }}></div>
                   </div>
-                  <motion.div
-                    style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)' }}
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 1 }}
-                    transition={{ duration: 0.22 }}
-                  >
+                </div>
+              ))
+            ) : episodes.length === 0 ? (
+              <p style={{ color: '#52525b', gridColumn: '1/-1', textAlign: 'center', padding: '3rem 0' }}>No episodes found for this season.</p>
+            ) : (
+              episodes.map((ep, idx) => (
+                <motion.div
+                  key={ep.id || idx}
+                  variants={episodeVariants}
+                  whileHover={{ y: -6, scale: 1.015 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: platform, sourceName }, selectedSeason, ep.episodeNumber); }}
+                  style={{ background: '#0a0a0d', borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+                >
+                  <div style={{ position: 'relative', aspectRatio: '16/9', background: '#18181b', overflow: 'hidden' }}>
+                    {ep.thumbnailUrl && (
+                      <motion.img
+                        src={ep.thumbnailUrl}
+                        alt={ep.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        loading="lazy"
+                        decoding="async"
+                        whileHover={{ scale: 1.06 }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                      />
+                    )}
+                    <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.82)', padding: '2px 8px', borderRadius: '5px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                      {ep.duration}
+                    </div>
                     <motion.div
-                      style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}
-                      initial={{ scale: 0.7 }}
-                      whileHover={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                      style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)' }}
+                      initial={{ opacity: 0 }}
+                      whileHover={{ opacity: 1 }}
+                      transition={{ duration: 0.22 }}
                     >
-                      <Play size={22} fill="currentColor" stroke="none" style={{ marginLeft: '3px' }} />
+                      <motion.div
+                        style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}
+                        initial={{ scale: 0.7 }}
+                        whileHover={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                      >
+                        <Play size={22} fill="currentColor" stroke="none" style={{ marginLeft: '3px' }} />
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                </div>
-                <div style={{ padding: '1rem 1.1rem' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: '0 0 0.4rem', lineHeight: 1.35, color: '#f4f4f5' }}>{ep.episodeNumber}. {ep.title}</h3>
-                  <p style={{ fontSize: '0.83rem', color: '#71717a', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.55 }}>
-                    {ep.description}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
+                  </div>
+                  <div style={{ padding: '1rem 1.1rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: '0 0 0.4rem', lineHeight: 1.35, color: '#f4f4f5' }}>{ep.episodeNumber}. {ep.title}</h3>
+                    <p style={{ fontSize: '0.83rem', color: '#71717a', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.55 }}>
+                      {ep.description}
+                    </p>
+                  </div>
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </motion.section>
       )}
 
       {/* ── More Like This ────────────────────────────────────────────────────── */}
-      {similar && similar.length > 0 && (
+      {(loading || (similar && similar.length > 0)) && (
         <motion.section
           style={{ marginTop: '5rem' }}
           initial={{ opacity: 0 }}
@@ -799,37 +828,58 @@ export default function MovieDetails() {
           >
             More Like This
           </motion.h2>
-          <motion.div
-            className="movie-grid"
-            variants={gridVariants}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-100px' }}
-          >
-            {similar.slice(0, 12).map((sim, idx) => (
-              <motion.div key={`${sim.id}-${idx}`} variants={cardVariants}>
-                <Link to={`/movie/${platform}/${sim.id}`}>
-                  <div className="movie-card">
-                    <div className="poster-wrapper">
-                      <img src={sim.posterUrl || sim.poster} alt={sim.title} className="movie-poster" />
-                      <div className="card-overlay">
-                        <div className="play-circle">
-                          <Play size={24} fill="currentColor" stroke="none" style={{ marginLeft: '4px' }} />
+          {loading ? (
+            <div className="movie-grid">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i}>
+                  <div className="skeleton" style={{ width: '100%', aspectRatio: '2/3', borderRadius: '12px', marginBottom: '0.5rem' }}></div>
+                  <div className="skeleton" style={{ height: '1rem', width: '70%', borderRadius: '4px', marginBottom: '0.4rem' }}></div>
+                  <div className="skeleton" style={{ height: '0.8rem', width: '40%', borderRadius: '4px' }}></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <motion.div
+              className="movie-grid"
+              variants={gridVariants}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-100px' }}
+            >
+              {similar.slice(0, 12).map((sim, idx) => (
+                <motion.div key={`${sim.id}-${idx}`} variants={cardVariants}>
+                  <Link to={`/movie/${platform}/${sim.id}`}>
+                    <div className="movie-card">
+                      <div className="poster-wrapper">
+                        <img
+                          src={sim.posterUrl || sim.poster}
+                          alt={sim.title}
+                          className="movie-poster"
+                          loading="lazy"
+                          decoding="async"
+                          width="220"
+                          height="330"
+                          onError={e => { e.currentTarget.style.opacity = '0'; }}
+                        />
+                        <div className="card-overlay">
+                          <div className="play-circle">
+                            <Play size={24} fill="currentColor" stroke="none" style={{ marginLeft: '4px' }} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="movie-info">
+                        <h3 className="movie-title">{sim.title}</h3>
+                        <div className="movie-meta">
+                          <span>{sim.releaseYear}</span>
+                          <span className={`source-tag source-${platform}`}>{sourceName}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="movie-info">
-                      <h3 className="movie-title">{sim.title}</h3>
-                      <div className="movie-meta">
-                        <span>{sim.releaseYear}</span>
-                        <span className={`source-tag source-${platform}`}>{sourceName}</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </motion.section>
       )}
 
@@ -890,10 +940,11 @@ export default function MovieDetails() {
                       Prev
                     </motion.button>
                     <motion.button
-                      onClick={() => setPlayingEpisode(prev => prev + 1)}
-                      style={{ background: '#e50914', border: 'none', color: 'white', padding: '0.5rem 1.1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}
-                      whileHover={{ scale: 1.05, background: '#ff0a16' }}
-                      whileTap={{ scale: 0.95 }}
+                      onClick={() => { if (playingEpisode < episodes.length) setPlayingEpisode(prev => prev + 1); }}
+                      disabled={playingEpisode >= episodes.length}
+                      style={{ background: '#e50914', border: 'none', color: 'white', padding: '0.5rem 1.1rem', borderRadius: '8px', cursor: playingEpisode >= episodes.length ? 'not-allowed' : 'pointer', fontWeight: 700, opacity: playingEpisode >= episodes.length ? 0.4 : 1 }}
+                      whileHover={playingEpisode < episodes.length ? { scale: 1.05, background: '#ff0a16' } : {}}
+                      whileTap={playingEpisode < episodes.length ? { scale: 0.95 } : {}}
                     >
                       Next Ep
                     </motion.button>
@@ -943,18 +994,27 @@ export default function MovieDetails() {
               initial={{ opacity: 0, scale: playMode === 'trailer' ? 0.95 : 1 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-              style={{ flex: 1, background: playMode === 'trailer' ? 'transparent' : 'black', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: playMode === 'trailer' ? '1.5rem 3rem 2.5rem' : '0' }}
+              style={{ position: 'relative', flex: 1, background: playMode === 'trailer' ? 'transparent' : 'black', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: playMode === 'trailer' ? '1.5rem 3rem 2.5rem' : '0' }}
             >
+              {iframeLoading && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: -1 }}>
+                  <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#e50914', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ marginTop: '1rem', color: '#a1a1aa', fontSize: '0.9rem', fontWeight: 500 }}>Loading player...</span>
+                </div>
+              )}
               <iframe
                 key={`${playingServerIndex}-${selectedSeason}-${playingEpisode}`}
                 src={playMode === 'trailer' ? decodeUrl(movie.trailerUrl) : SERVERS[playingServerIndex].url(movie.id, movie.isSeries ? selectedSeason : null, movie.isSeries ? playingEpisode : null)}
+                onLoad={() => setIframeLoading(false)}
                 style={{
                   width: '100%',
                   height: playMode === 'trailer' ? 'min(calc(100vw * 9/16), calc(100vh - 120px))' : '100%',
                   maxWidth: playMode === 'trailer' ? 'min(1400px, calc((100vh - 120px) * 16/9))' : 'none',
                   border: 'none',
                   borderRadius: playMode === 'trailer' ? '20px' : '0',
-                  boxShadow: playMode === 'trailer' ? '0 32px 64px -12px rgba(0,0,0,0.9)' : 'none'
+                  boxShadow: playMode === 'trailer' ? '0 32px 64px -12px rgba(0,0,0,0.9)' : 'none',
+                  opacity: iframeLoading ? 0 : 1,
+                  transition: 'opacity 0.4s ease'
                 }}
                 allowFullScreen
               />

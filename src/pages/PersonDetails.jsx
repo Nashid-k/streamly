@@ -92,18 +92,20 @@ export default function PersonDetails() {
         {/* Profile Image */}
         <div style={{ flexShrink: 0 }}>
           {person.profileUrl ? (
-            <img 
-              src={person.profileUrl} 
-              alt={person.name} 
-              style={{
-                width: '300px',
-                height: '450px',
-                objectFit: 'cover',
-                borderRadius: '1.25rem',
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)',
-                border: '1px solid rgba(255,255,255,0.1)'
-              }} 
-            />
+              <img 
+                src={person.profileUrl} 
+                alt={person.name} 
+                loading="lazy"
+                decoding="async"
+                style={{
+                  width: '300px',
+                  height: '450px',
+                  objectFit: 'cover',
+                  borderRadius: '1.25rem',
+                  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }} 
+              />
           ) : (
             <div style={{ width: '300px', height: '450px', background: '#18181b', borderRadius: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ color: '#a1a1aa' }}>No Image</span>
@@ -156,7 +158,7 @@ export default function PersonDetails() {
                 key={`${movie.id}-${idx}`} 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
+                transition={{ delay: Math.min(idx * 0.05, 0.3) }}
               >
                 <Link to={`/movie/${movie.source || 'nflix'}/${movie.id}`}>
                   <div className="movie-card">

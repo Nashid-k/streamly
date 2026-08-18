@@ -45,7 +45,16 @@ const MovieRail = ({ category }) => {
                 <Link to={`/movie/${movieSource}/${movie.id}`}>
                   <div className="movie-card">
                     <div className="poster-wrapper">
-                      <img src={movie.posterUrl || movie.poster} alt={movie.title} className="movie-poster" />
+                      <img
+                        src={movie.posterUrl || movie.poster}
+                        alt={movie.title}
+                        className="movie-poster"
+                        loading="lazy"
+                        decoding="async"
+                        width="220"
+                        height="330"
+                        onError={e => { e.currentTarget.style.opacity = '0'; }}
+                      />
                       <div className="card-overlay">
                         <div className="play-circle">
                           <Play size={24} fill="currentColor" stroke="none" style={{ marginLeft: '4px' }} />
@@ -116,14 +125,14 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
   const [descTimeout, setDescTimeout] = useState(null);
   const [featuredMovies, setFeaturedMovies] = useState(CACHED_FEATURED || []);
   const [featuredIndex, setFeaturedIndex] = useState(() => Math.floor(Math.random() * 20));
-  const [visibleCatCount, setVisibleCatCount] = useState(2);
+  const [visibleCatCount, setVisibleCatCount] = useState(4);
   const { continueWatching } = useContinueWatching();
   const { myList } = useMyList();
 
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
-        setVisibleCatCount(prev => prev + 2);
+        setVisibleCatCount(prev => prev + 3);
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -139,8 +148,8 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
 
   useEffect(() => {
     // Reset visible count when filter changes so we scroll from top again
-    setVisibleCatCount(2);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setVisibleCatCount(4);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [filter]);
 
   useEffect(() => {
@@ -292,12 +301,14 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
             transition={{ duration: 0.8, ease: "easeOut" }}
             style={{ willChange: 'opacity, transform' }}
           >
-            <div 
+            <img 
+              src={activeFeaturedMovie.backdropUrl || activeFeaturedMovie.posterUrl || activeFeaturedMovie.poster}
+              alt={activeFeaturedMovie.title}
               className="hero-bg" 
-              style={{ 
-                backgroundImage: `url(${activeFeaturedMovie.backdropUrl || activeFeaturedMovie.posterUrl || activeFeaturedMovie.poster})`,
-                willChange: 'transform'
-              }} 
+              fetchpriority="high"
+              loading="eager"
+              decoding="async"
+              style={{ willChange: 'transform' }} 
             />
             <div className="hero-overlay" />
             
@@ -377,7 +388,7 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
         
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-            {[1, 2].map((rail) => (
+            {[1, 2, 3, 4].map((rail) => (
               <div key={rail}>
                 <div className="skeleton skeleton-title"></div>
                 <div className="skeleton-rail">
