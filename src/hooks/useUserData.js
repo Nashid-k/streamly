@@ -5,18 +5,28 @@ function safeJsonParse(str, fallback = []) {
 }
 
 export function useMyList() {
-  const [myList, setMyList] = useState([]);
+  const [myList, setMyList] = useState(() => safeJsonParse(localStorage.getItem('aios_my_list'), []));
 
   useEffect(() => {
-    const saved = localStorage.getItem('aios_my_list');
-    if (saved) setMyList(safeJsonParse(saved, []));
+    const handleSync = () => {
+      setMyList(safeJsonParse(localStorage.getItem('aios_my_list'), []));
+    };
+    window.addEventListener('aios_sync_mylist', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('aios_sync_mylist', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, []);
 
   const toggleMyList = (movie) => {
     setMyList(prev => {
       const exists = prev.find(m => m.id === movie.id);
       const newList = exists ? prev.filter(m => m.id !== movie.id) : [...prev, movie];
-      try { localStorage.setItem('aios_my_list', JSON.stringify(newList)); } catch {}
+      try { 
+        localStorage.setItem('aios_my_list', JSON.stringify(newList)); 
+        window.dispatchEvent(new Event('aios_sync_mylist'));
+      } catch {}
       return newList;
     });
   };
@@ -27,11 +37,18 @@ export function useMyList() {
 }
 
 export function useContinueWatching() {
-  const [continueWatching, setContinueWatching] = useState([]);
+  const [continueWatching, setContinueWatching] = useState(() => safeJsonParse(localStorage.getItem('aios_continue_watching'), []));
 
   useEffect(() => {
-    const saved = localStorage.getItem('aios_continue_watching');
-    if (saved) setContinueWatching(safeJsonParse(saved, []));
+    const handleSync = () => {
+      setContinueWatching(safeJsonParse(localStorage.getItem('aios_continue_watching'), []));
+    };
+    window.addEventListener('aios_sync_cw', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('aios_sync_cw', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, []);
 
   const updateProgress = (movie, season = null, episode = null) => {
@@ -39,10 +56,26 @@ export function useContinueWatching() {
       const filtered = prev.filter(m => m.id !== movie.id);
       const newItem = { ...movie, lastWatched: Date.now(), savedSeason: season, savedEpisode: episode };
       const newList = [newItem, ...filtered].slice(0, 20);
-      try { localStorage.setItem('aios_continue_watching', JSON.stringify(newList)); } catch {}
+      try { 
+        localStorage.setItem('aios_continue_watching', JSON.stringify(newList)); 
+        window.dispatchEvent(new Event('aios_sync_cw'));
+      } catch {}
       return newList;
     });
   };
 
-  return { continueWatching, updateProgress };
+  const removeFromContinueWatching = (movieId) => {
+    setContinueWatching(prev => {
+      const newList = prev.filter(m => m.id !== movieId);
+      try { 
+        localStorage.setItem('aios_continue_watching', JSON.stringify(newList)); 
+        window.dispatchEvent(new Event('aios_sync_cw'));
+      } catch {}
+      return newList;
+    });
+  };
+
+  return { continueWatching, updateProgress, removeFromContinueWatching };
 }
+
+
