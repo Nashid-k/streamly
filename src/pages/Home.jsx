@@ -316,7 +316,7 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
         if (!allMovies.find(x => x.id === m.id)) allMovies.push(m);
       }
     }
-    return allMovies.sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0)).slice(0, 10);
+    return allMovies.sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 10);
   }, [categories]);
 
   const lastWatched = continueWatching && continueWatching.length > 0 ? continueWatching[0] : null;
