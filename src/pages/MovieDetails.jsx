@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Play, ArrowLeft, Star, Clock, Calendar, Plus, Check, ChevronLeft, ChevronRight, X, MonitorPlay, Volume2, VolumeX, Share2, SkipForward, SkipBack } from 'lucide-react';
+import { Play, ArrowLeft, Star, Clock, Calendar, Plus, Check, ChevronLeft, ChevronRight, X, MonitorPlay, Volume2, VolumeX, SkipForward, SkipBack } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useMyList, useContinueWatching } from '../hooks/useUserData';
 
@@ -16,8 +16,8 @@ const decodeUrl = (encodedStr) => {
 };
 
 const SERVERS = [
-  { name: 'Server 1', url: (id, s, e) => s ? `https://vidsrc.to/embed/tv/${getNumericId(id)}/${s}/${e}` : `https://vidsrc.to/embed/movie/${getNumericId(id)}` },
-  { name: 'Server 2', url: (id, s, e) => s ? `https://vidsrc.me/embed/tv?tmdb=${getNumericId(id)}&season=${s}&episode=${e}` : `https://vidsrc.me/embed/movie?tmdb=${getNumericId(id)}` },
+  { name: 'Server 1', url: (id, s, e) => s ? `https://vidlink.pro/tv/${getNumericId(id)}/${s}/${e}` : `https://vidlink.pro/movie/${getNumericId(id)}` },
+  { name: 'Server 2', url: (id, s, e) => s ? `https://vidsrc.cc/v2/embed/tv/${getNumericId(id)}/${s}/${e}` : `https://vidsrc.cc/v2/embed/movie/${getNumericId(id)}` },
   { name: 'Server 3', url: (id, s, e) => s ? `https://www.2embed.cc/embedtv/${getNumericId(id)}&s=${s}&e=${e}` : `https://www.2embed.cc/embed/${getNumericId(id)}` },
   { name: 'Server 4', url: (id, s, e) => s ? `https://vidsrc.pro/embed/tv/${getNumericId(id)}/${s}/${e}` : `https://vidsrc.pro/embed/movie/${getNumericId(id)}` },
   { name: 'Server 5', url: (id, s, e) => s ? `https://multiembed.mov/directstream.php?video_id=${getNumericId(id)}&tmdb=1&s=${s}&e=${e}` : `https://multiembed.mov/directstream.php?video_id=${getNumericId(id)}&tmdb=1` }
@@ -120,7 +120,6 @@ export default function MovieDetails() {
   const [episodesLoading, setEpisodesLoading] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [episodes, setEpisodes] = useState([]);
-  const [showCopied, setShowCopied] = useState(false);
 
   const { isInList, toggleMyList } = useMyList();
   const { continueWatching, updateProgress } = useContinueWatching();
@@ -579,16 +578,6 @@ export default function MovieDetails() {
                   style: { fontSize: '1.05rem', padding: '1rem 2rem' },
                   onClick: () => toggleMyList(movie),
                   children: <>{isInList(movie.id) ? <Check size={20} color="#4ade80" /> : <Plus size={20} />} {isInList(movie.id) ? 'Added' : 'My List'}</>
-                },
-                {
-                  cls: 'btn btn-glass',
-                  style: { fontSize: '1.05rem', padding: '1rem 2rem' },
-                  onClick: () => {
-                    navigator.clipboard.writeText(window.location.href);
-                    setShowCopied(true);
-                    setTimeout(() => setShowCopied(false), 2000);
-                  },
-                  children: <>{showCopied ? <Check size={20} color="#4ade80" /> : <Share2 size={20} />} {showCopied ? 'Copied!' : 'Share'}</>
                 },
                 ...(!movie.isUpcoming && movie.trailerUrl ? [{
                   cls: 'btn btn-glass',
