@@ -3,136 +3,198 @@ import { Link } from 'react-router-dom';
 import { Play, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMyList, useContinueWatching } from '../hooks/useUserData';
-const decodeUrl = (encodedStr) => {
-  if (!encodedStr || encodedStr.startsWith('http')) return encodedStr;
-  try {
-    const secret = 'STREAMLY_SECURE';
-    const decodedB64 = atob(encodedStr);
-    return decodedB64.split('').map((char, i) => String.fromCharCode(char.charCodeAt(0) ^ secret.charCodeAt(i % secret.length))).join('');
-  } catch(e) {
-    return encodedStr;
-  }
+const cache = {
+  rawCategories: null,
+  featured: null,
+  fetchPromise: null
 };
 
-const MovieRail = ({ category }) => {
-  const railRef = useRef(null);
+const GENRE_OPTIONS = ['All', 'Action', 'Drama', 'Comedy', 'Thriller', 'Horror', 'Sci-Fi', 'Romance', 'Animation', 'Crime', 'Mystery', 'Adventure', 'Fantasy'];
 
-  const scrollRail = (dir) => {
+function MovieRail({ category }) {
+  const railRef = useRef(null);
+  const [showArrows, setShowArrows] = useState(false);
+  const isContinueWatching = category.name === 'Continue Watching';
+
+  const scroll = (dir) => {
     if (railRef.current) {
       railRef.current.scrollBy({ left: dir === 'left' ? -600 : 600, behavior: 'smooth' });
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 }}>
-      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, paddingLeft: '4px' }}>{category.name}</h3>
-      <div style={{ position: 'relative' }} className="movie-rail-wrapper">
-        <button 
-          onClick={() => scrollRail('left')} 
-          style={{ position: 'absolute', left: '-20px', top: '40%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(24, 24, 27, 0.8)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(24, 24, 27, 1)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(24, 24, 27, 0.8)'}
-        >
-          <ChevronLeft size={24} />
-        </button>
-        
-        <div ref={railRef} style={{ display: 'flex', gap: '1.5rem', overflowX: 'auto', padding: '0.5rem 4px 1.5rem', scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="movie-rail">
-          {category.movies.map((movie, idx) => {
-            // Derive platform source — handle old localStorage items that may lack 'source'
-            const movieSource = movie.source || (movie.availablePlatforms?.includes('Prime Video') ? 'nprime' : movie.availablePlatforms?.includes('Hotstar') ? 'hotstar' : 'nflix');
-            return (
-              <motion.div key={`${movie.id}-${movieSource || idx}`} style={{ width: '220px', flexShrink: 0 }}>
-                <Link to={`/movie/${movieSource}/${movie.id}`}>
-                  <div className="movie-card">
-                    <div className="poster-wrapper">
-                      <img
-                        src={movie.posterUrl || movie.poster}
-                        alt={movie.title}
-                        className="movie-poster"
-                        loading="lazy"
-                        decoding="async"
-                        width="220"
-                        height="330"
-                        onError={e => { e.currentTarget.style.opacity = '0'; }}
-                      />
-                      <div className="card-overlay">
-                        <div className="play-circle">
-                          <Play size={24} fill="currentColor" stroke="none" style={{ marginLeft: '4px' }} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="movie-info">
-                      <h3 className="movie-title">{movie.title}</h3>
-                      <div className="movie-meta">
-                        <span>{movie.releaseYear || movie.year}</span>
-                        {movie.imdbRating > 0 && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontWeight: 600 }}>
-                            ⭐ {movie.imdbRating}
-                          </span>
-                        )}
-                        <span className={`source-tag source-${movieSource}`}>
-                          {movie.sourceName}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            );
-          })}
-        </div>
+    <div
+      className="movie-rail-wrapper"
+      onMouseEnter={() => setShowArrows(true)}
+      onMouseLeave={() => setShowArrows(false)}
+      style={{ position: 'relative' }}
+    >
+      <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.02em' }}>{category.name}</h3>
 
-        <button 
-          onClick={() => scrollRail('right')} 
-          style={{ position: 'absolute', right: '-20px', top: '40%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(24, 24, 27, 0.8)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(24, 24, 27, 1)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(24, 24, 27, 0.8)'}
-        >
-          <ChevronRight size={24} />
-        </button>
+      <AnimatePresence>
+        {showArrows && (
+          <>
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => scroll('left')}
+              style={{ position: 'absolute', left: '-10px', top: '55%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+            >
+              <ChevronLeft size={22} />
+            </motion.button>
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => scroll('right')}
+              style={{ position: 'absolute', right: '-10px', top: '55%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+            >
+              <ChevronRight size={22} />
+            </motion.button>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div
+        ref={railRef}
+        className="movie-rail"
+        style={{ display: 'flex', gap: '1rem', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '0.5rem' }}
+      >
+        {category.movies.map((movie, i) => (
+          <Link to={`/movie/${movie.source || 'nflix'}/${movie.id}`} key={`${movie.id}-${i}`} style={{ flexShrink: 0 }}>
+            <div className="movie-card" style={{ width: '200px', flexShrink: 0 }}>
+              <div className="poster-wrapper">
+                <img src={movie.posterUrl || movie.backdropUrl} alt={movie.title} className="movie-poster" loading="lazy" decoding="async" />
+                <div className="card-overlay">
+                  <div className="play-circle"><Play size={24} fill="currentColor" stroke="none" style={{ marginLeft: '4px' }} /></div>
+                </div>
+                {isContinueWatching && movie.isSeries && movie.savedSeason && (
+                  <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.85)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.1)' }}>
+                    S{movie.savedSeason} E{movie.savedEpisode || 1}
+                  </div>
+                )}
+                {isContinueWatching && !movie.isSeries && (
+                  <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.85)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.1)' }}>
+                    Movie
+                  </div>
+                )}
+              </div>
+              <div className="movie-info">
+                <h3 className="movie-title">{movie.title}</h3>
+                <div className="movie-meta">
+                  <span>{movie.releaseYear || movie.year}</span>
+                  {movie.imdbRating > 0 && <span style={{ color: '#fbbf24' }}>⭐ {movie.imdbRating}</span>}
+                  <span className={`source-tag source-${movie.source}`}>{movie.sourceName}</span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   );
-};
+}
 
-const MOCK_MOVIES = [
-  { id: 1, title: "Inception", releaseYear: 2010, source: "nflix", sourceName: "Netflix", posterUrl: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg" },
-  { id: 2, title: "The Boys", releaseYear: 2019, source: "nprime", sourceName: "Prime Video", posterUrl: "https://image.tmdb.org/t/p/w500/mY7SeH4HFFxW1hiI6cWuwCRKptN.jpg" },
-  { id: 3, title: "Loki", releaseYear: 2021, source: "hotstar", sourceName: "Hotstar", posterUrl: "https://image.tmdb.org/t/p/w500/kEl2t3OhXc3Zb9FBh1AuYzRTgZp.jpg" }
-];
+function Top10Rail({ movies }) {
+  const railRef = useRef(null);
+  const [showArrows, setShowArrows] = useState(false);
+  const top10 = movies.slice(0, 10);
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 }
-  }
-};
+  const scroll = (dir) => {
+    if (railRef.current) {
+      railRef.current.scrollBy({ left: dir === 'left' ? -600 : 600, behavior: 'smooth' });
+    }
+  };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-};
+  if (top10.length === 0) return null;
 
-let CACHED_RAW_CATEGORIES = null;
-let CACHED_FEATURED = null;
-let FETCH_PROMISE = null;
+  return (
+    <div
+      className="movie-rail-wrapper"
+      onMouseEnter={() => setShowArrows(true)}
+      onMouseLeave={() => setShowArrows(false)}
+      style={{ position: 'relative' }}
+    >
+      <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.02em' }}>🔥 Top 10 Today</h3>
+
+      <AnimatePresence>
+        {showArrows && (
+          <>
+            <motion.button
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => scroll('left')}
+              style={{ position: 'absolute', left: '-10px', top: '55%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+            >
+              <ChevronLeft size={22} />
+            </motion.button>
+            <motion.button
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => scroll('right')}
+              style={{ position: 'absolute', right: '-10px', top: '55%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+            >
+              <ChevronRight size={22} />
+            </motion.button>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div
+        ref={railRef}
+        className="movie-rail"
+        style={{ display: 'flex', gap: '2rem', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '0.5rem', paddingLeft: '1rem' }}
+      >
+        {top10.map((movie, i) => (
+          <Link to={`/movie/${movie.source || 'nflix'}/${movie.id}`} key={`top10-${movie.id}`} style={{ flexShrink: 0 }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', width: '210px', flexShrink: 0 }}>
+              <span style={{
+                position: 'absolute', bottom: '-10px', left: '-25px', fontSize: '8rem', fontWeight: 900,
+                color: 'transparent', WebkitTextStroke: '3px rgba(255,255,255,0.6)',
+                lineHeight: 1, zIndex: 2, pointerEvents: 'none', userSelect: 'none',
+                textShadow: '0 4px 20px rgba(0,0,0,0.8)'
+              }}>
+                {i + 1}
+              </span>
+              <div className="movie-card" style={{ width: '160px', flexShrink: 0, marginLeft: '40px' }}>
+                <div className="poster-wrapper">
+                  <img src={movie.posterUrl || movie.backdropUrl} alt={movie.title} className="movie-poster" loading="lazy" decoding="async" />
+                  <div className="card-overlay">
+                    <div className="play-circle"><Play size={24} fill="currentColor" stroke="none" style={{ marginLeft: '4px' }} /></div>
+                  </div>
+                </div>
+                <div className="movie-info">
+                  <h3 className="movie-title">{movie.title}</h3>
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Home({ filter = 'all', title = 'Trending Across Platforms' }) {
-  const [rawCategories, setRawCategories] = useState(CACHED_RAW_CATEGORIES || []);
-  const [loading, setLoading] = useState(!CACHED_RAW_CATEGORIES);
+  const [rawCategories, setRawCategories] = useState(cache.rawCategories || []);
+  const [loading, setLoading] = useState(!cache.rawCategories);
   const [showDesc, setShowDesc] = useState(false);
   const [descTimeout, setDescTimeout] = useState(null);
-  const [featuredMovies, setFeaturedMovies] = useState(CACHED_FEATURED || []);
+  const [featuredMovies, setFeaturedMovies] = useState(cache.featured || []);
   const [featuredIndex, setFeaturedIndex] = useState(() => Math.floor(Math.random() * 20));
   const [visibleCatCount, setVisibleCatCount] = useState(4);
+  const [activeGenre, setActiveGenre] = useState('All');
   const { continueWatching } = useContinueWatching();
   const { myList } = useMyList();
 
   useEffect(() => {
+    let inThrottle;
     const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
-        setVisibleCatCount(prev => prev + 3);
+      if (!inThrottle) {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
+          setVisibleCatCount(prev => prev + 3);
+        }
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, 200);
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -149,18 +211,19 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
   useEffect(() => {
     // Reset visible count when filter changes so we scroll from top again
     setVisibleCatCount(4);
+    setActiveGenre('All');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [filter]);
 
   useEffect(() => {
-    if (CACHED_RAW_CATEGORIES) {
-      setRawCategories(CACHED_RAW_CATEGORIES);
-      setFeaturedMovies(CACHED_FEATURED);
+    if (cache.rawCategories) {
+      setRawCategories(cache.rawCategories);
+      setFeaturedMovies(cache.featured);
       setLoading(false);
       return;
     }
 
-    if (!FETCH_PROMISE) {
+    if (!cache.fetchPromise) {
       setLoading(true);
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
       const featuredPromise = fetch(`${API_URL}/movies/featured?platform=nflix`)
@@ -168,7 +231,7 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
             const mapped = data.map(m => ({ ...m, source: 'nflix', sourceName: 'Netflix' }));
-            CACHED_FEATURED = mapped;
+            cache.featured = mapped;
             setFeaturedMovies(mapped);
           }
         })
@@ -201,18 +264,18 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
           }
           aggregated.push({ name, movies: Array.from(uniqueMoviesMap.values()) });
         }
-        CACHED_RAW_CATEGORIES = aggregated;
+        cache.rawCategories = aggregated;
         setRawCategories(aggregated);
       }).catch(() => {});
 
-      FETCH_PROMISE = Promise.all([featuredPromise, catsPromise]).finally(() => {
+      cache.fetchPromise = Promise.all([featuredPromise, catsPromise]).finally(() => {
         setLoading(false);
-        FETCH_PROMISE = null;
+        cache.fetchPromise = null;
       });
     } else {
-      FETCH_PROMISE.then(() => {
-        setRawCategories(CACHED_RAW_CATEGORIES || []);
-        setFeaturedMovies(CACHED_FEATURED || null);
+      cache.fetchPromise.then(() => {
+        setRawCategories(cache.rawCategories || []);
+        setFeaturedMovies(cache.featured || null);
         setLoading(false);
       });
     }
@@ -230,6 +293,10 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
       }
       else if (filter === 'new') filtered = filtered.sort((a, b) => b.releaseYear - a.releaseYear).slice(0, 30);
       
+      if (activeGenre !== 'All') {
+        filtered = filtered.filter(m => (m.genres || []).some(g => g.toLowerCase().includes(activeGenre.toLowerCase())));
+      }
+
       if (filter === 'all' || filter === 'series' || filter === 'movies' || filter === 'anime') {
           // deterministic pseudo-random sort using id to prevent blinking across renders
           filtered = filtered.sort((a, b) => (a.id * 13 % 10) - (b.id * 13 % 10));
@@ -240,7 +307,17 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
       }
     }
     return finalCategories;
-  }, [rawCategories, filter]);
+  }, [rawCategories, filter, activeGenre]);
+
+  const top10Movies = useMemo(() => {
+    const allMovies = [];
+    for (const cat of categories) {
+      for (const m of cat.movies) {
+        if (!allMovies.find(x => x.id === m.id)) allMovies.push(m);
+      }
+    }
+    return allMovies.sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0)).slice(0, 10);
+  }, [categories]);
 
   const activeFeaturedMovie = useMemo(() => {
     let pool = [];
@@ -380,6 +457,33 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
       ) : null}
       </AnimatePresence>
 
+      {/* Genre Filter Chips */}
+      {!loading && categories.length > 0 && (
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', scrollbarWidth: 'none', padding: '0.5rem 0 1.5rem', marginBottom: '0.5rem' }}>
+          {GENRE_OPTIONS.map(genre => (
+            <button
+              key={genre}
+              onClick={() => setActiveGenre(genre)}
+              style={{
+                background: activeGenre === genre ? '#fff' : 'rgba(255,255,255,0.08)',
+                color: activeGenre === genre ? '#000' : '#fff',
+                border: 'none',
+                padding: '6px 16px',
+                borderRadius: '100px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {genre}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Categories Section */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
         <div className="section-header" style={{ marginBottom: 0 }}>
@@ -408,6 +512,9 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
             )}
             {myList && myList.length > 0 && filter === 'all' && (
               <MovieRail category={{ name: 'My List', movies: myList }} />
+            )}
+            {filter === 'all' && top10Movies.length > 0 && activeGenre === 'All' && (
+              <Top10Rail movies={top10Movies} />
             )}
             {categories.slice(0, visibleCatCount).map((category, catIdx) => (
               <MovieRail key={catIdx} category={category} />

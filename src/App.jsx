@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Home, Compass, Bookmark, Clock, User, Play, X } from 'lucide-react';
+import { Search, Home, Compass, Bookmark, Clock, User, Play, X, Menu } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import HomePage from './pages/Home';
 import MovieDetails from './pages/MovieDetails';
 import PersonDetails from './pages/PersonDetails';
+import SearchPage from './pages/SearchPage';
+import WatchlistPage from './pages/WatchlistPage';
+import HistoryPage from './pages/HistoryPage';
+import GenrePage from './pages/GenrePage';
 
 function Layout({ children }) {
   const location = useLocation();
@@ -12,7 +16,11 @@ function Layout({ children }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -50,10 +58,12 @@ function Layout({ children }) {
 
           setResults(unique.slice(0, 10));
           setLoading(false);
+          setError(null);
         })
         .catch(() => {
           setResults([]);
           setLoading(false);
+          setError('Failed to reach server. Please try again later.');
         });
     }, 400);
 
@@ -64,7 +74,29 @@ function Layout({ children }) {
   useEffect(() => {
     setShowDropdown(false);
     setQuery('');
+    setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showUserMenu]);
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter' && query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+      setQuery('');
+      setShowDropdown(false);
+    }
+  };
 
   return (
     <div className="app-container">
@@ -77,8 +109,17 @@ function Layout({ children }) {
             </div>
             Streamly
           </Link>
+
+          {/* Hamburger button for mobile */}
+          <button
+            className="hamburger-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{ display: 'none', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px' }}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
           
-          <div className="nav-links">
+          <div className={`nav-links ${mobileMenuOpen ? 'nav-links-open' : ''}`}>
             <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}>
               Home
             </Link>
@@ -94,7 +135,7 @@ function Layout({ children }) {
             <Link to="/anime" className={`nav-item ${location.pathname.includes('/anime') ? 'active' : ''}`}>
               Anime
             </Link>
-            <Link to="/mylist" className={`nav-item ${location.pathname.includes('/mylist') ? 'active' : ''}`}>
+            <Link to="/mylist" className={`nav-item ${location.pathname === '/mylist' ? 'active' : ''}`}>
               My List
             </Link>
           </div>
@@ -110,6 +151,7 @@ function Layout({ children }) {
               value={query}
               onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); }}
               onFocus={() => { if(query) setShowDropdown(true); }}
+              onKeyDown={handleSearchKeyDown}
             />
             {query && (
               <button 
@@ -154,6 +196,8 @@ function Layout({ children }) {
                          </div>
                        ))}
                      </div>
+                  ) : error ? (
+                     <div style={{padding:'3rem', textAlign:'center', color:'#ef4444'}}>{error}</div>
                   ) : results.length > 0 ? (
                      <div style={{display:'flex', flexDirection:'column'}}>
                        {results.map((r, i) => (
@@ -190,6 +234,28 @@ function Layout({ children }) {
                            </div>
                          </motion.div>
                        ))}
+                       {/* See all results link */}
+                       <div
+                         onClick={() => {
+                           navigate(`/search?q=${encodeURIComponent(query)}`);
+                           setQuery('');
+                           setShowDropdown(false);
+                         }}
+                         style={{
+                           padding: '0.85rem 1rem',
+                           textAlign: 'center',
+                           color: '#fb923c',
+                           fontWeight: 600,
+                           fontSize: '0.9rem',
+                           cursor: 'pointer',
+                           borderTop: '1px solid rgba(255,255,255,0.08)',
+                           transition: 'background 0.2s'
+                         }}
+                         onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                       >
+                         See all results for "{query}" →
+                       </div>
                      </div>
                   ) : (
                      <div style={{padding:'3rem', textAlign:'center', color:'#a1a1aa'}}>No results found for "{query}"</div>
@@ -198,8 +264,64 @@ function Layout({ children }) {
               )}
             </AnimatePresence>
           </div>
-          <div className="user-avatar">
-            <User size={20} />
+
+          {/* User Avatar with Dropdown */}
+          <div ref={userMenuRef} style={{ position: 'relative' }}>
+            <div
+              className="user-avatar"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+            >
+              <User size={20} />
+            </div>
+            <AnimatePresence>
+              {showUserMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  style={{
+                    position: 'absolute',
+                    top: '120%',
+                    right: 0,
+                    background: '#09090b',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    boxShadow: '0 20px 40px -8px rgba(0,0,0,0.9)',
+                    padding: '8px 0',
+                    minWidth: '180px',
+                    zIndex: 200
+                  }}
+                >
+                  <Link
+                    to="/mylist"
+                    onClick={() => setShowUserMenu(false)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', fontSize: '0.9rem', color: '#e4e4e7', transition: 'background 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Bookmark size={16} /> My List
+                  </Link>
+                  <Link
+                    to="/history"
+                    onClick={() => setShowUserMenu(false)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', fontSize: '0.9rem', color: '#e4e4e7', transition: 'background 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Clock size={16} /> Watch History
+                  </Link>
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', fontSize: '0.9rem', color: '#52525b', cursor: 'default' }}
+                    title="Coming Soon"
+                  >
+                    ⚙️ Settings
+                    <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', marginLeft: 'auto' }}>Soon</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </nav>
@@ -224,15 +346,6 @@ function Layout({ children }) {
 
 import { ServerWakeupNotification } from './ServerWakeupNotification';
 
-function PlaceholderPage({ title }) {
-  return (
-    <div style={{ padding: '6rem 2rem', textAlign: 'center', color: '#a1a1aa' }}>
-      <h1 style={{ color: '#fff', marginBottom: '1rem', fontSize: '2.5rem' }}>{title}</h1>
-      <p style={{ fontSize: '1.2rem' }}>This feature is currently being built. Check back later!</p>
-    </div>
-  );
-}
-
 function App() {
   return (
     <Router>
@@ -244,7 +357,10 @@ function App() {
           <Route path="/movies" element={<HomePage filter="movies" title="Blockbuster Movies" />} />
           <Route path="/new" element={<HomePage filter="new" title="New & Popular Arrivals" />} />
           <Route path="/anime" element={<HomePage filter="anime" title="Anime Collection" />} />
-          <Route path="/mylist" element={<HomePage filter="mylist" title="Your Watchlist" />} />
+          <Route path="/mylist" element={<WatchlistPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/genre/:genre" element={<GenrePage />} />
           <Route path="/movie/:platform/:id" element={<MovieDetails />} />
           <Route path="/person/:id" element={<PersonDetails />} />
         </Routes>
@@ -254,4 +370,3 @@ function App() {
 }
 
 export default App;
-

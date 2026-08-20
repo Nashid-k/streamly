@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Play, ArrowLeft, Star, Clock, Calendar, Plus, Check, ChevronLeft, ChevronRight, X, MonitorPlay, Volume2, VolumeX } from 'lucide-react';
+import { Play, ArrowLeft, Star, Clock, Calendar, Plus, Check, ChevronLeft, ChevronRight, X, MonitorPlay, Volume2, VolumeX, Share2 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useMyList, useContinueWatching } from '../hooks/useUserData';
 
@@ -120,6 +120,7 @@ export default function MovieDetails() {
   const [episodesLoading, setEpisodesLoading] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [episodes, setEpisodes] = useState([]);
+  const [showCopied, setShowCopied] = useState(false);
 
   const { isInList, toggleMyList } = useMyList();
   const { updateProgress } = useContinueWatching();
@@ -188,6 +189,14 @@ export default function MovieDetails() {
   useEffect(() => {
     document.body.style.overflow = isPlaying ? 'hidden' : 'auto';
     return () => { document.body.style.overflow = 'auto'; };
+  }, [isPlaying]);
+
+  // Close player on Escape key
+  useEffect(() => {
+    if (!isPlaying) return;
+    const handleKey = (e) => { if (e.key === 'Escape') setIsPlaying(false); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, [isPlaying]);
 
   const [showBgTrailer, setShowBgTrailer] = useState(false);
@@ -275,6 +284,7 @@ export default function MovieDetails() {
               src={movie.backdropUrl || movie.posterUrl}
               alt="Backdrop"
               style={{ y: backdropY, scale: backdropScale }}
+              onError={(e) => { e.currentTarget.style.opacity = '0'; }}
             />
           ) : (
             <motion.div
@@ -393,6 +403,7 @@ export default function MovieDetails() {
                 className="details-poster-large"
                 whileHover={{ scale: 1.03, y: -6, boxShadow: '0 40px 80px -12px rgba(0,0,0,0.95)' }}
                 transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+                onError={(e) => { e.currentTarget.style.opacity = '0'; }}
               />
             </motion.div>
           )}
@@ -446,6 +457,7 @@ export default function MovieDetails() {
                   initial={{ opacity: 0, y: 20, filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0)) blur(4px)' }}
                   animate={{ opacity: 1, y: 0, filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.7)) blur(0px)' }}
                   transition={{ delay: 0.25, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
               ) : (
                 <motion.h1
@@ -501,14 +513,20 @@ export default function MovieDetails() {
                     animate="show"
                   >
                     {(movie.genres || []).map((genre, i) => (
-                      <motion.span
+                      <motion.div
                         key={genre}
                         variants={slideUpSm}
-                        whileHover={{ scale: 1.05, borderColor: 'rgba(255,255,255,0.4)', color: '#fff' }}
-                        style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', padding: '4px 14px', borderRadius: '100px', fontSize: '0.8rem', color: '#d4d4d8', letterSpacing: '0.03em', cursor: 'default', transition: 'color 0.2s' }}
+                        whileHover={{ scale: 1.05 }}
                       >
-                        {genre}
-                      </motion.span>
+                        <Link
+                          to={`/genre/${encodeURIComponent(genre)}`}
+                          style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', padding: '4px 14px', borderRadius: '100px', fontSize: '0.8rem', color: '#d4d4d8', letterSpacing: '0.03em', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none', display: 'inline-block' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'; e.currentTarget.style.color = '#fff'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = '#d4d4d8'; }}
+                        >
+                          {genre}
+                        </Link>
+                      </motion.div>
                     ))}
                   </motion.div>
 
@@ -535,7 +553,7 @@ export default function MovieDetails() {
               animate="show"
             >
               {[
-                ...(movie.isUpcoming ? [] : [{
+                ...((movie.isUpcoming || SERVERS.length === 0) ? [] : [{
                   cls: 'btn btn-primary',
                   style: { fontSize: '1.05rem', padding: '1rem 2rem' },
                   onClick: () => { setPlayMode('movie'); setIsPlaying(true); setPlayingEpisode(1); updateProgress({ ...movie, source: platform, sourceName }, movie.isSeries ? 1 : null, movie.isSeries ? 1 : null); },
@@ -552,6 +570,16 @@ export default function MovieDetails() {
                   style: { fontSize: '1.05rem', padding: '1rem 2rem' },
                   onClick: () => toggleMyList(movie),
                   children: <>{isInList(movie.id) ? <Check size={20} color="#4ade80" /> : <Plus size={20} />} {isInList(movie.id) ? 'Added' : 'My List'}</>
+                },
+                {
+                  cls: 'btn btn-glass',
+                  style: { fontSize: '1.05rem', padding: '1rem 2rem' },
+                  onClick: () => {
+                    navigator.clipboard.writeText(window.location.href);
+                    setShowCopied(true);
+                    setTimeout(() => setShowCopied(false), 2000);
+                  },
+                  children: <>{showCopied ? <Check size={20} color="#4ade80" /> : <Share2 size={20} />} {showCopied ? 'Copied!' : 'Share'}</>
                 },
                 ...(!movie.isUpcoming && movie.trailerUrl ? [{
                   cls: 'btn btn-glass',
@@ -756,14 +784,16 @@ export default function MovieDetails() {
             ) : episodes.length === 0 ? (
               <p style={{ color: '#52525b', gridColumn: '1/-1', textAlign: 'center', padding: '3rem 0' }}>No episodes found for this season.</p>
             ) : (
-              episodes.map((ep, idx) => (
+              episodes.map((ep, idx) => {
+                const isEpPlaying = isPlaying && playingEpisode === ep.episodeNumber && playMode !== 'trailer';
+                return (
                 <motion.div
                   key={ep.id || idx}
                   variants={episodeVariants}
                   whileHover={{ y: -6, scale: 1.015 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: platform, sourceName }, selectedSeason, ep.episodeNumber); }}
-                  style={{ background: '#0a0a0d', borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
+                  onClick={() => { if (SERVERS.length > 0) { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: platform, sourceName }, selectedSeason, ep.episodeNumber); } }}
+                  style={{ background: isEpPlaying ? 'rgba(229,9,20,0.08)' : '#0a0a0d', borderRadius: '14px', overflow: 'hidden', border: isEpPlaying ? '2px solid #e50914' : '1px solid rgba(255,255,255,0.06)', cursor: SERVERS.length > 0 ? 'pointer' : 'default', opacity: SERVERS.length > 0 ? 1 : 0.6 }}
                   transition={{ type: 'spring', stiffness: 320, damping: 24 }}
                 >
                   <div style={{ position: 'relative', aspectRatio: '16/9', background: '#18181b', overflow: 'hidden' }}>
@@ -777,6 +807,11 @@ export default function MovieDetails() {
                         whileHover={{ scale: 1.06 }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}
                       />
+                    )}
+                    {isEpPlaying && (
+                      <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#e50914', color: 'white', padding: '3px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', zIndex: 10 }}>
+                        NOW PLAYING
+                      </div>
                     )}
                     <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.82)', padding: '2px 8px', borderRadius: '5px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em' }}>
                       {ep.duration}
@@ -802,9 +837,14 @@ export default function MovieDetails() {
                     <p style={{ fontSize: '0.83rem', color: '#71717a', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.55 }}>
                       {ep.description}
                     </p>
+                    {ep.airDate && (
+                      <p style={{ fontSize: '0.75rem', color: '#52525b', margin: '0.5rem 0 0', fontWeight: 500 }}>
+                        {new Date(ep.airDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    )}
                   </div>
                 </motion.div>
-              ))
+              )})
             )}
           </motion.div>
         </motion.section>
@@ -931,22 +971,38 @@ export default function MovieDetails() {
                 {movie.isSeries && playMode !== 'trailer' && (
                   <div style={{ display: 'flex', gap: '0.5rem', marginRight: '0.75rem' }}>
                     <motion.button
-                      onClick={() => { if (playingEpisode > 1) setPlayingEpisode(prev => prev - 1); }}
-                      disabled={playingEpisode <= 1}
-                      style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', cursor: playingEpisode <= 1 ? 'not-allowed' : 'pointer', opacity: playingEpisode <= 1 ? 0.4 : 1 }}
-                      whileHover={playingEpisode > 1 ? { scale: 1.04 } : {}}
-                      whileTap={playingEpisode > 1 ? { scale: 0.95 } : {}}
+                      onClick={() => {
+                        if (playingEpisode > 1) {
+                          setPlayingEpisode(prev => prev - 1);
+                        } else if (selectedSeason > 1) {
+                          // Go to previous season — episodes will load async; start at ep 1 for now
+                          setSelectedSeason(prev => prev - 1);
+                          setPlayingEpisode(1);
+                        }
+                      }}
+                      disabled={playingEpisode <= 1 && selectedSeason <= 1}
+                      style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', cursor: (playingEpisode <= 1 && selectedSeason <= 1) ? 'not-allowed' : 'pointer', opacity: (playingEpisode <= 1 && selectedSeason <= 1) ? 0.4 : 1 }}
+                      whileHover={(playingEpisode > 1 || selectedSeason > 1) ? { scale: 1.04 } : {}}
+                      whileTap={(playingEpisode > 1 || selectedSeason > 1) ? { scale: 0.95 } : {}}
                     >
                       Prev
                     </motion.button>
                     <motion.button
-                      onClick={() => { if (playingEpisode < episodes.length) setPlayingEpisode(prev => prev + 1); }}
-                      disabled={playingEpisode >= episodes.length}
-                      style={{ background: '#e50914', border: 'none', color: 'white', padding: '0.5rem 1.1rem', borderRadius: '8px', cursor: playingEpisode >= episodes.length ? 'not-allowed' : 'pointer', fontWeight: 700, opacity: playingEpisode >= episodes.length ? 0.4 : 1 }}
-                      whileHover={playingEpisode < episodes.length ? { scale: 1.05, background: '#ff0a16' } : {}}
-                      whileTap={playingEpisode < episodes.length ? { scale: 0.95 } : {}}
+                      onClick={() => {
+                        if (playingEpisode < episodes.length) {
+                          setPlayingEpisode(prev => prev + 1);
+                        } else if (selectedSeason < movie.seasonsCount) {
+                          // Auto-advance to next season
+                          setSelectedSeason(prev => prev + 1);
+                          setPlayingEpisode(1);
+                        }
+                      }}
+                      disabled={playingEpisode >= episodes.length && selectedSeason >= movie.seasonsCount}
+                      style={{ background: '#e50914', border: 'none', color: 'white', padding: '0.5rem 1.1rem', borderRadius: '8px', cursor: (playingEpisode >= episodes.length && selectedSeason >= movie.seasonsCount) ? 'not-allowed' : 'pointer', fontWeight: 700, opacity: (playingEpisode >= episodes.length && selectedSeason >= movie.seasonsCount) ? 0.4 : 1 }}
+                      whileHover={(playingEpisode < episodes.length || selectedSeason < movie.seasonsCount) ? { scale: 1.05, background: '#ff0a16' } : {}}
+                      whileTap={(playingEpisode < episodes.length || selectedSeason < movie.seasonsCount) ? { scale: 0.95 } : {}}
                     >
-                      Next Ep
+                      {playingEpisode >= episodes.length && selectedSeason < movie.seasonsCount ? 'Next Season' : 'Next Ep'}
                     </motion.button>
                   </div>
                 )}

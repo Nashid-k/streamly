@@ -592,3 +592,141 @@ img {
   content-visibility: auto;
   contain-intrinsic-size: 0 380px;
 }
+
+/* Hamburger button — hidden on desktop */
+.hamburger-btn {
+  display: none !important;
+}
+
+/* ── Mobile Responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: flex !important;
+  }
+
+  .nav-links {
+    display: none !important;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1rem 1.5rem;
+    gap: 0.5rem;
+    z-index: 99;
+  }
+
+  .nav-links.nav-links-open {
+    display: flex !important;
+  }
+
+  .nav-links .nav-item {
+    padding: 0.75rem 0;
+    font-size: 1.05rem;
+  }
+
+  .navbar {
+    padding: 0.75rem 1rem;
+    position: relative;
+  }
+
+  .nav-left {
+    gap: 0.75rem;
+  }
+
+  .logo {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+  }
+
+  .search-input {
+    width: 160px;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.8rem 0.5rem 2.2rem;
+  }
+
+  .search-input:focus {
+    width: 200px;
+  }
+
+  .main-content {
+    padding: 1rem 1rem 4rem;
+  }
+
+  .hero-container {
+    min-height: 300px;
+    max-height: 450px;
+    border-radius: var(--radius-lg);
+  }
+
+  .hero-content {
+    padding: var(--spacing-xl);
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-meta {
+    font-size: 0.8rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .hero-desc {
+    font-size: 0.9rem;
+  }
+
+  .movie-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--spacing-md) var(--spacing-sm);
+  }
+
+  .section-title {
+    font-size: 1.35rem;
+  }
+
+  .details-content-wrapper {
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    margin-top: 10vh;
+  }
+
+  .details-poster-large {
+    height: 280px;
+    align-self: center;
+  }
+
+  .details-backdrop {
+    height: 50vh;
+  }
+
+  .btn {
+    padding: 0.65rem 1.25rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .movie-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .hero-container {
+    min-height: 250px;
+    max-height: 350px;
+  }
+
+  .search-input {
+    width: 120px;
+  }
+
+  .search-input:focus {
+    width: 160px;
+  }
+}

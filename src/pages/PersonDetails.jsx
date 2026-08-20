@@ -8,6 +8,7 @@ export default function PersonDetails() {
   const navigate = useNavigate();
   const [person, setPerson] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [bioExpanded, setBioExpanded] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -60,6 +61,8 @@ export default function PersonDetails() {
       </div>
     );
   }
+
+  const topCredits = person.credits ? [...person.credits].sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0)).slice(0, 4) : [];
 
   return (
     <div style={{ position: 'relative' }}>
@@ -139,18 +142,70 @@ export default function PersonDetails() {
             <div style={{ marginBottom: '2rem' }}>
               <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', color: '#fff' }}>Biography</h3>
               <p style={{ color: '#d4d4d8', lineHeight: 1.8, fontSize: '1.05rem', whiteSpace: 'pre-line' }}>
-                {person.biography}
+                {person.biography.length > 500 && !bioExpanded 
+                  ? person.biography.substring(0, 500) + '...'
+                  : person.biography}
               </p>
+              {person.biography.length > 500 && (
+                <button 
+                  onClick={() => setBioExpanded(!bioExpanded)}
+                  style={{ background: 'none', border: 'none', color: '#fb923c', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', marginTop: '0.5rem', padding: 0 }}
+                >
+                  {bioExpanded ? 'Show less' : 'Read more'}
+                </button>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Credits Grid */}
-      {person.credits && person.credits.length > 0 && (
-        <section>
+      {/* Top 4 Credits */}
+      {topCredits.length > 0 && (
+        <section style={{ marginBottom: '4rem' }}>
           <div className="section-header">
             <h2 className="section-title">Known For</h2>
+          </div>
+          <div style={{ display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem', marginTop: '1.5rem' }}>
+            {topCredits.map((movie, idx) => (
+              <motion.div 
+                key={`top-${movie.id}-${idx}`}
+                whileHover={{ scale: 1.05 }}
+                style={{ width: '280px', flexShrink: 0 }}
+              >
+                <Link to={`/movie/${movie.source || 'nflix'}/${movie.id}`}>
+                  <div className="movie-card" style={{ height: '100%', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)' }}>
+                    <div className="poster-wrapper" style={{ aspectRatio: '2/3' }}>
+                      <img src={movie.posterUrl} alt={movie.title} className="movie-poster" />
+                      <div className="card-overlay">
+                        <div className="play-circle">
+                          <Play size={24} fill="currentColor" stroke="none" style={{ marginLeft: '4px' }} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="movie-info">
+                      <h3 className="movie-title" style={{ fontSize: '1.1rem' }}>{movie.title}</h3>
+                      <div className="movie-meta">
+                        <span>{movie.releaseYear || movie.year}</span>
+                        {movie.imdbRating > 0 && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontWeight: 600 }}>
+                            ⭐ {movie.imdbRating}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Credits Grid */}
+      {person.credits && person.credits.length > 4 && (
+        <section>
+          <div className="section-header">
+            <h2 className="section-title">Full Filmography</h2>
           </div>
           <div className="movie-grid" style={{ marginTop: '1.5rem' }}>
             {person.credits.map((movie, idx) => (
