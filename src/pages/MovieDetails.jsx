@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Play, ArrowLeft, Star, Clock, Calendar, Plus, Check, ChevronLeft, ChevronRight, X, MonitorPlay, Volume2, VolumeX, Share2 } from 'lucide-react';
+import { Play, ArrowLeft, Star, Clock, Calendar, Plus, Check, ChevronLeft, ChevronRight, X, MonitorPlay, Volume2, VolumeX, Share2, SkipForward, SkipBack } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useMyList, useContinueWatching } from '../hooks/useUserData';
 
@@ -1074,6 +1074,41 @@ export default function MovieDetails() {
                 }}
                 allowFullScreen
               />
+
+              {movie.isSeries && playMode !== 'trailer' && (
+                <div style={{ position: 'absolute', bottom: '80px', right: '20px', display: 'flex', gap: '10px', zIndex: 10 }}>
+                  {playingEpisode > 1 && (
+                    <motion.button
+                      className="btn-glass"
+                      style={{ background: 'rgba(0,0,0,0.7)', color: 'white', padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
+                      whileHover={{ scale: 1.05, background: 'rgba(255,255,255,0.15)' }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setIframeLoading(true);
+                        setPlayingEpisode(prev => prev - 1);
+                        updateProgress({ ...movie, source: platform, sourceName }, selectedSeason, playingEpisode - 1);
+                      }}
+                    >
+                      <SkipBack size={16} /> Previous Ep
+                    </motion.button>
+                  )}
+                  {playingEpisode < episodes.length && (
+                    <motion.button
+                      className="btn-glass"
+                      style={{ background: 'rgba(0,0,0,0.7)', color: 'white', padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
+                      whileHover={{ scale: 1.05, background: 'rgba(255,255,255,0.15)' }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setIframeLoading(true);
+                        setPlayingEpisode(prev => prev + 1);
+                        updateProgress({ ...movie, source: platform, sourceName }, selectedSeason, playingEpisode + 1);
+                      }}
+                    >
+                      Next Ep <SkipForward size={16} />
+                    </motion.button>
+                  )}
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

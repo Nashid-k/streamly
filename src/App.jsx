@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Home, Compass, Bookmark, Clock, User, Play, X, Menu } from 'lucide-react';
+import { Search, Home, Compass, Bookmark, Clock, User, Play, X, Menu, Bell } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import HomePage from './pages/Home';
 import MovieDetails from './pages/MovieDetails';
@@ -19,8 +19,10 @@ function Layout({ children }) {
   const [error, setError] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
+  const notificationsRef = useRef(null);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -83,12 +85,15 @@ function Layout({ children }) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
         setShowUserMenu(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
     };
-    if (showUserMenu) {
+    if (showUserMenu || showNotifications) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showUserMenu]);
+  }, [showUserMenu, showNotifications]);
 
   const handleSearchKeyDown = (e) => {
     if (e.key === 'Enter' && query.trim()) {
@@ -260,6 +265,50 @@ function Layout({ children }) {
                   ) : (
                      <div style={{padding:'3rem', textAlign:'center', color:'#a1a1aa'}}>No results found for "{query}"</div>
                   )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Notifications Dropdown */}
+          <div ref={notificationsRef} style={{ position: 'relative', marginRight: '1rem', display: 'flex', alignItems: 'center' }}>
+            <div
+              className="user-avatar"
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{ background: 'transparent', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
+            >
+              <Bell size={20} color="#e4e4e7" />
+              <div style={{ position: 'absolute', top: '2px', right: '4px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%' }}></div>
+            </div>
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  style={{
+                    position: 'absolute',
+                    top: '120%',
+                    right: -10,
+                    background: '#09090b',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    boxShadow: '0 20px 40px -8px rgba(0,0,0,0.9)',
+                    padding: '8px 0',
+                    width: '300px',
+                    zIndex: 200
+                  }}
+                >
+                  <div style={{ padding: '8px 16px', fontWeight: 600, fontSize: '0.95rem', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px', color: '#fff' }}>Notifications</div>
+                  <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                    <div style={{ fontSize: '0.9rem', color: '#e4e4e7' }}>New episode of Game of Thrones is out!</div>
+                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>2 hours ago</div>
+                  </div>
+                  <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                    <div style={{ fontSize: '0.9rem', color: '#e4e4e7' }}>Your watchlist item Inception is trending!</div>
+                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>1 day ago</div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

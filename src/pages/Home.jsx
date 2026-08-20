@@ -319,6 +319,27 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
     return allMovies.sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0)).slice(0, 10);
   }, [categories]);
 
+  const lastWatched = continueWatching && continueWatching.length > 0 ? continueWatching[0] : null;
+
+  const recommendations = useMemo(() => {
+    if (!lastWatched) return [];
+    const lastWatchedGenres = lastWatched.genres || [];
+    if (lastWatchedGenres.length === 0) return [];
+    
+    const cwIds = new Set((continueWatching || []).map(m => m.id));
+    const allMovies = [];
+    for (const cat of rawCategories) {
+      for (const m of cat.movies) {
+        if (!cwIds.has(m.id) && !allMovies.find(x => x.id === m.id)) {
+          allMovies.push(m);
+        }
+      }
+    }
+    
+    const recs = allMovies.filter(m => (m.genres || []).some(g => lastWatchedGenres.includes(g)));
+    return recs.sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0)).slice(0, 15);
+  }, [lastWatched, continueWatching, rawCategories]);
+
   const activeFeaturedMovie = useMemo(() => {
     let pool = [];
     if (featuredMovies.length > 0) {
@@ -509,6 +530,9 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
           <>
             {continueWatching && continueWatching.length > 0 && filter === 'all' && (
               <MovieRail category={{ name: 'Continue Watching', movies: continueWatching }} />
+            )}
+            {filter === 'all' && lastWatched && recommendations.length > 0 && (
+              <MovieRail category={{ name: `Because you watched ${lastWatched.title}`, movies: recommendations }} />
             )}
             {myList && myList.length > 0 && filter === 'all' && (
               <MovieRail category={{ name: 'My List', movies: myList }} />
