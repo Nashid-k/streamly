@@ -393,12 +393,23 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
           <motion.div 
             key={activeFeaturedMovie.id}
             className="hero-container"
-            initial={{ opacity: 0, scale: 1.02 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            style={{ willChange: 'opacity, transform' }}
+            style={{ 
+              willChange: 'opacity', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              padding: '0 4rem', 
+              minHeight: '85vh', 
+              position: 'relative', 
+              overflow: 'hidden',
+              gap: '2rem'
+            }}
           >
+            {/* Blurred Background Image */}
             <img 
               src={activeFeaturedMovie.backdropUrl || activeFeaturedMovie.posterUrl || activeFeaturedMovie.poster}
               alt={activeFeaturedMovie.title}
@@ -406,75 +417,106 @@ export default function Home({ filter = 'all', title = 'Trending Across Platform
               fetchpriority="high"
               loading="eager"
               decoding="async"
-              style={{ willChange: 'transform' }} 
+              style={{ filter: 'blur(25px) brightness(0.25)', transform: 'scale(1.15)', position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: -1, willChange: 'transform' }} 
             />
-            <div className="hero-overlay" />
+            {/* Overlay Gradient for readability */}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.8) 100%)', zIndex: -1 }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 75% 50%, transparent 0%, rgba(0,0,0,0.7) 100%)', zIndex: -1 }} />
             
-            <div className="hero-content">
+            {/* Left side: Text Content */}
+            <div className="hero-content" style={{ flex: '1 1 50%', zIndex: 2, padding: '2rem 0', maxWidth: '650px' }}>
               <motion.div
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
-                onMouseEnter={handleMouseEnterDesc}
-                onMouseLeave={handleMouseLeaveDesc}
-                style={{ paddingBottom: '1rem', willChange: 'transform, opacity' }}
+                initial={{ x: -50, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.7, ease: "easeOut" }}
+                style={{ willChange: 'transform, opacity' }}
               >
                 {activeFeaturedMovie.logoUrl ? (
                   <img 
                     src={activeFeaturedMovie.logoUrl} 
                     alt={activeFeaturedMovie.title} 
-                    style={{ maxHeight: '120px', maxWidth: '100%', marginBottom: '1.5rem', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.8))', willChange: 'transform' }} 
+                    style={{ maxHeight: '160px', maxWidth: '100%', marginBottom: '1.5rem', filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.8))', willChange: 'transform' }} 
                   />
                 ) : (
-                  <h1 className="hero-title">{activeFeaturedMovie.title}</h1>
+                  <h1 style={{ fontSize: '4rem', fontWeight: 800, marginBottom: '1rem', textShadow: '0 4px 20px rgba(0,0,0,0.8)', lineHeight: 1.1 }}>
+                    {activeFeaturedMovie.title}
+                  </h1>
                 )}
-                <div className="hero-meta">
-                  <span>{activeFeaturedMovie.releaseYear || activeFeaturedMovie.year}</span>
+
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '1.5rem', fontSize: '1.1rem', color: '#e5e5e5', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 600, color: 'white' }}>{activeFeaturedMovie.releaseYear || activeFeaturedMovie.year}</span>
                   {activeFeaturedMovie.imdbRating > 0 && (
-                    <span style={{ color: '#fbbf24' }}>⭐ {activeFeaturedMovie.imdbRating}</span>
+                    <span style={{ color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                      ⭐ {activeFeaturedMovie.imdbRating}
+                    </span>
                   )}
-                  <span>{activeFeaturedMovie.maturityRating || 'TV-MA'}</span>
+                  <span style={{ padding: '2px 8px', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '4px', fontSize: '0.9rem' }}>
+                    {activeFeaturedMovie.maturityRating || 'TV-MA'}
+                  </span>
                   <span>{activeFeaturedMovie.duration}</span>
                   <span className={`source-tag source-${activeFeaturedMovie.source}`}>
                     {activeFeaturedMovie.sourceName}
                   </span>
                 </div>
-              <AnimatePresence>
-                {showDesc && (
-                  <motion.p 
-                    className="hero-desc"
-                    initial={{ height: 0, opacity: 0, margin: 0 }}
-                    animate={{ height: 'auto', opacity: 1, marginBottom: '2rem' }}
-                    exit={{ height: 0, opacity: 0, margin: 0 }}
-                    transition={{ duration: 0.4, ease: 'easeInOut' }}
-                    style={{ overflow: 'hidden' }}
-                  >
-                    {activeFeaturedMovie.description || "Start watching this amazing title right now."}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-              <motion.div 
-                style={{ display: 'flex', gap: '1rem' }}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
+
+                <motion.p 
+                  style={{ fontSize: '1.1rem', lineHeight: 1.6, color: '#a1a1aa', marginBottom: '2.5rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}
+                >
+                  {activeFeaturedMovie.description || "Start watching this amazing title right now."}
+                </motion.p>
+                
+                <motion.div 
+                  style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
+                >
+                  <Link to={`/movie/${activeFeaturedMovie.source}/${activeFeaturedMovie.id}`}>
+                    <button style={{ padding: '14px 28px', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '10px', borderRadius: '8px', background: 'white', color: 'black', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(255,255,255,0.2)' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}>
+                      <Play size={22} fill="currentColor" stroke="none" />
+                      Play Now
+                    </button>
+                  </Link>
+                  <Link to={`/movie/${activeFeaturedMovie.source}/${activeFeaturedMovie.id}`}>
+                    <button style={{ padding: '14px 28px', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.15)', color: 'white', fontWeight: 600, border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', transition: 'all 0.2s', backdropFilter: 'blur(10px)' }} onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; e.currentTarget.style.transform = 'scale(1.05)'; }} onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'scale(1)'; }}>
+                      <Info size={22} />
+                      More Info
+                    </button>
+                  </Link>
+                </motion.div>
+              </motion.div>
+            </div>
+
+            {/* Right side: 3D Poster */}
+            <div style={{ flex: '0 1 40%', display: 'flex', justifyContent: 'flex-end', zIndex: 2, perspective: '1200px' }} className="hero-3d-poster-wrapper">
+              <motion.div
+                initial={{ rotateY: -15, rotateX: 5, scale: 0.8, opacity: 0, x: 100 }}
+                animate={{ rotateY: -20, rotateX: 10, scale: 1, opacity: 1, x: 0 }}
+                transition={{ duration: 1.2, ease: "easeOut", type: "spring", bounce: 0.4 }}
+                whileHover={{ rotateY: 0, rotateX: 0, scale: 1.05, transition: { duration: 0.4 } }}
+                style={{
+                  width: 'min(400px, 35vw)',
+                  aspectRatio: '2/3',
+                  borderRadius: '20px',
+                  boxShadow: '-30px 30px 60px rgba(0,0,0,0.8), 0 0 40px rgba(255,255,255,0.15)',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  cursor: 'pointer',
+                  transformStyle: 'preserve-3d'
+                }}
               >
-                <Link to={`/movie/${activeFeaturedMovie.source}/${activeFeaturedMovie.id}`}>
-                  <button className="btn btn-primary">
-                    <Play size={20} fill="currentColor" stroke="none" />
-                    Play
-                  </button>
-                </Link>
-                <Link to={`/movie/${activeFeaturedMovie.source}/${activeFeaturedMovie.id}`}>
-                  <button className="btn btn-glass">
-                    <Info size={20} />
-                    More Info
-                  </button>
+                <Link to={`/movie/${activeFeaturedMovie.source}/${activeFeaturedMovie.id}`} style={{ display: 'block', width: '100%', height: '100%' }}>
+                  <img 
+                    src={activeFeaturedMovie.posterUrl || activeFeaturedMovie.backdropUrl || activeFeaturedMovie.poster} 
+                    alt={activeFeaturedMovie.title} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  />
+                  {/* Subtle inner shadow for 3D effect */}
+                  <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 50px rgba(0,0,0,0.5)' }} />
                 </Link>
               </motion.div>
-            </motion.div>
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
       ) : null}
       </AnimatePresence>
 
