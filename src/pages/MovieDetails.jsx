@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Play, ArrowLeft, Star, Clock, Calendar, Plus, Check, ChevronLeft, ChevronRight, X, MonitorPlay, Volume2, VolumeX, Share2, SkipForward, SkipBack } from 'lucide-react';
+import { Play, ArrowLeft, Star, Clock, Calendar, Plus, Check, ChevronLeft, ChevronRight, X, MonitorPlay, Volume2, VolumeX, Share2, SkipForward, SkipBack, Download } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useMyList, useContinueWatching } from '../hooks/useUserData';
 
@@ -123,13 +123,14 @@ export default function MovieDetails() {
   const [showCopied, setShowCopied] = useState(false);
 
   const { isInList, toggleMyList } = useMyList();
-  const { updateProgress } = useContinueWatching();
+  const { continueWatching, updateProgress } = useContinueWatching();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
   const [playMode, setPlayMode] = useState('movie');
   const [playingServerIndex, setPlayingServerIndex] = useState(0);
   const [playingEpisode, setPlayingEpisode] = useState(1);
+  const [downloadingMagnet, setDownloadingMagnet] = useState(false);
 
   // Trigger loading state when iframe src/key is about to change
   useEffect(() => {
@@ -157,15 +158,24 @@ export default function MovieDetails() {
       .then(data => {
         if (data && !data.statusCode) {
           setMovie(data);
-          if (data.isSeries && data.seasonsCount > 0) setSelectedSeason(1);
+          if (data.isSeries && data.seasonsCount > 0) {
+            // See if we have saved progress
+            const saved = continueWatching.find(m => m.id === data.id);
+            const seasonToLoad = saved && saved.savedSeason ? saved.savedSeason : 1;
+            const episodeToLoad = saved && saved.savedEpisode ? saved.savedEpisode : 1;
+            
+            setSelectedSeason(seasonToLoad);
+            setPlayingEpisode(episodeToLoad);
+            fetchEpisodes(data.id, seasonToLoad, platform);
+          }
         }
+        setLoading(false);
       })
       .catch(console.error);
 
     fetch(`${API_URL}/movies/${id}/similar?platform=${platform}`)
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setSimilar(data); })
-      .catch(console.error)
       .finally(() => setLoading(false));
 
     window.scrollTo(0, 0);
@@ -580,6 +590,27 @@ export default function MovieDetails() {
                     setTimeout(() => setShowCopied(false), 2000);
                   },
                   children: <>{showCopied ? <Check size={20} color="#4ade80" /> : <Share2 size={20} />} {showCopied ? 'Copied!' : 'Share'}</>
+                },
+                {
+                  cls: 'btn btn-glass',
+                  style: { fontSize: '1.05rem', padding: '1rem 2rem' },
+                  onClick: async () => {
+                    if (downloadingMagnet) return;
+                    setDownloadingMagnet(true);
+                    try {
+                      const res = await fetch(`http://localhost:4000/api/movies/magnet?title=${encodeURIComponent(movie.title)}&year=${movie.releaseYear}`);
+                      const data = await res.json();
+                      if (data.magnet) {
+                        window.location.href = data.magnet;
+                      } else {
+                        alert('No high-quality download found for this title.');
+                      }
+                    } catch (e) {
+                      alert('Failed to fetch download link.');
+                    }
+                    setDownloadingMagnet(false);
+                  },
+                  children: <>{downloadingMagnet ? <span className="spinner" style={{width: '20px', height: '20px', display: 'inline-block', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite', marginRight: '8px'}} /> : <Download size={20} />} {downloadingMagnet ? 'Searching...' : 'Download'}</>
                 },
                 ...(!movie.isUpcoming && movie.trailerUrl ? [{
                   cls: 'btn btn-glass',

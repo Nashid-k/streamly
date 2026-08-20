@@ -22,6 +22,8 @@ function MovieRail({ category }) {
     }
   };
 
+  if (!category?.movies || category.movies.length === 0) return null;
+
   return (
     <div
       className="movie-rail-wrapper"
