@@ -13,8 +13,26 @@ const GENRE_OPTIONS = ['All', 'Action', 'Drama', 'Comedy', 'Thriller', 'Horror',
 
 function MovieRail({ category }) {
   const railRef = useRef(null);
+  const containerRef = useRef(null);
   const [showArrows, setShowArrows] = useState(false);
+  const [inView, setInView] = useState(false);
   const isContinueWatching = category.name === 'Continue Watching';
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px 0px' }
+    );
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
 
   const scroll = (dir) => {
     if (railRef.current) {
@@ -26,44 +44,47 @@ function MovieRail({ category }) {
 
   return (
     <div
+      ref={containerRef}
       className="movie-rail-wrapper"
       onMouseEnter={() => setShowArrows(true)}
       onMouseLeave={() => setShowArrows(false)}
-      style={{ position: 'relative' }}
+      style={{ position: 'relative', minHeight: '280px' }}
     >
       <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.02em' }}>{category.name}</h3>
 
-      <AnimatePresence>
-        {showArrows && (
-          <>
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => scroll('left')}
-              style={{ position: 'absolute', left: '-10px', top: '55%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
-            >
-              <ChevronLeft size={22} />
-            </motion.button>
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => scroll('right')}
-              style={{ position: 'absolute', right: '-10px', top: '55%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
-            >
-              <ChevronRight size={22} />
-            </motion.button>
-          </>
-        )}
-      </AnimatePresence>
+      {inView && (
+        <>
+          <AnimatePresence>
+            {showArrows && (
+              <>
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => scroll('left')}
+                  style={{ position: 'absolute', left: '-10px', top: '55%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+                >
+                  <ChevronLeft size={22} />
+                </motion.button>
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => scroll('right')}
+                  style={{ position: 'absolute', right: '-10px', top: '55%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+                >
+                  <ChevronRight size={22} />
+                </motion.button>
+              </>
+            )}
+          </AnimatePresence>
 
-      <div
-        ref={railRef}
-        className="movie-rail"
-        style={{ display: 'flex', gap: '1rem', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '0.5rem' }}
-      >
-        {category.movies.map((movie, i) => (
+          <div
+            ref={railRef}
+            className="movie-rail"
+            style={{ display: 'flex', gap: '1rem', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '0.5rem' }}
+          >
+            {category.movies.map((movie, i) => (
           <Link to={`/movie/${movie.source || 'nflix'}/${movie.id}`} key={`${movie.id}-${i}`} style={{ flexShrink: 0 }}>
             <div className="movie-card" style={{ width: '200px', flexShrink: 0 }}>
               <div className="poster-wrapper">
@@ -94,14 +115,34 @@ function MovieRail({ category }) {
           </Link>
         ))}
       </div>
+        </>
+      )}
     </div>
   );
 }
 
 function Top10Rail({ movies }) {
   const railRef = useRef(null);
+  const containerRef = useRef(null);
   const [showArrows, setShowArrows] = useState(false);
+  const [inView, setInView] = useState(false);
   const top10 = movies.slice(0, 10);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px 0px' }
+    );
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
 
   const scroll = (dir) => {
     if (railRef.current) {
@@ -113,14 +154,17 @@ function Top10Rail({ movies }) {
 
   return (
     <div
+      ref={containerRef}
       className="movie-rail-wrapper"
       onMouseEnter={() => setShowArrows(true)}
       onMouseLeave={() => setShowArrows(false)}
-      style={{ position: 'relative' }}
+      style={{ position: 'relative', minHeight: '330px' }}
     >
       <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.02em' }}>🔥 Top 10 Today</h3>
-
-      <AnimatePresence>
+      
+      {inView && (
+        <>
+          <AnimatePresence>
         {showArrows && (
           <>
             <motion.button
@@ -172,6 +216,8 @@ function Top10Rail({ movies }) {
           </Link>
         ))}
       </div>
+        </>
+      )}
     </div>
   );
 }
