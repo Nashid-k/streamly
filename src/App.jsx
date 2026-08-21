@@ -23,6 +23,7 @@ function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const notificationsRef = useRef(null);
+  const searchRef = useRef(null);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -79,7 +80,7 @@ function Layout({ children }) {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Close user menu when clicking outside
+  // Close menus when clicking outside or pressing Escape
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
@@ -88,12 +89,26 @@ function Layout({ children }) {
       if (notificationsRef.current && !notificationsRef.current.contains(e.target)) {
         setShowNotifications(false);
       }
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
     };
-    if (showUserMenu || showNotifications) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [showUserMenu, showNotifications]);
+    
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowUserMenu(false);
+        setShowNotifications(false);
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const handleSearchKeyDown = (e) => {
     if (e.key === 'Enter' && query.trim()) {
@@ -147,8 +162,16 @@ function Layout({ children }) {
         </div>
 
         <div className="nav-right">
-          <div className="search-wrapper" style={{ position: 'relative' }}>
-            <Search size={18} className="search-icon" />
+          <div ref={searchRef} className="search-wrapper" style={{ position: 'relative' }}>
+            <Search 
+              size={18} 
+              className="search-icon" 
+              onClick={() => {
+                const input = searchRef.current?.querySelector('input');
+                if (input) input.focus();
+              }}
+              style={{ cursor: 'pointer' }}
+            />
             <input 
               type="text" 
               className="search-input" 
