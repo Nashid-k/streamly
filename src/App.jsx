@@ -163,19 +163,10 @@ function Layout({ children }) {
             </div>
             Streamly
           </Link>
-
-          {/* Hamburger button for mobile */}
-          <button
-            className="hamburger-btn"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            style={{ display: 'none', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px' }}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
           
           <div className={`nav-links ${mobileMenuOpen ? 'nav-links-open' : ''}`}>
             <div className="mobile-only" style={{ marginBottom: '1rem' }}>
-              <div ref={searchRef} className="search-wrapper mobile-search" style={{ position: 'relative' }}>
+              <div className="search-wrapper mobile-search" style={{ position: 'relative' }}>
             <Search 
               size={18} 
               className="search-icon" 
@@ -196,7 +187,7 @@ function Layout({ children }) {
             />
             {query && (
               <button 
-                onClick={() => {setQuery(''); setShowDropdown(false)}} 
+                onClick={() => {setQuery(''); setShowDropdown(false);}} 
                 style={{position:'absolute', right:'12px', top: '50%', transform: 'translateY(-50%)', background:'transparent', border:'none', color:'#a1a1aa', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
               >
                 <X size={16} />
@@ -251,6 +242,7 @@ function Layout({ children }) {
                              navigate(`/movie/${r.source}/${r.id}`);
                              setQuery('');
                              setShowDropdown(false);
+                             setMobileMenuOpen(false);
                            }}
                            style={{
                              display: 'flex',
@@ -281,6 +273,7 @@ function Layout({ children }) {
                            navigate(`/search?q=${encodeURIComponent(query)}`);
                            setQuery('');
                            setShowDropdown(false);
+                           setMobileMenuOpen(false);
                          }}
                          style={{
                            padding: '0.85rem 1rem',
@@ -306,22 +299,22 @@ function Layout({ children }) {
             </AnimatePresence>
           </div>
             </div>
-            <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}>
+            <Link onClick={() => setMobileMenuOpen(false)} to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}>
               Home
             </Link>
-            <Link to="/series" className={`nav-item ${location.pathname.includes('/series') ? 'active' : ''}`}>
+            <Link onClick={() => setMobileMenuOpen(false)} to="/series" className={`nav-item ${location.pathname.includes('/series') ? 'active' : ''}`}>
               Series
             </Link>
-            <Link to="/movies" className={`nav-item ${location.pathname.includes('/movies') ? 'active' : ''}`}>
+            <Link onClick={() => setMobileMenuOpen(false)} to="/movies" className={`nav-item ${location.pathname.includes('/movies') ? 'active' : ''}`}>
               Movies
             </Link>
-            <Link to="/new" className={`nav-item ${location.pathname.includes('/new') ? 'active' : ''}`}>
+            <Link onClick={() => setMobileMenuOpen(false)} to="/new" className={`nav-item ${location.pathname.includes('/new') ? 'active' : ''}`}>
               New & Popular
             </Link>
-            <Link to="/anime" className={`nav-item ${location.pathname.includes('/anime') ? 'active' : ''}`}>
+            <Link onClick={() => setMobileMenuOpen(false)} to="/anime" className={`nav-item ${location.pathname.includes('/anime') ? 'active' : ''}`}>
               Anime
             </Link>
-            <Link to="/mylist" className={`nav-item ${location.pathname === '/mylist' ? 'active' : ''}`}>
+            <Link onClick={() => setMobileMenuOpen(false)} to="/mylist" className={`nav-item ${location.pathname === '/mylist' ? 'active' : ''}`}>
               My List
             </Link>
           </div>
@@ -349,7 +342,7 @@ function Layout({ children }) {
             />
             {query && (
               <button 
-                onClick={() => {setQuery(''); setShowDropdown(false)}} 
+                onClick={() => {setQuery(''); setShowDropdown(false);}} 
                 style={{position:'absolute', right:'12px', top: '50%', transform: 'translateY(-50%)', background:'transparent', border:'none', color:'#a1a1aa', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
               >
                 <X size={16} />
@@ -404,6 +397,7 @@ function Layout({ children }) {
                              navigate(`/movie/${r.source}/${r.id}`);
                              setQuery('');
                              setShowDropdown(false);
+                             setMobileMenuOpen(false);
                            }}
                            style={{
                              display: 'flex',
@@ -434,6 +428,7 @@ function Layout({ children }) {
                            navigate(`/search?q=${encodeURIComponent(query)}`);
                            setQuery('');
                            setShowDropdown(false);
+                           setMobileMenuOpen(false);
                          }}
                          style={{
                            padding: '0.85rem 1rem',
@@ -565,6 +560,15 @@ function Layout({ children }) {
               )}
             </AnimatePresence>
           </div>
+
+          {/* Hamburger button for mobile */}
+          <button
+            className="hamburger-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{ display: 'none', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', marginLeft: '0.5rem' }}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
       </nav>
 
