@@ -641,6 +641,13 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 }
 
 /* ── Mobile Responsive ─────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .movie-rail .movie-card { width: 160px !important; }
+  .top10-item { width: 170px !important; }
+  .top10-item .movie-card { width: 130px !important; margin-left: 30px !important; }
+  .details-content-wrapper { gap: 1.5rem !important; }
+}
+
 @media (max-width: 768px) {
   .hamburger-btn {
     display: flex !important;
@@ -696,7 +703,7 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   }
 
   .main-content {
-    padding: 1rem 1rem 4rem;
+    padding: 1rem 1rem 4rem !important;
   }
 
   .hero-container {
@@ -724,7 +731,7 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   }
 
   .movie-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: var(--spacing-md) var(--spacing-sm);
   }
 
@@ -734,7 +741,7 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 
   .details-content-wrapper {
     flex-direction: column;
-    gap: var(--spacing-xl);
+    gap: var(--spacing-xl) !important;
     margin-top: 10vh;
   }
 
@@ -751,11 +758,64 @@ a:focus-visible, button:focus-visible, input:focus-visible {
     padding: 0.65rem 1.25rem;
     font-size: 0.85rem;
   }
+  
+  /* Overrides for hardcoded inline styles */
+  .movie-rail-wrapper h3 { font-size: 1.1rem !important; }
+  .movie-rail .movie-card,
+  div[style*="width: 200px"] {
+    width: 130px !important;
+  }
+  
+  /* Top 10 Rail fixes */
+  div[style*="width: 210px"] {
+    width: 150px !important;
+  }
+  div[style*="width: 160px"] {
+    width: 120px !important;
+    margin-left: 20px !important;
+  }
+  span[style*="fontSize: 8rem"], span[style*="font-size: 8rem"] {
+    font-size: 5rem !important;
+    left: -15px !important;
+    bottom: -5px !important;
+  }
+
+  /* Person Details Fixes */
+  div[style*="width: 300px"] {
+    width: 100% !important;
+    max-width: 200px !important;
+    height: auto !important;
+    aspect-ratio: 2/3 !important;
+  }
+  
+  /* Layout columns fixes */
+  div[style*="width: 40%"] {
+    width: 100% !important;
+  }
+  div[style*="padding: 1.5rem 3rem"] {
+    padding: 1rem 0 !important;
+  }
+  
+  /* Ensure grids shrink */
+  .movie-rail {
+    gap: 1rem !important;
+  }
+
+  /* Dropdown fixes for mobile */
+  .search-wrapper > div {
+    width: 90vw !important;
+    right: -20px !important;
+  }
+  .user-avatar + div {
+    width: 250px !important;
+    right: -10px !important;
+    max-width: 90vw !important;
+  }
 }
 
 @media (max-width: 480px) {
   .movie-grid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: var(--spacing-sm);
   }
 
@@ -770,5 +830,28 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 
   .search-input:focus {
     width: 160px;
+  }
+  
+  .movie-rail .movie-card,
+  div[style*="width: 200px"] {
+    width: 110px !important;
+  }
+  
+  /* Top 10 Rail fixes */
+  div[style*="width: 210px"] {
+    width: 130px !important;
+  }
+  div[style*="width: 160px"] {
+    width: 100px !important;
+    margin-left: 15px !important;
+  }
+  span[style*="fontSize: 8rem"], span[style*="font-size: 8rem"] {
+    font-size: 4rem !important;
+    left: -10px !important;
+  }
+
+  /* Details video wrapper */
+  iframe {
+    transform: translate(-50%, -50%) scale(1.1) !important;
   }
 }

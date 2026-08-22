@@ -727,7 +727,7 @@ export default function MovieDetails() {
       {/* ── Episodes ─────────────────────────────────────────────────────────── */}
       {movie.isSeries && movie.seasonsCount > 0 && (
         <motion.section
-          style={{ marginTop: '2rem', padding: '0 2rem' }}
+          style={{ marginTop: '2rem' }}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
@@ -762,7 +762,7 @@ export default function MovieDetails() {
           </div>
 
           <motion.div
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '1.5rem' }}
             key={`season-${selectedSeason}-${episodesLoading}`}
             variants={episodesContainerVariants}
             initial="hidden"
