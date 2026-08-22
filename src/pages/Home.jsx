@@ -193,11 +193,9 @@ function Top10Rail({ movies }) {
         {top10.map((movie, i) => (
           <Link to={`/movie/${movie.source || 'nflix'}/${movie.id}`} key={`top10-${movie.id}`} style={{ flexShrink: 0 }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', width: '210px', flexShrink: 0 }}>
-              <span style={{
+              <span className="text-stroke-premium" style={{
                 position: 'absolute', bottom: '-10px', left: '-25px', fontSize: '8rem', fontWeight: 900,
-                color: 'transparent', WebkitTextStroke: '3px rgba(255,255,255,0.6)',
-                lineHeight: 1, zIndex: 2, pointerEvents: 'none', userSelect: 'none',
-                textShadow: '0 4px 20px rgba(0,0,0,0.8)'
+                lineHeight: 1, zIndex: 2, pointerEvents: 'none', userSelect: 'none'
               }}>
                 {i + 1}
               </span>

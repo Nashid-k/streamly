@@ -20,6 +20,7 @@ function Layout({ children }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [hasOpenedNotifications, setHasOpenedNotifications] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const notificationsRef = useRef(null);
@@ -140,6 +141,138 @@ function Layout({ children }) {
           </button>
           
           <div className={`nav-links ${mobileMenuOpen ? 'nav-links-open' : ''}`}>
+            <div className="mobile-only" style={{ marginBottom: '1rem' }}>
+              <div ref={searchRef} className="search-wrapper mobile-search" style={{ position: 'relative' }}>
+            <Search 
+              size={18} 
+              className="search-icon" 
+              onClick={() => {
+                const input = searchRef.current?.querySelector('input');
+                if (input) input.focus();
+              }}
+              style={{ cursor: 'pointer' }}
+            />
+            <input 
+              type="text" 
+              className="search-input" 
+              placeholder="Search movies, shows, genres..." 
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); }}
+              onFocus={() => { if(query) setShowDropdown(true); }}
+              onKeyDown={handleSearchKeyDown}
+            />
+            {query && (
+              <button 
+                onClick={() => {setQuery(''); setShowDropdown(false)}} 
+                style={{position:'absolute', right:'12px', top: '50%', transform: 'translateY(-50%)', background:'transparent', border:'none', color:'#a1a1aa', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+              >
+                <X size={16} />
+              </button>
+            )}
+            
+            <AnimatePresence>
+              {showDropdown && query && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                  style={{
+                    position: 'absolute',
+                    top: '120%',
+                    right: 0,
+                    width: '450px',
+                    background: '#09090b',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.9)',
+                    overflow: 'hidden',
+                    zIndex: 200,
+                    maxHeight: '65vh',
+                    overflowY: 'auto'
+                  }}
+                >
+                  {loading ? (
+                     <div style={{display:'flex', flexDirection:'column'}}>
+                       {[1, 2, 3, 4].map((i) => (
+                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                           <div className="skeleton" style={{ width: '50px', height: '75px', borderRadius: '4px' }}></div>
+                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                             <div className="skeleton" style={{ width: '60%', height: '1rem', borderRadius: '4px' }}></div>
+                             <div className="skeleton" style={{ width: '30%', height: '0.8rem', borderRadius: '4px' }}></div>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                  ) : error ? (
+                     <div style={{padding:'3rem', textAlign:'center', color:'#ef4444'}}>{error}</div>
+                  ) : results.length > 0 ? (
+                     <div style={{display:'flex', flexDirection:'column'}}>
+                       {results.map((r, i) => (
+                         <motion.div 
+                           key={`${r.id}-${i}`}
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           transition={{ delay: i * 0.05, duration: 0.2 }}
+                           onClick={() => {
+                             navigate(`/movie/${r.source}/${r.id}`);
+                             setQuery('');
+                             setShowDropdown(false);
+                           }}
+                           style={{
+                             display: 'flex',
+                             alignItems: 'center',
+                             gap: '1rem',
+                             padding: '0.75rem 1rem',
+                             cursor: 'pointer',
+                             borderBottom: '1px solid rgba(255,255,255,0.05)',
+                             transition: 'background 0.2s'
+                           }}
+                           onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                         >
+                           <img src={r.posterUrl || r.backdropUrl} alt={r.title} style={{width:'50px', height:'75px', objectFit:'cover', borderRadius:'4px', background: '#18181b'}} />
+                           <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                             <div style={{fontWeight:600, fontSize:'0.95rem', color: '#fff'}}>{r.title}</div>
+                             <div style={{fontSize:'0.8rem', color:'#a1a1aa', display: 'flex', gap: '8px', alignItems: 'center'}}>
+                               <span>{r.releaseYear}</span>
+                               <span>•</span>
+                               <span className={`source-tag source-${r.source}`} style={{ padding: '0px 6px', fontSize: '0.6rem' }}>{r.sourceName}</span>
+                             </div>
+                           </div>
+                         </motion.div>
+                       ))}
+                       {/* See all results link */}
+                       <div
+                         onClick={() => {
+                           navigate(`/search?q=${encodeURIComponent(query)}`);
+                           setQuery('');
+                           setShowDropdown(false);
+                         }}
+                         style={{
+                           padding: '0.85rem 1rem',
+                           textAlign: 'center',
+                           color: '#fb923c',
+                           fontWeight: 600,
+                           fontSize: '0.9rem',
+                           cursor: 'pointer',
+                           borderTop: '1px solid rgba(255,255,255,0.08)',
+                           transition: 'background 0.2s'
+                         }}
+                         onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                       >
+                         See all results for "{query}" →
+                       </div>
+                     </div>
+                  ) : (
+                     <div style={{padding:'3rem', textAlign:'center', color:'#a1a1aa'}}>No results found for "{query}"</div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+            </div>
             <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}>
               Home
             </Link>
@@ -162,7 +295,7 @@ function Layout({ children }) {
         </div>
 
         <div className="nav-right">
-          <div ref={searchRef} className="search-wrapper" style={{ position: 'relative' }}>
+          <div ref={searchRef} className="search-wrapper desktop-only" style={{ position: 'relative' }}>
             <Search 
               size={18} 
               className="search-icon" 
@@ -297,11 +430,11 @@ function Layout({ children }) {
           <div ref={notificationsRef} style={{ position: 'relative', marginRight: '1rem', display: 'flex', alignItems: 'center' }}>
             <div
               className="user-avatar"
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => { setShowNotifications(!showNotifications); setHasOpenedNotifications(true); }}
               style={{ background: 'transparent', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
             >
               <Bell size={20} color="#e4e4e7" />
-              <div style={{ position: 'absolute', top: '2px', right: '4px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%' }}></div>
+              {!hasOpenedNotifications && <div style={{ position: 'absolute', top: '2px', right: '4px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%' }}></div>}
             </div>
             <AnimatePresence>
               {showNotifications && (
@@ -324,11 +457,11 @@ function Layout({ children }) {
                   }}
                 >
                   <div style={{ padding: '8px 16px', fontWeight: 600, fontSize: '0.95rem', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px', color: '#fff' }}>Notifications</div>
-                  <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                  <div onClick={() => setShowNotifications(false)} style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                     <div style={{ fontSize: '0.9rem', color: '#e4e4e7' }}>New episode of Game of Thrones is out!</div>
                     <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>2 hours ago</div>
                   </div>
-                  <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                  <div onClick={() => setShowNotifications(false)} style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                     <div style={{ fontSize: '0.9rem', color: '#e4e4e7' }}>Your watchlist item Inception is trending!</div>
                     <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>1 day ago</div>
                   </div>

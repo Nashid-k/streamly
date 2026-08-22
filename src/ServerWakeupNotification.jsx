@@ -5,7 +5,7 @@ export function ServerWakeupNotification() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const handleWakeup = () => { setMounted(true); requestAnimationFrame(() => setVisible(true)); };
+    const handleWakeup = () => { setMounted(true); setTimeout(() => setVisible(true), 50); };
     const handleDone = () => {
       setVisible(false);
       setTimeout(() => setMounted(false), 400); // wait for fade-out before unmounting

@@ -232,10 +232,11 @@ a {
   height: 100%;
   object-fit: cover;
   object-position: center 20%;
-  transition: transform 10s ease-out;
+  animation: kenBurns 20s ease-in-out infinite alternate;
 }
-.hero-container:hover .hero-bg {
-  transform: scale(1.03);
+@keyframes kenBurns {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
 }
 
 .hero-overlay {
@@ -651,26 +652,31 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 @media (max-width: 768px) {
   .hamburger-btn {
     display: flex !important;
+    z-index: 100;
+    position: relative;
   }
 
   .nav-links {
-    display: none !important;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+    display: flex !important;
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 280px;
+    height: 100vh;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.95);
+    background: rgba(9, 9, 11, 0.98);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 1rem 1.5rem;
-    gap: 0.5rem;
-    z-index: 99;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 5rem 1.5rem 2rem;
+    gap: 1rem;
+    z-index: 98;
+    transition: right 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: -10px 0 40px rgba(0,0,0,0.8);
   }
 
   .nav-links.nav-links-open {
-    display: flex !important;
+    right: 0;
   }
 
   .nav-links .nav-item {
@@ -803,8 +809,16 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 
   /* Dropdown fixes for mobile */
   .search-wrapper > div {
-    width: 90vw !important;
-    right: -20px !important;
+    position: fixed !important;
+    top: 70px !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: calc(100vh - 70px) !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+    background: rgba(9, 9, 11, 0.98) !important;
+    backdrop-filter: blur(24px) !important;
   }
   .user-avatar + div {
     width: 250px !important;
@@ -853,5 +867,52 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   /* Details video wrapper */
   iframe {
     transform: translate(-50%, -50%) scale(1.1) !important;
+  }
+}
+
+/* Typography & Utilities */
+.text-stroke-premium {
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255,255,255,0.3);
+  text-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.5) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Desktop/Mobile visibility utilities */
+.mobile-only {
+  display: none !important;
+}
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: block !important;
+  }
+  
+  /* Reset the immersive search fix for the mobile menu version, since it's now inside the drawer */
+  .mobile-search > div {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 50vh !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+  }
+  .mobile-search .search-input {
+    width: 100% !important;
+  }
+  .mobile-search .search-input:focus {
+    width: 100% !important;
   }
 }
