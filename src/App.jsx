@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Home, Compass, Bookmark, Clock, User, Play, X, Menu, Bell } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useMyList, useContinueWatching } from './hooks/useUserData';
 import HomePage from './pages/Home';
 import MovieDetails from './pages/MovieDetails';
 import PersonDetails from './pages/PersonDetails';
@@ -21,6 +22,38 @@ function Layout({ children }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [hasOpenedNotifications, setHasOpenedNotifications] = useState(false);
+  const { myList } = useMyList();
+  const { continueWatching } = useContinueWatching();
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const notifs = [];
+    if (continueWatching && continueWatching.length > 0) {
+      notifs.push({
+        id: 'cw',
+        title: `Pick up where you left off on ${continueWatching[0].title}`,
+        time: 'Just now',
+        link: `/movie/${continueWatching[0].source || 'nflix'}/${continueWatching[0].id}`
+      });
+    }
+    if (myList && myList.length > 0) {
+      notifs.push({
+        id: 'ml',
+        title: `${myList[myList.length - 1].title} is waiting in your watchlist`,
+        time: 'Recently added',
+        link: `/movie/${myList[myList.length - 1].source || 'nflix'}/${myList[myList.length - 1].id}`
+      });
+    }
+    if (notifs.length === 0) {
+      notifs.push({
+        id: 'welcome',
+        title: 'Welcome to Streamly! Start exploring personalized content.',
+        time: 'Just now',
+        link: '/'
+      });
+    }
+    setNotifications(notifs);
+  }, [myList, continueWatching]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const notificationsRef = useRef(null);
@@ -457,14 +490,18 @@ function Layout({ children }) {
                   }}
                 >
                   <div style={{ padding: '8px 16px', fontWeight: 600, fontSize: '0.95rem', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px', color: '#fff' }}>Notifications</div>
-                  <div onClick={() => setShowNotifications(false)} style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                    <div style={{ fontSize: '0.9rem', color: '#e4e4e7' }}>New episode of Game of Thrones is out!</div>
-                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>2 hours ago</div>
-                  </div>
-                  <div onClick={() => setShowNotifications(false)} style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                    <div style={{ fontSize: '0.9rem', color: '#e4e4e7' }}>Your watchlist item Inception is trending!</div>
-                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>1 day ago</div>
-                  </div>
+                  {notifications.map(n => (
+                    <div 
+                      key={n.id}
+                      onClick={() => { setShowNotifications(false); navigate(n.link); }} 
+                      style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }} 
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} 
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ fontSize: '0.9rem', color: '#e4e4e7' }}>{n.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>{n.time}</div>
+                    </div>
+                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
