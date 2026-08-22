@@ -16,11 +16,13 @@ const decodeUrl = (encodedStr) => {
 };
 
 const SERVERS = [
-  { name: 'Server 1', url: (id, s, e) => s ? `https://vidlink.pro/tv/${getNumericId(id)}/${s}/${e}` : `https://vidlink.pro/movie/${getNumericId(id)}` },
-  { name: 'Server 2', url: (id, s, e) => s ? `https://vidsrc.xyz/embed/tv?tmdb=${getNumericId(id)}&season=${s}&episode=${e}` : `https://vidsrc.xyz/embed/movie?tmdb=${getNumericId(id)}` },
-  { name: 'Server 3', url: (id, s, e) => s ? `https://www.2embed.cc/embedtv/${getNumericId(id)}&s=${s}&e=${e}` : `https://www.2embed.cc/embed/${getNumericId(id)}` },
-  { name: 'Server 4', url: (id, s, e) => s ? `https://vidsrc.in/embed/tv?tmdb=${getNumericId(id)}&season=${s}&episode=${e}` : `https://vidsrc.in/embed/movie?tmdb=${getNumericId(id)}` },
-  { name: 'Server 5', url: (id, s, e) => s ? `https://multiembed.mov/directstream.php?video_id=${getNumericId(id)}&tmdb=1&s=${s}&e=${e}` : `https://multiembed.mov/directstream.php?video_id=${getNumericId(id)}&tmdb=1` }
+  { name: 'Server 1', url: (id, s, e, title, year) => s ? `https://vidlink.pro/tv/${getNumericId(id)}/${s}/${e}` : `https://vidlink.pro/movie/${getNumericId(id)}` },
+  { name: 'Server 2', url: (id, s, e, title, year) => s ? `https://vidsrc.xyz/embed/tv?tmdb=${getNumericId(id)}&season=${s}&episode=${e}` : `https://vidsrc.xyz/embed/movie?tmdb=${getNumericId(id)}` },
+  { name: 'Server 3', url: (id, s, e, title, year) => s ? `https://www.2embed.cc/embedtv/${getNumericId(id)}&s=${s}&e=${e}` : `https://www.2embed.cc/embed/${getNumericId(id)}` },
+  { name: 'Server 4', url: (id, s, e, title, year) => s ? `https://vidsrc.in/embed/tv?tmdb=${getNumericId(id)}&season=${s}&episode=${e}` : `https://vidsrc.in/embed/movie?tmdb=${getNumericId(id)}` },
+  { name: 'Server 5', url: (id, s, e, title, year) => s ? `https://multiembed.mov/directstream.php?video_id=${getNumericId(id)}&tmdb=1&s=${s}&e=${e}` : `https://multiembed.mov/directstream.php?video_id=${getNumericId(id)}&tmdb=1` },
+  { name: 'Server 6 (embed.su)', url: (id, s, e, title, year) => s ? `https://embed.su/embed/tv/${getNumericId(id)}/${s}/${e}` : `https://embed.su/embed/movie/${getNumericId(id)}` },
+  { name: 'Local Torrent Stream', url: (id, s, e, title, year) => `http://localhost:4000/stream?title=${encodeURIComponent(title)}&year=${year}` }
 ];
 
 // ─── Animation Variants ───────────────────────────────────────────────────────
@@ -1058,7 +1060,7 @@ export default function MovieDetails() {
               )}
               <iframe
                 key={`${playingServerIndex}-${selectedSeason}-${playingEpisode}`}
-                src={playMode === 'trailer' ? decodeUrl(movie.trailerUrl) : SERVERS[playingServerIndex].url(movie.id, movie.isSeries ? selectedSeason : null, movie.isSeries ? playingEpisode : null)}
+                src={playMode === 'trailer' ? decodeUrl(movie.trailerUrl) : SERVERS[playingServerIndex].url(movie.id, movie.isSeries ? selectedSeason : null, movie.isSeries ? playingEpisode : null, movie.title, movie.releaseYear)}
                 onLoad={() => setIframeLoading(false)}
                 style={{
                   width: '100%',
