@@ -666,7 +666,7 @@ export default function MovieDetails() {
       style={{
         position: "relative",
         width: "100%",
-        marginTop: 0,
+        marginTop: "-56px",
         paddingTop: 0,
       }}
     >

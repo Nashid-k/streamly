@@ -286,7 +286,7 @@ a {
   margin-right: -50vw;
 }
 
-/* Hero Section — Full-width edge-to-edge, below navbar */
+/* Hero Section — Full-width edge-to-edge, starts right below navbar */
 .hero-container {
   position: relative;
   left: 50%;
@@ -297,7 +297,7 @@ a {
   max-height: 900px;
   border-radius: 0;
   overflow: hidden;
-  margin-top: 0;
+  margin-top: -56px;
   margin-bottom: 0;
   box-shadow: none;
   border: none;
@@ -1084,7 +1084,7 @@ input:focus-visible {
     margin-left: calc(50% - 50vw);
     margin-right: calc(50% - 50vw);
     border-radius: 0;
-    margin-top: 0;
+    margin-top: -56px;
     height: min(75vh, 560px);
     min-height: 450px;
     max-height: none;
