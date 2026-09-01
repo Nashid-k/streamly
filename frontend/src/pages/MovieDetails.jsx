@@ -534,6 +534,14 @@ export default function MovieDetails() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [similar]);
 
+  const normalizedSeasonCount = Math.max(
+    1,
+    Number(movie?.seasonsCount) || (movie?.isSeries ? 1 : 0),
+  );
+  const hasSeriesEpisodes = Boolean(
+    movie?.isSeries && (normalizedSeasonCount > 0 || episodesData?.length),
+  );
+
   const { data: episodesData, isLoading: episodesLoading } = useQuery({
     queryKey: ["episodes", id, selectedSeason, platform],
     queryFn: () => movieService.getSeasonEpisodes(id, selectedSeason, platform),
@@ -542,7 +550,7 @@ export default function MovieDetails() {
   const episodes = Array.isArray(episodesData) ? episodesData : [];
 
   useEffect(() => {
-    if (movie && movie.isSeries && movie.seasonsCount > 0) {
+    if (movie && movie.isSeries) {
       const saved = cwRef.current.find(
         (m) => String(m.id) === String(movie.id),
       );
@@ -1550,7 +1558,7 @@ export default function MovieDetails() {
       </motion.div>
 
       {/* ── Episodes ─────────────────────────────────────────────────────────── */}
-      {movie.isSeries && movie.seasonsCount > 0 && (
+      {movie.isSeries && hasSeriesEpisodes && (
         <motion.section
           style={{ marginTop: "2rem" }}
           initial={{ opacity: 0, y: 40 }}
@@ -1581,7 +1589,7 @@ export default function MovieDetails() {
 
             {/* Season custom dropdown */}
             <SeasonDropdown
-              seasonsCount={movie.seasonsCount}
+              seasonsCount={normalizedSeasonCount}
               selectedSeason={selectedSeason}
               onSelect={setSelectedSeason}
             />
