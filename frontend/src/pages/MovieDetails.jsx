@@ -547,9 +547,7 @@ export default function MovieDetails() {
     }
   }, [movie]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [id, platform]);
+  // Scroll handled by useScrollRestoration in Layout
 
   useEffect(() => {
     document.body.style.overflow = isPlaying ? "hidden" : "auto";
@@ -723,7 +721,8 @@ export default function MovieDetails() {
         style={{
           position: "relative",
           zIndex: 10,
-          paddingTop: "1rem",
+          paddingTop: "1.5rem",
+          paddingBottom: "0.5rem",
           paddingLeft: "clamp(1.5rem, 4vw, 4rem)",
           paddingRight: "clamp(1.5rem, 4vw, 4rem)",
           display: "flex",
@@ -1077,9 +1076,9 @@ export default function MovieDetails() {
                     <Link
                       to={`/genre/${encodeURIComponent(genre)}`}
                       style={{
-                        background: "transparent",
-                        border: "1px solid rgba(255,255,255,0.18)",
-                        padding: "4px 14px",
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        padding: "5px 14px",
                         borderRadius: "100px",
                         fontSize: "0.8rem",
                         color: "#d4d4d8",
@@ -1090,13 +1089,17 @@ export default function MovieDetails() {
                         display: "inline-block",
                       }}
                       onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(255,255,255,0.12)";
                         e.currentTarget.style.borderColor =
-                          "rgba(255,255,255,0.4)";
+                          "rgba(255,255,255,0.3)";
                         e.currentTarget.style.color = "#fff";
                       }}
                       onMouseLeave={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(255,255,255,0.06)";
                         e.currentTarget.style.borderColor =
-                          "rgba(255,255,255,0.18)";
+                          "rgba(255,255,255,0.1)";
                         e.currentTarget.style.color = "#d4d4d8";
                       }}
                     >
@@ -1331,8 +1334,8 @@ export default function MovieDetails() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              display: "flex",
+              flexDirection: "column",
               gap: "2rem",
               borderTop: "1px solid rgba(255,255,255,0.07)",
               paddingTop: "2rem",
@@ -1396,7 +1399,7 @@ export default function MovieDetails() {
               )}
             </motion.div>
             {movie.cast && movie.cast.length > 0 && (
-              <div style={{ gridColumn: "span 2", minWidth: 0 }}>
+              <div style={{ minWidth: 0 }}>
                 <CastRail cast={movie.cast} />
               </div>
             )}
@@ -1407,7 +1410,7 @@ export default function MovieDetails() {
       {/* ── Episodes ─────────────────────────────────────────────────────────── */}
       {movie.isSeries && hasSeriesEpisodes && (
         <motion.section
-          style={{ position: "relative", zIndex: 1, marginTop: "2rem" }}
+          style={{ position: "relative", zIndex: 1, marginTop: "2rem", paddingLeft: "clamp(1.5rem, 4vw, 4rem)", paddingRight: "clamp(1.5rem, 4vw, 4rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -1779,7 +1782,7 @@ export default function MovieDetails() {
       {/* ── More Like This ────────────────────────────────────────────────────── */}
       {(loading || (similar && similar.length > 0)) && (
         <motion.section
-          style={{ position: "relative", zIndex: 1, marginTop: "5rem" }}
+          style={{ position: "relative", zIndex: 1, marginTop: "5rem", paddingLeft: "clamp(1.5rem, 4vw, 4rem)", paddingRight: "clamp(1.5rem, 4vw, 4rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -1869,7 +1872,7 @@ export default function MovieDetails() {
               zIndex: 99999,
               display: "flex",
               flexDirection: "column",
-              background: playMode === "trailer" ? "rgba(0,0,0,0.92)" : "#000",
+              background: playMode === "trailer" ? "rgba(5,5,5,0.92)" : "#050505",
               backdropFilter: playMode === "trailer" ? "blur(24px)" : "none",
             }}
           >
@@ -2074,7 +2077,7 @@ export default function MovieDetails() {
                 position: "relative",
                 flex: 1,
                 width: "100%",
-                background: "#000",
+                background: "#050505",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
