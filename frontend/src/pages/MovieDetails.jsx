@@ -17,17 +17,12 @@ import {
   Check,
   X,
   MonitorPlay,
-  Volume2,
-  VolumeX,
   ChevronDown,
   RotateCcw,
 } from "lucide-react";
 import {
   motion,
   AnimatePresence,
-  useScroll,
-  useTransform,
-  useMotionTemplate,
 } from "framer-motion";
 import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast.jsx";
@@ -479,18 +474,9 @@ export default function MovieDetails() {
   useEffect(() => {
     if (isPlaying) setIframeLoading(true);
   }, [isPlaying, playMode, playingServerIndex, playingEpisode, selectedSeason]);
-  const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
 
   const castRailRef = useRef(null);
   const pageRef = useRef(null);
-
-  // Scroll-based parallax for backdrop
-  const { scrollY } = useScroll();
-  const backdropY = useTransform(scrollY, [0, 600], [0, 80]);
-  const backdropScale = useTransform(scrollY, [0, 600], [1, 1.08]);
-  const backdropBlurValue = useTransform(scrollY, [0, 600], [0, 20]);
-  const backdropBrightnessValue = useTransform(scrollY, [0, 600], [1, 0.25]);
-  const backdropFilter = useMotionTemplate`blur(${backdropBlurValue}px) brightness(${backdropBrightnessValue})`;
 
   const scrollCast = (dir) => {
     if (castRailRef.current) {
@@ -582,9 +568,6 @@ export default function MovieDetails() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [isPlaying]);
 
-  const [isBgMuted, setIsBgMuted] = useState(true);
-  const bgIframeRef = useRef(null);
-
   if (loading) {
     return <MovieDetailsSkeleton />;
   }
@@ -637,12 +620,14 @@ export default function MovieDetails() {
   const hasProgress = continueWatching?.some((m) => m.id === movie?.id);
   const progressItem = continueWatching?.find((m) => m.id === movie?.id);
   const savedTimestamp = progressItem?.timestamp || 0;
+  const backdropSrc = movie.backdropUrl || movie.posterUrl;
 
   return (
     <div
       ref={pageRef}
       style={{
         position: "relative",
+        isolation: "isolate",
         width: "100%",
         marginTop: "-2rem",
         paddingTop: "2rem",
@@ -665,35 +650,11 @@ export default function MovieDetails() {
           left: "0",
           width: "100%",
           marginTop: "-2rem",
+          backgroundImage: backdropSrc ? `url(${backdropSrc})` : "none",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       >
-        <motion.img
-          key={`bg-img-${movie?.id}-${movie?.backdropUrl || movie?.posterUrl}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          src={movie.backdropUrl || movie.posterUrl}
-          alt="Backdrop"
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            y: backdropY,
-            scale: backdropScale,
-            filter: backdropFilter,
-            zIndex: 0,
-          }}
-          onError={(e) => {
-            if (e.currentTarget.src !== movie.posterUrl && movie.posterUrl) {
-              e.currentTarget.src = movie.posterUrl;
-            } else {
-              e.currentTarget.style.opacity = "0";
-            }
-          }}
-        />
 
         {/* Side vignettes */}
         <div
@@ -733,7 +694,7 @@ export default function MovieDetails() {
         />
       </div>
 
-      {/* ── Topbar: Back + Mute ───────────────────────────────────────────────── */}
+      {/* ── Topbar: Back ─────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}

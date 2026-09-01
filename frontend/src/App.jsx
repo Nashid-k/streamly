@@ -1577,7 +1577,11 @@ function Layout({ children }) {
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 12 }}
+            initial={
+              location.pathname.startsWith("/watch/")
+                ? false
+                : { opacity: 0, y: 12 }
+            }
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.22, ease: "easeOut" }}

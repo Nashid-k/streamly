@@ -633,9 +633,11 @@ a {
   left: 0;
   width: 100%;
   height: min(68vh, 720px);
-  z-index: -1;
+  z-index: 0;
   overflow: hidden;
-  background: #000;
+  background-color: #111;
+  background-size: cover;
+  background-position: center;
 }
 
 .details-content-wrapper {
