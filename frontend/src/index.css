@@ -286,7 +286,7 @@ a {
   margin-right: -50vw;
 }
 
-/* Hero Section — Full-width edge-to-edge, behind navbar */
+/* Hero Section — Full-width edge-to-edge, below navbar */
 .hero-container {
   position: relative;
   left: 50%;
@@ -297,7 +297,7 @@ a {
   max-height: 900px;
   border-radius: 0;
   overflow: hidden;
-  margin-top: -56px;
+  margin-top: 0;
   margin-bottom: 0;
   box-shadow: none;
   border: none;
@@ -350,10 +350,11 @@ a {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(0deg, #050505 0%, #050505 4%, rgba(5,5,5,0.88) 12%, rgba(0,0,0,0.5) 32%, transparent 58%),
-    linear-gradient(90deg, rgba(5,5,5,0.95) 0%, rgba(5,5,5,0.7) 22%, rgba(0,0,0,0.35) 50%, transparent 100%),
-    linear-gradient(0deg, rgba(5,5,5,0.5) 0%, transparent 18%),
-    linear-gradient(270deg, rgba(5,5,5,0.35) 0%, transparent 18%);
+    linear-gradient(0deg, #050505 0%, #050505 3%, rgba(5,5,5,0.9) 10%, rgba(5,5,5,0.65) 25%, rgba(0,0,0,0.3) 42%, transparent 60%),
+    linear-gradient(90deg, rgba(5,5,5,0.97) 0%, rgba(5,5,5,0.75) 18%, rgba(5,5,5,0.4) 42%, transparent 100%),
+    linear-gradient(0deg, rgba(5,5,5,0.6) 0%, rgba(5,5,5,0.2) 12%, transparent 22%),
+    linear-gradient(270deg, rgba(5,5,5,0.5) 0%, rgba(5,5,5,0.15) 12%, transparent 22%),
+    radial-gradient(ellipse at 30% 80%, rgba(5,5,5,0.4) 0%, transparent 50%);
 }
 
 .hero-content {

@@ -664,7 +664,7 @@ export default function MovieDetails() {
       style={{
         position: "relative",
         width: "100%",
-        marginTop: "-56px",
+        marginTop: 0,
         paddingTop: 0,
       }}
     >
@@ -698,7 +698,7 @@ export default function MovieDetails() {
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.35) 65%, #050505 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.55) 75%, #050505 100%)",
             pointerEvents: "none",
           }}
         />
@@ -708,7 +708,7 @@ export default function MovieDetails() {
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 18%, transparent 38%, transparent 62%, rgba(0,0,0,0.6) 82%, rgba(0,0,0,0.95) 100%)",
+              "linear-gradient(90deg, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.65) 15%, rgba(0,0,0,0.2) 35%, transparent 50%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.65) 85%, rgba(0,0,0,0.97) 100%)",
             pointerEvents: "none",
           }}
         />
@@ -719,9 +719,9 @@ export default function MovieDetails() {
             top: 0,
             left: 0,
             right: 0,
-            height: "200px",
+            height: "180px",
             background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 45%, transparent 100%)",
+              "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.2) 70%, transparent 100%)",
             pointerEvents: "none",
           }}
         />
@@ -732,9 +732,9 @@ export default function MovieDetails() {
             bottom: 0,
             left: 0,
             right: 0,
-            height: "65%",
+            height: "60%",
             background:
-              "linear-gradient(to top, #050505 0%, #050505 12%, rgba(5,5,5,0.97) 28%, rgba(5,5,5,0.75) 50%, rgba(0,0,0,0.35) 75%, transparent 100%)",
+              "linear-gradient(to top, #050505 0%, #050505 8%, rgba(5,5,5,0.98) 20%, rgba(5,5,5,0.85) 40%, rgba(5,5,5,0.5) 65%, rgba(0,0,0,0.2) 85%, transparent 100%)",
             pointerEvents: "none",
           }}
         />
@@ -744,7 +744,7 @@ export default function MovieDetails() {
             position: "absolute",
             inset: 0,
             background:
-              "radial-gradient(ellipse 75% 55% at 50% 30%, transparent 0%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0.85) 100%)",
+              "radial-gradient(ellipse 70% 50% at 50% 35%, transparent 0%, rgba(0,0,0,0.25) 55%, rgba(0,0,0,0.7) 100%)",
             pointerEvents: "none",
           }}
         />
@@ -764,10 +764,8 @@ export default function MovieDetails() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          background: "rgba(5,5,5,0.85)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          background: "transparent",
+          borderBottom: "none",
         }}
       >
         {/* Left: Breadcrumb + Back */}
@@ -780,17 +778,14 @@ export default function MovieDetails() {
               gap: "8px",
               color: "#d4d4d8",
               fontWeight: 600,
-              transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+              transition: "all 0.2s ease",
               textTransform: "uppercase",
-              fontSize: "0.85rem",
+              fontSize: "0.8rem",
               letterSpacing: "0.05em",
-            background: "rgba(0,0,0,0.55)",
-            padding: "8px 16px",
-              borderRadius: "100px",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+              background: "transparent",
+              padding: "8px 14px",
+              borderRadius: "8px",
+              border: "none",
               cursor: "pointer",
             }}
             className="back-link"
@@ -818,17 +813,16 @@ export default function MovieDetails() {
               }
             }}
             style={{
-              background: "rgba(0,0,0,0.45)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "#d4d4d8",
-              width: "40px",
-              height: "40px",
-              borderRadius: "50%",
+              background: "transparent",
+              border: "none",
+              color: "rgba(255,255,255,0.5)",
+              width: "36px",
+              height: "36px",
+              borderRadius: "8px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
-              backdropFilter: "blur(8px)",
               transition: "all 0.2s",
             }}
             title="Share"
@@ -840,17 +834,16 @@ export default function MovieDetails() {
             whileTap={{ scale: 0.85 }}
             onClick={() => setUserRating(userRating === 'like' ? null : 'like')}
             style={{
-              background: userRating === 'like' ? 'rgba(74,222,128,0.15)' : 'rgba(0,0,0,0.45)',
-              border: userRating === 'like' ? '1px solid rgba(74,222,128,0.4)' : '1px solid rgba(255,255,255,0.1)',
-              color: userRating === 'like' ? '#4ade80' : '#d4d4d8',
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
+              background: userRating === 'like' ? 'rgba(74,222,128,0.12)' : 'transparent',
+              border: 'none',
+              color: userRating === 'like' ? '#4ade80' : 'rgba(255,255,255,0.5)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              backdropFilter: 'blur(8px)',
               transition: 'all 0.2s',
             }}
             title="Like"
@@ -862,12 +855,12 @@ export default function MovieDetails() {
             whileTap={{ scale: 0.85 }}
             onClick={() => setUserRating(userRating === 'dislike' ? null : 'dislike')}
             style={{
-              background: userRating === 'dislike' ? 'rgba(248,113,113,0.15)' : 'rgba(0,0,0,0.45)',
-              border: userRating === 'dislike' ? '1px solid rgba(248,113,113,0.4)' : '1px solid rgba(255,255,255,0.1)',
-              color: userRating === 'dislike' ? '#f87171' : '#d4d4d8',
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
+              background: userRating === 'dislike' ? 'rgba(248,113,113,0.12)' : 'transparent',
+              border: 'none',
+              color: userRating === 'dislike' ? '#f87171' : 'rgba(255,255,255,0.5)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
