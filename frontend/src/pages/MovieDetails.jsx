@@ -687,9 +687,7 @@ export default function MovieDetails() {
       ref={pageRef}
       style={{
         position: "relative",
-        width: "100vw",
-        marginLeft: "calc(50% - 50vw)",
-        marginRight: "calc(50% - 50vw)",
+        width: "100%",
         marginTop: "-2rem",
         paddingTop: "2rem",
       }}
@@ -705,12 +703,11 @@ export default function MovieDetails() {
       <div
         className="details-backdrop"
         style={{
-          height: "min(86vh, 980px)",
+          height: "min(72vh, 760px)",
           overflow: "hidden",
           top: "0",
-          left: "50%",
-          width: "100vw",
-          transform: "translateX(-50%)",
+          left: "0",
+          width: "100%",
           marginTop: "-2rem",
         }}
       >
@@ -1292,7 +1289,7 @@ export default function MovieDetails() {
                       lineHeight: 1.85,
                       color: "#d4d4d8",
                       letterSpacing: "0.01em",
-                      marginBottom: "2.5rem",
+                      marginBottom: "1.5rem",
                       width: "100%",
                       paddingRight: "2rem",
                     }}
@@ -1302,6 +1299,44 @@ export default function MovieDetails() {
                   >
                     {movie.longDescription || movie.description}
                   </motion.p>
+
+                  <div className="detail-facts-grid">
+                    <div className="detail-fact-card">
+                      <span className="detail-fact-label">Release</span>
+                      <span className="detail-fact-value">
+                        {movie.releaseYear ||
+                          (movie.releaseDate
+                            ? new Date(movie.releaseDate).getFullYear()
+                            : "—")}
+                      </span>
+                    </div>
+                    <div className="detail-fact-card">
+                      <span className="detail-fact-label">Runtime</span>
+                      <span className="detail-fact-value">
+                        {movie.duration || (movie.isSeries ? "Series" : "Movie")}
+                      </span>
+                    </div>
+                    <div className="detail-fact-card">
+                      <span className="detail-fact-label">Platform</span>
+                      <span className="detail-fact-value">{sourceName}</span>
+                    </div>
+                    <div className="detail-fact-card">
+                      <span className="detail-fact-label">Rating</span>
+                      <span className="detail-fact-value">
+                        {movie.maturityRating || "PG"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {movie.tags && movie.tags.length > 0 && (
+                    <div className="detail-tag-list">
+                      {movie.tags.slice(0, 8).map((tag) => (
+                        <span key={tag} className="detail-tag">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
