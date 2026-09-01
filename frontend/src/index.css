@@ -383,13 +383,15 @@ a {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.8rem 1.75rem;
+  padding: clamp(0.75rem, 1.2vw, 1.1rem) clamp(1.15rem, 2.8vw, 2.1rem);
   border-radius: 100px;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: clamp(0.86rem, 1vw, 1.04rem);
+  line-height: 1.2;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
+  white-space: nowrap;
 }
 
 .btn-primary {

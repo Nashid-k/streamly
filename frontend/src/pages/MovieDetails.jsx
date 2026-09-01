@@ -582,60 +582,8 @@ export default function MovieDetails() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [isPlaying]);
 
-  const [showBgTrailer, setShowBgTrailer] = useState(false);
-  // Keep the still backdrop as the base image at all times. The trailer is only an
-  // overlay; if it fails or stays blocked, the user still sees the movie art instead of a black screen.
-  const [isBgTrailerReady, setIsBgTrailerReady] = useState(false);
-  const [bgTrailerFailed, setBgTrailerFailed] = useState(false);
   const [isBgMuted, setIsBgMuted] = useState(true);
   const bgIframeRef = useRef(null);
-
-  const useStaticBackdrop = !showBgTrailer || !isBgTrailerReady || bgTrailerFailed;
-
-  useEffect(() => {
-    let timer;
-    if (!loading && movie && movie.trailerUrl && !isPlaying) {
-      timer = setTimeout(() => {
-        setBgTrailerFailed(false);
-        setShowBgTrailer(true);
-      }, 10000);
-    } else {
-      setBgTrailerFailed(false);
-      setShowBgTrailer(false);
-      setIsBgTrailerReady(false);
-      setIsBgMuted(true);
-    }
-    return () => clearTimeout(timer);
-  }, [loading, movie, isPlaying]);
-
-  // Reset ready state when trailer is unmounted
-  useEffect(() => {
-    if (!showBgTrailer || bgTrailerFailed) {
-      setIsBgTrailerReady(false);
-    }
-  }, [showBgTrailer, bgTrailerFailed]);
-
-  useEffect(() => {
-    const handleMessage = (e) => {
-      if (e.origin !== "https://www.youtube.com") return;
-      try {
-        const data = JSON.parse(e.data);
-        if (data.event === "onStateChange" && data.info === 0) {
-          setShowBgTrailer(false);
-          setIsBgTrailerReady(false);
-        } else if (
-          data.event === "infoDelivery" &&
-          data.info &&
-          data.info.playerState === 0
-        ) {
-          setShowBgTrailer(false);
-          setIsBgTrailerReady(false);
-        }
-      } catch (err) {}
-    };
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
 
   if (loading) {
     return <MovieDetailsSkeleton />;
@@ -722,10 +670,7 @@ export default function MovieDetails() {
         <motion.img
           key="bg-img"
           initial={{ opacity: 0, scale: 1.06 }}
-          animate={{
-            opacity: useStaticBackdrop ? 1 : 0.22,
-            scale: useStaticBackdrop ? 1 : 1.02,
-          }}
+          animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
           src={movie.backdropUrl || movie.posterUrl}
@@ -745,53 +690,6 @@ export default function MovieDetails() {
             e.currentTarget.style.opacity = "0";
           }}
         />
-
-        {showBgTrailer && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              pointerEvents: "none",
-              opacity: isBgTrailerReady && !bgTrailerFailed ? 1 : 0,
-              transition: isBgTrailerReady
-                ? "opacity 1.8s ease-in-out"
-                : "none",
-              zIndex: 1,
-            }}
-          >
-            <iframe
-              ref={bgIframeRef}
-              src={`${decodeUrl(movie.trailerUrl)}&controls=0&mute=1&autoplay=1&enablejsapi=1`}
-              style={{
-                width: "100vw",
-                height: "56.25vw",
-                minHeight: "100vh",
-                minWidth: "177.77vh",
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%) scale(1.3)",
-                border: "none",
-                background: "transparent",
-              }}
-              allow="autoplay; encrypted-media"
-              onLoad={() => {
-                if (bgIframeRef.current?.contentWindow) {
-                  bgIframeRef.current.contentWindow.postMessage(
-                    JSON.stringify({ event: "listening" }),
-                    "*",
-                  );
-                }
-                setTimeout(() => setIsBgTrailerReady(true), 800);
-              }}
-              onError={() => {
-                setBgTrailerFailed(true);
-                setShowBgTrailer(false);
-                setIsBgTrailerReady(false);
-              }}
-            />
-          </div>
-        )}
 
         {/* Side vignettes */}
         <div
@@ -879,45 +777,6 @@ export default function MovieDetails() {
           }}
         />
 
-        <AnimatePresence>
-          {isBgTrailerReady && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.7, rotate: -10 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              exit={{ opacity: 0, scale: 0.7, rotate: 10 }}
-              transition={{ type: "spring", stiffness: 400, damping: 28 }}
-              onClick={() => {
-                if (bgIframeRef.current?.contentWindow) {
-                  bgIframeRef.current.contentWindow.postMessage(
-                    JSON.stringify({
-                      event: "command",
-                      func: isBgMuted ? "unMute" : "mute",
-                    }),
-                    "*",
-                  );
-                }
-                setIsBgMuted(!isBgMuted);
-              }}
-              style={{
-                zIndex: 50,
-                background: "rgba(0,0,0,0.5)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                color: "white",
-                padding: "0.8rem",
-                borderRadius: "50%",
-                cursor: "pointer",
-                backdropFilter: "blur(8px)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              whileHover={{ scale: 1.12, background: "rgba(255,255,255,0.15)" }}
-              whileTap={{ scale: 0.93 }}
-            >
-              {isBgMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
-            </motion.button>
-          )}
-        </AnimatePresence>
       </motion.div>
 
       {/* ── Main Content Block ────────────────────────────────────────────────── */}
@@ -928,49 +787,39 @@ export default function MovieDetails() {
         animate="show"
       >
         {/* Poster */}
-        <AnimatePresence mode="wait">
-          {!isBgTrailerReady && (
-            <motion.div
-              key="poster"
-              variants={slideUp}
-              exit={{
-                opacity: 0,
-                scale: 0.88,
-                x: -30,
-                transition: { duration: 0.5, ease: [0.4, 0, 1, 1] },
-              }}
-              style={{ position: "relative", flexShrink: 0 }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  inset: "-12%",
-                  background: `url(${movie.posterUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  filter: "blur(48px) brightness(0.5)",
-                  zIndex: -1,
-                  borderRadius: "50%",
-                  opacity: 0.8,
-                }}
-              />
-              <motion.img
-                src={movie.posterUrl}
-                alt={movie.title}
-                className="details-poster-large"
-                whileHover={{
-                  scale: 1.03,
-                  y: -6,
-                  boxShadow: "0 40px 80px -12px rgba(0,0,0,0.95)",
-                }}
-                transition={{ type: "spring", stiffness: 280, damping: 22 }}
-                onError={(e) => {
-                  e.currentTarget.style.opacity = "0";
-                }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <motion.div
+          key="poster"
+          variants={slideUp}
+          style={{ position: "relative", flexShrink: 0 }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: "-12%",
+              background: `url(${movie.posterUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "blur(48px) brightness(0.5)",
+              zIndex: -1,
+              borderRadius: "50%",
+              opacity: 0.8,
+            }}
+          />
+          <motion.img
+            src={movie.posterUrl}
+            alt={movie.title}
+            className="details-poster-large"
+            whileHover={{
+              scale: 1.03,
+              y: -6,
+              boxShadow: "0 40px 80px -12px rgba(0,0,0,0.95)",
+            }}
+            transition={{ type: "spring", stiffness: 280, damping: 22 }}
+            onError={(e) => {
+              e.currentTarget.style.opacity = "0";
+            }}
+          />
+        </motion.div>
 
         {/* Text content */}
         <motion.div
@@ -978,11 +827,11 @@ export default function MovieDetails() {
           layout
           style={{
             display: "flex",
-            flexDirection: isBgTrailerReady ? "row" : "column",
+            flexDirection: "column",
             width: "100%",
-            alignItems: isBgTrailerReady ? "flex-end" : "stretch",
-            gap: isBgTrailerReady ? "2rem" : "0",
-            paddingTop: isBgTrailerReady ? "10vh" : 0,
+            alignItems: "stretch",
+            gap: "0",
+            paddingTop: 0,
             transition: "padding-top 0.7s cubic-bezier(0.16,1,0.3,1)",
           }}
         >
@@ -991,89 +840,78 @@ export default function MovieDetails() {
             style={{
               display: "flex",
               flexDirection: "column",
-              width: isBgTrailerReady ? "40%" : "100%",
+              width: "100%",
             }}
           >
             {/* Platform tag */}
-            <AnimatePresence>
-              {!isBgTrailerReady && (
+            <motion.div
+              variants={fadeIn}
+              initial="hidden"
+              animate="show"
+            >
+              <motion.div
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
+                style={{
+                  marginBottom: "1.5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                }}
+              >
+                <PlatformIcon platform={resolvedPlatform} />
+              </motion.div>
+
+              {movie.nextEpisode && movie.nextEpisode.releaseDate && (
                 <motion.div
-                  variants={fadeIn}
-                  initial="hidden"
-                  animate="show"
-                  exit={{
-                    opacity: 0,
-                    height: 0,
-                    marginBottom: 0,
-                    overflow: "hidden",
-                    transition: { duration: 0.45 },
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{
+                    delay: 0.3,
+                    duration: 0.4,
+                    ease: "easeOut",
+                  }}
+                  style={{
+                    marginBottom: "1.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
                   }}
                 >
-                  <motion.div
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
+                  <span
                     style={{
-                      marginBottom: "1.5rem",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.75rem",
+                      background: "#e50914",
+                      color: "white",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      fontSize: "0.75rem",
+                      fontWeight: 800,
+                      letterSpacing: "0.05em",
+                      animation: "pulse 2s infinite",
                     }}
                   >
-                    <PlatformIcon platform={resolvedPlatform} />
-                  </motion.div>
-
-                  {movie.nextEpisode && movie.nextEpisode.releaseDate && (
-                    <motion.div
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{
-                        delay: 0.3,
-                        duration: 0.4,
-                        ease: "easeOut",
-                      }}
-                      style={{
-                        marginBottom: "1.5rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          background: "#e50914",
-                          color: "white",
-                          padding: "4px 8px",
-                          borderRadius: "4px",
-                          fontSize: "0.75rem",
-                          fontWeight: 800,
-                          letterSpacing: "0.05em",
-                          animation: "pulse 2s infinite",
-                        }}
-                      >
-                        LIVE SEASON
-                      </span>
-                      <span
-                        style={{
-                          color: "#d4d4d8",
-                          fontSize: "0.9rem",
-                          fontWeight: 500,
-                        }}
-                      >
-                        New Episode Airs on{" "}
-                        {new Date(
-                          movie.nextEpisode.releaseDate,
-                        ).toLocaleDateString("en-US", {
-                          weekday: "long",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    </motion.div>
-                  )}
+                    LIVE SEASON
+                  </span>
+                  <span
+                    style={{
+                      color: "#d4d4d8",
+                      fontSize: "0.9rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    New Episode Airs on{" "}
+                    {new Date(
+                      movie.nextEpisode.releaseDate,
+                    ).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
                 </motion.div>
               )}
-            </AnimatePresence>
+            </motion.div>
 
             {/* Logo / Title */}
             <motion.div
@@ -1137,196 +975,186 @@ export default function MovieDetails() {
             </motion.div>
 
             {/* Meta + genres + description */}
-            <AnimatePresence>
-              {!isBgTrailerReady && (
-                <motion.div
-                  variants={slideUp}
-                  initial="hidden"
-                  animate="show"
-                  exit={{
-                    opacity: 0,
-                    height: 0,
-                    overflow: "hidden",
-                    transition: { duration: 0.5, ease: [0.4, 0, 1, 1] },
-                  }}
-                >
-                  {/* Meta pills */}
-                  <motion.div
-                    className="details-meta"
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      gap: "0.75rem",
-                      marginBottom: "1.75rem",
-                      fontSize: "0.92rem",
-                      fontWeight: 600,
-                      color: "#a1a1aa",
-                    }}
-                    variants={{
-                      show: { transition: { staggerChildren: 0.06 } },
-                    }}
-                    initial="hidden"
-                    animate="show"
-                  >
-                    {[
-                      {
-                        icon: <Calendar size={15} />,
-                        label:
-                          movie.isUpcoming && movie.releaseDate
-                            ? new Date(movie.releaseDate).toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                },
-                              )
-                            : movie.releaseYear,
-                        bg: "rgba(255,255,255,0.06)",
-                      },
-                      {
-                        icon: <Clock size={15} />,
-                        label:
-                          movie.duration ||
-                          (movie.isSeries ? "Series" : "Movie"),
-                        bg: "rgba(255,255,255,0.06)",
-                      },
-                      ...(movie.imdbRating > 0
-                        ? [
+            <motion.div
+              variants={slideUp}
+              initial="hidden"
+              animate="show"
+            >
+              {/* Meta pills */}
+              <motion.div
+                className="details-meta"
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  marginBottom: "1.75rem",
+                  fontSize: "0.92rem",
+                  fontWeight: 600,
+                  color: "#a1a1aa",
+                }}
+                variants={{
+                  show: { transition: { staggerChildren: 0.06 } },
+                }}
+                initial="hidden"
+                animate="show"
+              >
+                {[
+                  {
+                    icon: <Calendar size={15} />,
+                    label:
+                      movie.isUpcoming && movie.releaseDate
+                        ? new Date(movie.releaseDate).toLocaleDateString(
+                            "en-US",
                             {
-                              icon: "⭐",
-                              label: movie.imdbRating,
-                              bg: "rgba(251,191,36,0.1)",
-                              color: "#fbbf24",
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
                             },
-                          ]
-                        : []),
-                      {
-                        icon: <Star size={15} fill="#fbbf24" color="#fbbf24" />,
-                        label: movie.maturityRating || "PG",
-                        bg: "rgba(251,191,36,0.08)",
-                        color: "#fbbf24",
-                      },
-                      ...(movie.matchScore
-                        ? [
-                            {
-                              label: `${movie.matchScore}% Match`,
-                              bg: "rgba(74,222,128,0.1)",
-                              color: "#4ade80",
-                            },
-                          ]
-                        : []),
-                    ].map((item, i) => (
-                      <motion.span
-                        key={i}
-                        variants={slideUpSm}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "5px",
-                          background: item.bg || "rgba(255,255,255,0.06)",
-                          padding: "5px 11px",
-                          borderRadius: "8px",
-                          color: item.color || "#a1a1aa",
-                          border: "1px solid rgba(255,255,255,0.04)",
-                        }}
-                      >
-                        {item.icon} {item.label}
-                      </motion.span>
-                    ))}
-                  </motion.div>
-
-                  {/* Genre tags */}
-                  <motion.div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "0.5rem",
-                      marginBottom: "1.75rem",
-                    }}
-                    variants={{
-                      show: { transition: { staggerChildren: 0.05 } },
-                    }}
-                    initial="hidden"
-                    animate="show"
-                  >
-                    {(movie.genres || []).map((genre, i) => (
-                      <motion.div
-                        key={genre}
-                        variants={slideUpSm}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <Link
-                          to={`/genre/${encodeURIComponent(genre)}`}
-                          style={{
-                            background: "transparent",
-                            border: "1px solid rgba(255,255,255,0.18)",
-                            padding: "4px 14px",
-                            borderRadius: "100px",
-                            fontSize: "0.8rem",
-                            color: "#d4d4d8",
-                            letterSpacing: "0.03em",
-                            cursor: "pointer",
-                            transition: "all 0.2s",
-                            textDecoration: "none",
-                            display: "inline-block",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor =
-                              "rgba(255,255,255,0.4)";
-                            e.currentTarget.style.color = "#fff";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor =
-                              "rgba(255,255,255,0.18)";
-                            e.currentTarget.style.color = "#d4d4d8";
-                          }}
-                        >
-                          {genre}
-                        </Link>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-
-                  {/* Description */}
-                  <motion.p
-                    className="details-overview"
-                    style={{
-                      fontSize: "1.05rem",
-                      lineHeight: 1.85,
-                      color: "#d4d4d8",
-                      letterSpacing: "0.01em",
-                      marginBottom: "1.5rem",
-                      width: "100%",
-                      paddingRight: "2rem",
-                    }}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.45, duration: 0.6, ease: "easeOut" }}
-                  >
-                    {movie.longDescription || movie.description}
-                  </motion.p>
-
-                  {(movie.tags?.length || movie.audioLanguages?.length || movie.subtitleLanguages?.length) && (
-                    <div className="detail-tag-list">
-                      {[
-                        ...(movie.tags || []).slice(0, 6),
-                        ...(movie.audioLanguages || []).slice(0, 3),
-                        ...(movie.subtitleLanguages || []).slice(0, 3),
+                          )
+                        : movie.releaseYear,
+                    bg: "rgba(255,255,255,0.06)",
+                  },
+                  {
+                    icon: <Clock size={15} />,
+                    label:
+                      movie.duration ||
+                      (movie.isSeries ? "Series" : "Movie"),
+                    bg: "rgba(255,255,255,0.06)",
+                  },
+                  ...(movie.imdbRating > 0
+                    ? [
+                        {
+                          icon: "⭐",
+                          label: movie.imdbRating,
+                          bg: "rgba(251,191,36,0.1)",
+                          color: "#fbbf24",
+                        },
                       ]
-                        .filter(Boolean)
-                        .slice(0, 12)
-                        .map((tag) => (
-                          <span key={tag} className="detail-tag">
-                            {tag}
-                          </span>
-                        ))}
-                    </div>
-                  )}
-                </motion.div>
+                    : []),
+                  {
+                    icon: <Star size={15} fill="#fbbf24" color="#fbbf24" />,
+                    label: movie.maturityRating || "PG",
+                    bg: "rgba(251,191,36,0.08)",
+                    color: "#fbbf24",
+                  },
+                  ...(movie.matchScore
+                    ? [
+                        {
+                          label: `${movie.matchScore}% Match`,
+                          bg: "rgba(74,222,128,0.1)",
+                          color: "#4ade80",
+                        },
+                      ]
+                    : []),
+                ].map((item, i) => (
+                  <motion.span
+                    key={i}
+                    variants={slideUpSm}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      background: item.bg || "rgba(255,255,255,0.06)",
+                      padding: "5px 11px",
+                      borderRadius: "8px",
+                      color: item.color || "#a1a1aa",
+                      border: "1px solid rgba(255,255,255,0.04)",
+                    }}
+                  >
+                    {item.icon} {item.label}
+                  </motion.span>
+                ))}
+              </motion.div>
+
+              {/* Genre tags */}
+              <motion.div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "0.5rem",
+                  marginBottom: "1.75rem",
+                }}
+                variants={{
+                  show: { transition: { staggerChildren: 0.05 } },
+                }}
+                initial="hidden"
+                animate="show"
+              >
+                {(movie.genres || []).map((genre, i) => (
+                  <motion.div
+                    key={genre}
+                    variants={slideUpSm}
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <Link
+                      to={`/genre/${encodeURIComponent(genre)}`}
+                      style={{
+                        background: "transparent",
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        padding: "4px 14px",
+                        borderRadius: "100px",
+                        fontSize: "0.8rem",
+                        color: "#d4d4d8",
+                        letterSpacing: "0.03em",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        textDecoration: "none",
+                        display: "inline-block",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(255,255,255,0.4)";
+                        e.currentTarget.style.color = "#fff";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "rgba(255,255,255,0.18)";
+                        e.currentTarget.style.color = "#d4d4d8";
+                      }}
+                    >
+                      {genre}
+                    </Link>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Description */}
+              <motion.p
+                className="details-overview"
+                style={{
+                  fontSize: "1.05rem",
+                  lineHeight: 1.85,
+                  color: "#d4d4d8",
+                  letterSpacing: "0.01em",
+                  marginBottom: "1.5rem",
+                  width: "100%",
+                  paddingRight: "2rem",
+                }}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45, duration: 0.6, ease: "easeOut" }}
+              >
+                {movie.longDescription || movie.description}
+              </motion.p>
+
+              {(movie.tags?.length || movie.audioLanguages?.length || movie.subtitleLanguages?.length) && (
+                <div className="detail-tag-list">
+                  {[
+                    ...(movie.tags || []).slice(0, 6),
+                    ...(movie.audioLanguages || []).slice(0, 3),
+                    ...(movie.subtitleLanguages || []).slice(0, 3),
+                  ]
+                    .filter(Boolean)
+                    .slice(0, 12)
+                    .map((tag) => (
+                      <span key={tag} className="detail-tag">
+                        {tag}
+                      </span>
+                    ))}
+                </div>
               )}
-            </AnimatePresence>
+            </motion.div>
 
             {/* CTA Buttons */}
             <motion.div
@@ -1335,7 +1163,8 @@ export default function MovieDetails() {
                 display: "flex",
                 flexWrap: "wrap",
                 gap: "0.85rem",
-                marginBottom: isBgTrailerReady ? "0" : "3.5rem",
+                marginBottom: "3.5rem",
+                alignItems: "center",
               }}
               variants={{ show: { transition: { staggerChildren: 0.08 } } }}
               initial="hidden"
@@ -1347,7 +1176,10 @@ export default function MovieDetails() {
                   : [
                       {
                         cls: `btn btn-primary${!hasProgress ? " btn-cta-pulse" : ""}`,
-                        style: { fontSize: "1.05rem", padding: "1rem 2rem" },
+                        style: {
+                          fontSize: "clamp(0.9rem, 1vw, 1.06rem)",
+                          padding: "clamp(0.8rem, 1.4vw, 1.12rem) clamp(1.2rem, 2.8vw, 2.05rem)",
+                        },
                         onClick: () => {
                           setPlayMode("movie");
                           setIsPlaying(true);
@@ -1390,8 +1222,8 @@ export default function MovieDetails() {
                             {
                               cls: "btn",
                               style: {
-                                fontSize: "1.05rem",
-                                padding: "1rem 2rem",
+                                fontSize: "clamp(0.9rem, 1vw, 1.06rem)",
+                                padding: "clamp(0.8rem, 1.4vw, 1.12rem) clamp(1.2rem, 2.8vw, 2.05rem)",
                                 background: "rgba(255,255,255,0.1)",
                                 color: "#fff",
                               },
@@ -1429,7 +1261,10 @@ export default function MovieDetails() {
                   ? [
                       {
                         cls: "btn btn-primary",
-                        style: { fontSize: "1.05rem", padding: "1rem 2rem" },
+                        style: {
+                          fontSize: "clamp(0.9rem, 1vw, 1.06rem)",
+                          padding: "clamp(0.8rem, 1.4vw, 1.12rem) clamp(1.2rem, 2.8vw, 2.05rem)",
+                        },
                         onClick: () => {
                           setPlayMode("trailer");
                           setIsPlaying(true);
@@ -1450,7 +1285,10 @@ export default function MovieDetails() {
                   : []),
                 {
                   cls: "btn btn-glass",
-                  style: { fontSize: "1.05rem", padding: "1rem 2rem" },
+                  style: {
+                    fontSize: "clamp(0.9rem, 1vw, 1.06rem)",
+                    padding: "clamp(0.8rem, 1.4vw, 1.12rem) clamp(1.2rem, 2.8vw, 2.05rem)",
+                  },
                   onClick: () => handleToggleMyList(movie),
                   children: (
                     <>
@@ -1468,8 +1306,8 @@ export default function MovieDetails() {
                       {
                         cls: "btn btn-glass",
                         style: {
-                          fontSize: "1.05rem",
-                          padding: "1rem 2rem",
+                          fontSize: "clamp(0.9rem, 1vw, 1.06rem)",
+                          padding: "clamp(0.8rem, 1.4vw, 1.12rem) clamp(1.2rem, 2.8vw, 2.05rem)",
                           background: "transparent",
                           borderColor: "rgba(255,255,255,0.25)",
                         },
@@ -1498,92 +1336,83 @@ export default function MovieDetails() {
             </motion.div>
           </motion.div>
 
-          {/* Director + cast — hidden while bg trailer plays */}
-          <AnimatePresence>
-            {!isBgTrailerReady && (
-              <motion.div
-                layout
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{
-                  opacity: 0,
-                  y: 10,
-                  transition: { duration: 0.35, ease: [0.4, 0, 1, 1] },
-                }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: "2rem",
-                  borderTop: "1px solid rgba(255,255,255,0.07)",
-                  paddingTop: "2rem",
-                  width: "100%",
-                }}
-              >
-                <motion.div variants={fadeIn}>
-                  {movie.director && (
-                    <motion.div
-                      style={{ marginBottom: "1.5rem" }}
-                      variants={slideUpSm}
-                    >
-                      <h3
-                        style={{
-                          fontSize: "0.8rem",
-                          color: "#52525b",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          marginBottom: "0.6rem",
-                        }}
-                      >
-                        Director
-                      </h3>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontWeight: 500,
-                          color: "#e4e4e7",
-                          fontSize: "1rem",
-                        }}
-                      >
-                        {movie.director}
-                      </p>
-                    </motion.div>
-                  )}
-                  {movie.isSeries && movie.seasonsCount && (
-                    <motion.div variants={slideUpSm}>
-                      <h3
-                        style={{
-                          fontSize: "0.8rem",
-                          color: "#52525b",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          marginBottom: "0.6rem",
-                        }}
-                      >
-                        Series Info
-                      </h3>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontWeight: 500,
-                          color: "#e4e4e7",
-                          fontSize: "1rem",
-                        }}
-                      >
-                        {movie.seasonsCount} Season
-                        {movie.seasonsCount > 1 ? "s" : ""}
-                      </p>
-                    </motion.div>
-                  )}
+          {/* Director + cast */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "2rem",
+              borderTop: "1px solid rgba(255,255,255,0.07)",
+              paddingTop: "2rem",
+              width: "100%",
+            }}
+          >
+            <motion.div variants={fadeIn}>
+              {movie.director && (
+                <motion.div
+                  style={{ marginBottom: "1.5rem" }}
+                  variants={slideUpSm}
+                >
+                  <h3
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#52525b",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      marginBottom: "0.6rem",
+                    }}
+                  >
+                    Director
+                  </h3>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontWeight: 500,
+                      color: "#e4e4e7",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    {movie.director}
+                  </p>
                 </motion.div>
-                {movie.cast && movie.cast.length > 0 && (
-                  <div style={{ gridColumn: "span 2", minWidth: 0 }}>
-                    <CastRail cast={movie.cast} />
-                  </div>
-                )}
-              </motion.div>
+              )}
+              {movie.isSeries && movie.seasonsCount && (
+                <motion.div variants={slideUpSm}>
+                  <h3
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#52525b",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      marginBottom: "0.6rem",
+                    }}
+                  >
+                    Series Info
+                  </h3>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontWeight: 500,
+                      color: "#e4e4e7",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    {movie.seasonsCount} Season
+                    {movie.seasonsCount > 1 ? "s" : ""}
+                  </p>
+                </motion.div>
+              )}
+            </motion.div>
+            {movie.cast && movie.cast.length > 0 && (
+              <div style={{ gridColumn: "span 2", minWidth: 0 }}>
+                <CastRail cast={movie.cast} />
+              </div>
             )}
-          </AnimatePresence>
+          </motion.div>
         </motion.div>
       </motion.div>
 
