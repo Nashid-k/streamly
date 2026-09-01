@@ -583,18 +583,24 @@ export default function MovieDetails() {
   }, [isPlaying]);
 
   const [showBgTrailer, setShowBgTrailer] = useState(false);
-  // isBgTrailerReady flips true only AFTER the iframe fires onLoad — this is
-  // what drives all visual transitions (backdrop swap, poster/cast hide, mute btn).
-  // showBgTrailer merely mounts the iframe so it can buffer silently first.
+  // Keep the still backdrop as the base image at all times. The trailer is only an
+  // overlay; if it fails or stays blocked, the user still sees the movie art instead of a black screen.
   const [isBgTrailerReady, setIsBgTrailerReady] = useState(false);
+  const [bgTrailerFailed, setBgTrailerFailed] = useState(false);
   const [isBgMuted, setIsBgMuted] = useState(true);
   const bgIframeRef = useRef(null);
+
+  const useStaticBackdrop = !showBgTrailer || !isBgTrailerReady || bgTrailerFailed;
 
   useEffect(() => {
     let timer;
     if (!loading && movie && movie.trailerUrl && !isPlaying) {
-      timer = setTimeout(() => setShowBgTrailer(true), 10000);
+      timer = setTimeout(() => {
+        setBgTrailerFailed(false);
+        setShowBgTrailer(true);
+      }, 10000);
     } else {
+      setBgTrailerFailed(false);
       setShowBgTrailer(false);
       setIsBgTrailerReady(false);
       setIsBgMuted(true);
@@ -604,8 +610,10 @@ export default function MovieDetails() {
 
   // Reset ready state when trailer is unmounted
   useEffect(() => {
-    if (!showBgTrailer) setIsBgTrailerReady(false);
-  }, [showBgTrailer]);
+    if (!showBgTrailer || bgTrailerFailed) {
+      setIsBgTrailerReady(false);
+    }
+  }, [showBgTrailer, bgTrailerFailed]);
 
   useEffect(() => {
     const handleMessage = (e) => {
@@ -711,49 +719,44 @@ export default function MovieDetails() {
           marginTop: "-2rem",
         }}
       >
-        <AnimatePresence mode="wait">
-          {!isBgTrailerReady ? (
-            <motion.img
-              key="bg-img"
-              initial={{ opacity: 0, scale: 1.06 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-              src={movie.backdropUrl || movie.posterUrl}
-              alt="Backdrop"
-              style={{
-                y: backdropY,
-                scale: backdropScale,
-                filter: backdropFilter,
-              }}
-              onError={(e) => {
-                e.currentTarget.style.opacity = "0";
-              }}
-            />
-          ) : (
-            <motion.div
-              key="bg-video"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.8, ease: "easeInOut" }}
-              style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-            />
-          )}
-        </AnimatePresence>
+        <motion.img
+          key="bg-img"
+          initial={{ opacity: 0, scale: 1.06 }}
+          animate={{
+            opacity: useStaticBackdrop ? 1 : 0.22,
+            scale: useStaticBackdrop ? 1 : 1.02,
+          }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          src={movie.backdropUrl || movie.posterUrl}
+          alt="Backdrop"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            y: backdropY,
+            scale: backdropScale,
+            filter: backdropFilter,
+            zIndex: 0,
+          }}
+          onError={(e) => {
+            e.currentTarget.style.opacity = "0";
+          }}
+        />
 
-        {/* Iframe: mounted silently as soon as showBgTrailer fires so it buffers;
-            visually revealed only once isBgTrailerReady=true (onLoad fired) */}
         {showBgTrailer && (
           <div
             style={{
               position: "absolute",
               inset: 0,
               pointerEvents: "none",
-              opacity: isBgTrailerReady ? 1 : 0,
+              opacity: isBgTrailerReady && !bgTrailerFailed ? 1 : 0,
               transition: isBgTrailerReady
                 ? "opacity 1.8s ease-in-out"
                 : "none",
+              zIndex: 1,
             }}
           >
             <iframe
@@ -769,6 +772,7 @@ export default function MovieDetails() {
                 left: "50%",
                 transform: "translate(-50%, -50%) scale(1.3)",
                 border: "none",
+                background: "transparent",
               }}
               allow="autoplay; encrypted-media"
               onLoad={() => {
@@ -778,8 +782,12 @@ export default function MovieDetails() {
                     "*",
                   );
                 }
-                // Small delay so the video has a moment to start painting before we reveal it
                 setTimeout(() => setIsBgTrailerReady(true), 800);
+              }}
+              onError={() => {
+                setBgTrailerFailed(true);
+                setShowBgTrailer(false);
+                setIsBgTrailerReady(false);
               }}
             />
           </div>
@@ -1299,34 +1307,6 @@ export default function MovieDetails() {
                   >
                     {movie.longDescription || movie.description}
                   </motion.p>
-
-                  <div className="detail-facts-grid">
-                    <div className="detail-fact-card">
-                      <span className="detail-fact-label">Release</span>
-                      <span className="detail-fact-value">
-                        {movie.releaseYear ||
-                          (movie.releaseDate
-                            ? new Date(movie.releaseDate).getFullYear()
-                            : "—")}
-                      </span>
-                    </div>
-                    <div className="detail-fact-card">
-                      <span className="detail-fact-label">Runtime</span>
-                      <span className="detail-fact-value">
-                        {movie.duration || (movie.isSeries ? "Series" : "Movie")}
-                      </span>
-                    </div>
-                    <div className="detail-fact-card">
-                      <span className="detail-fact-label">Platform</span>
-                      <span className="detail-fact-value">{sourceName}</span>
-                    </div>
-                    <div className="detail-fact-card">
-                      <span className="detail-fact-label">Rating</span>
-                      <span className="detail-fact-value">
-                        {movie.maturityRating || "PG"}
-                      </span>
-                    </div>
-                  </div>
 
                   {(movie.tags?.length || movie.audioLanguages?.length || movie.subtitleLanguages?.length) && (
                     <div className="detail-tag-list">
