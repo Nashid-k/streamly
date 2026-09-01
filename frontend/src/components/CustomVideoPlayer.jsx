@@ -1244,11 +1244,12 @@ const CustomVideoPlayer = ({
         position: "relative",
         width: "100%",
         height: "min(calc(100vw * 9/16), calc(100vh - 120px))",
-        background: "#000",
+        background: "#050505",
         borderRadius: isFullscreen ? "0" : "14px",
         overflow: "hidden",
         boxShadow: isFullscreen ? "none" : "0 32px 96px rgba(0,0,0,0.9)",
         cursor: showControls || !showCustomUI ? "default" : "none",
+        minHeight: isFullscreen ? "100vh" : undefined,
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         userSelect: "none",
         WebkitUserSelect: "none",
@@ -1281,7 +1282,7 @@ const CustomVideoPlayer = ({
             width: "100%",
             height: "100%",
             border: "none",
-            background: "#000",
+            background: "#050505",
             pointerEvents: isCineSrc ? "auto" : (showCustomUI ? "none" : "auto"),
             opacity: isLoading && showCustomUI && !hasInitiallyLoaded ? 0 : 1,
             transition:
@@ -1300,6 +1301,15 @@ const CustomVideoPlayer = ({
         <div
           onClick={handleOverlayClick}
           style={{ position: "absolute", inset: 0, zIndex: 10 }}
+        />
+      )}
+
+      {/* ── CINESRC MOUSE OVERLAY — captures hover to show controls ── */}
+      {showCustomUI && isCineSrc && (
+        <div
+          onMouseMove={handleMouseMove}
+          onClick={(e) => { togglePlay(); }}
+          style={{ position: "absolute", inset: 0, zIndex: 9, cursor: showControls ? 'default' : 'none' }}
         />
       )}
 

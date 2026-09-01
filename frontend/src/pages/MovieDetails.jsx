@@ -569,9 +569,11 @@ export default function MovieDetails() {
     queryKey: ["episodes", id, selectedSeason, platform],
     queryFn: () => movieService.getSeasonEpisodes(id, selectedSeason, platform),
     enabled: isTvContent,
+    retry: 2,
+    staleTime: 1000 * 60 * 5,
   });
   const episodes = Array.isArray(episodesData) ? episodesData : [];
-  const hasSeriesEpisodes = isTvContent && (normalizedSeasonCount > 0 || episodes.length > 0);
+  const hasSeriesEpisodes = isTvContent;
 
   useEffect(() => {
     if (movie && isTvContent) {
@@ -1092,11 +1094,6 @@ export default function MovieDetails() {
                   <PlatformIcon platform={resolvedPlatform} />
                   <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d4d4d8' }}>Streaming on {sourceName}</span>
                 </div>
-                {['4K', 'HDR', 'Dolby Atmos'].filter((_, i) => i < (isTvContent ? 1 : 2)).map((q) => (
-                  <span key={q} style={{ fontSize: '0.65rem', fontWeight: 700, color: '#71717a', background: 'rgba(255,255,255,0.04)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.06)', letterSpacing: '0.05em' }}>
-                    {q}
-                  </span>
-                ))}
               </motion.div>
 
               {/* IMDb prominent badge + Meta pills */}

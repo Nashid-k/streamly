@@ -6,31 +6,61 @@ import {
   useRef,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, X, AlertCircle, Info } from "lucide-react";
+import { Check, X, AlertCircle, Info, Volume2, Settings, Play } from "lucide-react";
 
 const ToastContext = createContext(null);
 
 const ICONS = {
-  success: <Check size={16} />,
-  error: <AlertCircle size={16} />,
-  info: <Info size={16} />,
+  success: <Check size={14} strokeWidth={3} />,
+  error: <AlertCircle size={14} />,
+  info: <Info size={14} />,
+  volume: <Volume2 size={14} />,
+  settings: <Settings size={14} />,
+  play: <Play size={14} fill="currentColor" />,
 };
 
 const COLORS = {
   success: {
-    bg: "rgba(16, 185, 129, 0.15)",
-    border: "rgba(16, 185, 129, 0.4)",
+    bg: "rgba(16, 185, 129, 0.08)",
+    border: "rgba(16, 185, 129, 0.25)",
     icon: "#10b981",
+    iconBg: "rgba(16, 185, 129, 0.12)",
+    glow: "rgba(16, 185, 129, 0.15)",
   },
   error: {
-    bg: "rgba(239, 68, 68, 0.15)",
-    border: "rgba(239, 68, 68, 0.4)",
+    bg: "rgba(239, 68, 68, 0.08)",
+    border: "rgba(239, 68, 68, 0.25)",
     icon: "#ef4444",
+    iconBg: "rgba(239, 68, 68, 0.12)",
+    glow: "rgba(239, 68, 68, 0.15)",
   },
   info: {
-    bg: "rgba(255, 255, 255, 0.08)",
-    border: "rgba(255, 255, 255, 0.15)",
+    bg: "rgba(255, 255, 255, 0.05)",
+    border: "rgba(255, 255, 255, 0.1)",
     icon: "#a1a1aa",
+    iconBg: "rgba(255, 255, 255, 0.06)",
+    glow: "transparent",
+  },
+  volume: {
+    bg: "rgba(255, 107, 0, 0.08)",
+    border: "rgba(255, 107, 0, 0.25)",
+    icon: "#FF6B00",
+    iconBg: "rgba(255, 107, 0, 0.12)",
+    glow: "rgba(255, 107, 0, 0.1)",
+  },
+  settings: {
+    bg: "rgba(99, 102, 241, 0.08)",
+    border: "rgba(99, 102, 241, 0.25)",
+    icon: "#6366f1",
+    iconBg: "rgba(99, 102, 241, 0.12)",
+    glow: "rgba(99, 102, 241, 0.1)",
+  },
+  play: {
+    bg: "rgba(255, 107, 0, 0.08)",
+    border: "rgba(255, 107, 0, 0.25)",
+    icon: "#FF6B00",
+    iconBg: "rgba(255, 107, 0, 0.12)",
+    glow: "rgba(255, 107, 0, 0.1)",
   },
 };
 
@@ -40,70 +70,70 @@ function ToastItem({ toast, onDismiss }) {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 60, scale: 0.85 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.9, transition: { duration: 0.22 } }}
-      transition={{ type: "spring", stiffness: 450, damping: 30 }}
+      initial={{ opacity: 0, y: 24, scale: 0.92, filter: "blur(8px)" }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+      exit={{ opacity: 0, y: -12, scale: 0.95, filter: "blur(4px)", transition: { duration: 0.2 } }}
+      transition={{ type: "spring", stiffness: 500, damping: 35, mass: 0.8 }}
       onClick={() => onDismiss(toast.id)}
       className={`toast-item toast-${toast.type || "info"}`}
       style={{
         display: "flex",
         alignItems: "center",
         gap: "10px",
-        padding: "12px 16px",
-        borderRadius: "14px",
-        background: "rgba(9, 9, 11, 0.92)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
+        padding: "10px 14px",
+        borderRadius: "12px",
+        background: colors.bg,
+        backdropFilter: "blur(24px) saturate(180%)",
+        WebkitBackdropFilter: "blur(24px) saturate(180%)",
         border: `1px solid ${colors.border}`,
-        boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-        minWidth: "260px",
-        maxWidth: "380px",
+        boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 24px ${colors.glow}`,
+        minWidth: "200px",
+        maxWidth: "340px",
         cursor: "pointer",
         userSelect: "none",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Subtle tinted left accent bar */}
+      {/* Subtle left accent bar */}
       <div
         style={{
           position: "absolute",
           left: 0,
           top: 0,
           bottom: 0,
-          width: "3px",
+          width: "2px",
           background: colors.icon,
-          borderRadius: "14px 0 0 14px",
+          borderRadius: "12px 0 0 12px",
         }}
       />
 
       <div
         style={{
-          width: "28px",
-          height: "28px",
-          borderRadius: "50%",
-          background: colors.bg,
-          border: `1px solid ${colors.border}`,
+          width: "26px",
+          height: "26px",
+          borderRadius: "8px",
+          background: colors.iconBg,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
           color: colors.icon,
-          marginLeft: "4px",
+          marginLeft: "2px",
         }}
       >
-        {ICONS[toast.type]}
+        {ICONS[toast.type] || ICONS.info}
       </div>
 
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         {toast.title && (
           <div
             style={{
-              fontWeight: 700,
-              fontSize: "0.88rem",
-              color: "#fff",
-              marginBottom: toast.message ? "2px" : 0,
+              fontWeight: 600,
+              fontSize: "0.78rem",
+              color: "#f4f4f5",
+              marginBottom: toast.message ? "1px" : 0,
+              letterSpacing: "-0.01em",
             }}
           >
             {toast.title}
@@ -111,7 +141,7 @@ function ToastItem({ toast, onDismiss }) {
         )}
         {toast.message && (
           <div
-            style={{ fontSize: "0.82rem", color: "#a1a1aa", lineHeight: 1.4 }}
+            style={{ fontSize: "0.72rem", color: "#71717a", lineHeight: 1.3 }}
           >
             {toast.message}
           </div>
@@ -128,12 +158,18 @@ function ToastItem({ toast, onDismiss }) {
           border: "none",
           color: "#52525b",
           cursor: "pointer",
-          padding: "2px",
+          padding: "4px",
           display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "6px",
           flexShrink: 0,
+          transition: "color 0.15s",
         }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "#a1a1aa")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "#52525b")}
       >
-        <X size={14} />
+        <X size={12} />
       </button>
     </motion.div>
   );
@@ -141,19 +177,21 @@ function ToastItem({ toast, onDismiss }) {
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
-  const counterRef = useRef(0);
+  const idRef = useRef(0);
 
   const dismiss = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const toast = useCallback(
-    ({ title, message, type = "info", duration = 3000 }) => {
-      const id = ++counterRef.current;
-      setToasts((prev) => [...prev.slice(-4), { id, title, message, type }]); // keep max 5
-      if (duration > 0) {
-        setTimeout(() => dismiss(id), duration);
-      }
+    (type, titleOrMessage, message) => {
+      const id = ++idRef.current;
+      const toastObj =
+        typeof titleOrMessage === "object"
+          ? { ...titleOrMessage, id }
+          : { id, type, title: titleOrMessage, message };
+      setToasts((prev) => [...prev.slice(-4), toastObj]);
+      setTimeout(() => dismiss(id), toastObj.duration || 3000);
       return id;
     },
     [dismiss],
@@ -162,18 +200,17 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ toast, dismiss }}>
       {children}
-      {/* Toast container — fixed bottom-center, above mobile nav */}
       <div
+        className="toast-container"
         style={{
           position: "fixed",
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 90px)",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 9999,
+          bottom: "24px",
+          right: "24px",
+          zIndex: 10000,
           display: "flex",
           flexDirection: "column-reverse",
-          alignItems: "center",
           gap: "8px",
+          alignItems: "flex-end",
           pointerEvents: "none",
         }}
       >
@@ -191,6 +228,6 @@ export function ToastProvider({ children }) {
 
 export function useToast() {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error("useToast must be used within ToastProvider");
+  if (!ctx) throw new Error("useToast must be used within a ToastProvider");
   return ctx;
 }
