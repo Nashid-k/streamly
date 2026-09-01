@@ -685,7 +685,14 @@ export default function MovieDetails() {
   return (
     <div
       ref={pageRef}
-      style={{ position: "relative", marginTop: "-2rem", paddingTop: "2rem" }}
+      style={{
+        position: "relative",
+        width: "100vw",
+        marginLeft: "calc(50% - 50vw)",
+        marginRight: "calc(50% - 50vw)",
+        marginTop: "-2rem",
+        paddingTop: "2rem",
+      }}
     >
       <SEO
         title={movie.title}
@@ -698,11 +705,12 @@ export default function MovieDetails() {
       <div
         className="details-backdrop"
         style={{
-          height: "92vh",
+          height: "min(86vh, 980px)",
           overflow: "hidden",
           top: "0",
-          left: "-3rem",
-          width: "calc(100% + 6rem)",
+          left: "50%",
+          width: "100vw",
+          transform: "translateX(-50%)",
           marginTop: "-2rem",
         }}
       >
