@@ -612,8 +612,76 @@ export default function MovieDetails() {
 
   if (!movie) {
     return (
-      <div className="loading-container">
-        <h2>Movie not found.</h2>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "80vh",
+          padding: "2rem",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            width: "80px",
+            height: "80px",
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.05)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: "1.5rem",
+          }}
+        >
+          <Film size={36} color="#52525b" />
+        </div>
+        <h2 style={{ color: "#fff", marginBottom: "0.5rem" }}>
+          Title not found
+        </h2>
+        <p style={{ color: "#a1a1aa", marginBottom: "2rem", maxWidth: "400px", lineHeight: 1.6 }}>
+          This title might have been removed or is unavailable in your region. Try searching for something else.
+        </p>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate(-1)}
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "#fff",
+              padding: "10px 24px",
+              borderRadius: "10px",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <ArrowLeft size={16} /> Go Back
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate("/")}
+            style={{
+              background: "linear-gradient(135deg, #f43f5e, #fb923c)",
+              border: "none",
+              color: "#fff",
+              padding: "10px 24px",
+              borderRadius: "10px",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Browse Home
+          </motion.button>
+        </div>
       </div>
     );
   }
@@ -1730,17 +1798,45 @@ export default function MovieDetails() {
                 </div>
               ))
             ) : episodes.length === 0 ? (
-              <p
+              <div
                 style={{
-                  color: "#52525b",
                   gridColumn: episodeLayout === 'grid' ? '1/-1' : undefined,
                   textAlign: "center",
-                  padding: "3rem 0",
-                  fontSize: "1.1rem",
+                  padding: "3rem 1rem",
                 }}
               >
-                No episodes found for this season.
-              </p>
+                <Tv size={32} color="#52525b" style={{ marginBottom: "1rem" }} />
+                <p style={{ color: "#71717a", fontSize: "1rem", marginBottom: "0.5rem" }}>
+                  No episodes found for Season {selectedSeason}.
+                </p>
+                <p style={{ color: "#52525b", fontSize: "0.85rem", marginBottom: "1.25rem" }}>
+                  {normalizedSeasonCount > 1
+                    ? `This show has ${normalizedSeasonCount} season${normalizedSeasonCount > 1 ? 's' : ''}. Try selecting a different season.`
+                    : "Episode data may not be available yet."}
+                </p>
+                {normalizedSeasonCount > 1 && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSelectedSeason(selectedSeason < normalizedSeasonCount ? selectedSeason + 1 : 1)}
+                    style={{
+                      background: "rgba(244,63,94,0.08)",
+                      border: "1px solid rgba(244,63,94,0.2)",
+                      color: "#f43f5e",
+                      padding: "8px 20px",
+                      borderRadius: "10px",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <RotateCcw size={14} /> Try Another Season
+                  </motion.button>
+                )}
+              </div>
             ) : (() => {
                 const visibleEps = showAllEpisodes ? episodes : episodes.slice(0, EPISODES_INITIAL_COUNT);
                 const hasMore = episodes.length > EPISODES_INITIAL_COUNT;

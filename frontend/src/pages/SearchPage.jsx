@@ -3,9 +3,11 @@ import { movieService } from "../api/movieService";
 import { PlatformAdapter } from "../api/platformAdapter";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Search, Film, Tv, Flame, Sparkles, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import MovieCard from "../components/MovieCard";
+import EmptyState from "../components/EmptyState";
+import Button from "../components/Button";
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
@@ -30,6 +32,9 @@ export default function SearchPage() {
     queryFn: () => movieService.searchMovies(query),
     enabled: !!query.trim(),
   });
+
+  // Suggestions from backend ("did you mean")
+  const suggestions = rawResults?.suggestions || [];
 
   const results = useMemo(() => {
     if (!rawResults || !rawResults.movies) return [];
@@ -313,30 +318,99 @@ export default function SearchPage() {
             {error}
           </div>
         ) : !query ? (
-          <div
-            style={{ padding: "4rem 0", textAlign: "center", color: "#a1a1aa" }}
-          >
-            Search for a movie, series, or actor to get started.
-          </div>
+          <EmptyState
+            icon="search"
+            title="What are you looking for?"
+            description="Search for movies, TV shows, actors, or genres."
+            actions={
+              <>
+                {[
+                  { label: "Trending Now", query: "trending", icon: Flame },
+                  { label: "New Releases", query: "new", icon: Sparkles },
+                  { label: "Top Rated", query: "top rated", icon: Star },
+                  { label: "K-Drama", query: "korean drama", icon: Tv },
+                  { label: "Marvel", query: "marvel", icon: Film },
+                ].map((item) => (
+                  <Button
+                    key={item.query}
+                    variant="secondary"
+                    pill
+                    icon={item.icon}
+                    onClick={() => navigate(`/search?q=${encodeURIComponent(item.query)}`)}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </>
+            }
+          />
         ) : filteredAndSortedList.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "6rem 0",
-              color: "#a1a1aa",
-            }}
-          >
-            <Search size={48} style={{ opacity: 0.2, marginBottom: "1rem" }} />
-            <h2 style={{ color: "#fff", marginBottom: "0.5rem" }}>
-              No results found
-            </h2>
-            <p style={{ marginBottom: "2rem" }}>
-              Try searching for a different title, actor, or genre.
-            </p>
-          </div>
+          <EmptyState
+            icon="search"
+            title={`No results found for "${query}"`}
+            description="Try a different spelling, or browse by genre and platform."
+            actions={
+              <>
+                {/* Did you mean suggestions */}
+                {suggestions.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      marginBottom: "0.5rem",
+                      width: "100%",
+                    }}
+                  >
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+                      Did you mean:
+                    </span>
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+                      {suggestions.map((s) => (
+                        <Button
+                          key={s}
+                          variant="accent"
+                          pill
+                          onClick={() => navigate(`/search?q=${encodeURIComponent(s)}`)}
+                        >
+                          {s}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <Button
+                  variant="secondary"
+                  pill
+                  onClick={() => navigate("/")}
+                >
+                  Browse Home
+                </Button>
+                <Button
+                  variant="secondary"
+                  pill
+                  onClick={() => navigate("/search?q=action")}
+                >
+                  Action Movies
+                </Button>
+                <Button
+                  variant="secondary"
+                  pill
+                  onClick={() => navigate("/search?q=anime")}
+                >
+                  Anime
+                </Button>
+                <Button
+                  variant="secondary"
+                  pill
+                  onClick={() => navigate("/search?q=comedy")}
+                >
+                  Comedy
+                </Button>
+              </>
+            }
+          />
         ) : (
           <div className="movie-grid" style={{ marginTop: "1rem" }}>
             {visibleResults.map((movie, idx) => (
