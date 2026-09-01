@@ -668,11 +668,11 @@ export default function MovieDetails() {
         }}
       >
         <motion.img
-          key="bg-img"
-          initial={false}
+          key={`bg-img-${movie?.id}-${movie?.backdropUrl || movie?.posterUrl}`}
+          initial={{ opacity: 0 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
           src={movie.backdropUrl || movie.posterUrl}
           alt="Backdrop"
           style={{
@@ -687,7 +687,11 @@ export default function MovieDetails() {
             zIndex: 0,
           }}
           onError={(e) => {
-            e.currentTarget.style.opacity = "0";
+            if (e.currentTarget.src !== movie.posterUrl && movie.posterUrl) {
+              e.currentTarget.src = movie.posterUrl;
+            } else {
+              e.currentTarget.style.opacity = "0";
+            }
           }}
         />
 
