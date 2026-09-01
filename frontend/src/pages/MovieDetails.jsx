@@ -669,10 +669,10 @@ export default function MovieDetails() {
       >
         <motion.img
           key="bg-img"
-          initial={{ opacity: 0, scale: 1.06 }}
+          initial={false}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
           src={movie.backdropUrl || movie.posterUrl}
           alt="Backdrop"
           style={{
@@ -1163,6 +1163,7 @@ export default function MovieDetails() {
                 display: "flex",
                 flexWrap: "wrap",
                 gap: "0.85rem",
+                marginTop: "0.75rem",
                 marginBottom: "3.5rem",
                 alignItems: "center",
               }}
