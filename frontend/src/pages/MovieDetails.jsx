@@ -32,6 +32,9 @@ import {
   BookmarkPlus,
   Info,
   Film,
+  LayoutGrid,
+  List,
+  ChevronDown as ChevronDownIcon,
 } from "lucide-react";
 import {
   motion,
@@ -478,8 +481,11 @@ export default function MovieDetails() {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
-  const [userRating, setUserRating] = useState(null); // 'like' | 'dislike' | null
+  const [userRating, setUserRating] = useState(null);
   const [showShareToast, setShowShareToast] = useState(false);
+  const [episodeLayout, setEpisodeLayout] = useState("grid"); // 'grid' | 'list'
+  const [showAllEpisodes, setShowAllEpisodes] = useState(false);
+  const EPISODES_INITIAL_COUNT = 8;
 
   const [playMode, setPlayMode] = useState("movie");
   const [playingServerIndex, setPlayingServerIndex] = useState(0);
@@ -535,20 +541,24 @@ export default function MovieDetails() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [similar]);
 
+  // Detect series reliably: isSeries flag, tv- prefix in ID, or seasonsCount > 0
+  const isTvContent = Boolean(
+    movie?.isSeries ||
+    String(movie?.id || id).includes("-tv-") ||
+    (movie?.seasonsCount && movie.seasonsCount > 0),
+  );
   const normalizedSeasonCount = Math.max(
     1,
-    Number(movie?.seasonsCount) || (movie?.isSeries ? 1 : 0),
-  );
-  const hasSeriesEpisodes = Boolean(
-    movie?.isSeries && (normalizedSeasonCount > 0 || episodesData?.length),
+    Number(movie?.seasonsCount) || (isTvContent ? 1 : 0),
   );
 
   const { data: episodesData, isLoading: episodesLoading } = useQuery({
     queryKey: ["episodes", id, selectedSeason, platform],
     queryFn: () => movieService.getSeasonEpisodes(id, selectedSeason, platform),
-    enabled: !!movie?.isSeries,
+    enabled: isTvContent,
   });
   const episodes = Array.isArray(episodesData) ? episodesData : [];
+  const hasSeriesEpisodes = isTvContent && (normalizedSeasonCount > 0 || episodes.length > 0);
 
   useEffect(() => {
     if (movie && movie.isSeries) {
@@ -1607,30 +1617,63 @@ export default function MovieDetails() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              Episodes
+              Episodes {episodes.length > 0 && <span style={{ fontSize: '0.7em', color: '#52525b', fontWeight: 400 }}>({episodes.length})</span>}
             </motion.h2>
 
-            {/* Season custom dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* Layout toggle */}
+              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <motion.button
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => setEpisodeLayout('grid')}
+                  style={{
+                    padding: '8px 12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: episodeLayout === 'grid' ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: episodeLayout === 'grid' ? '#fff' : '#71717a',
+                    transition: 'all 0.2s',
+                  }}
+                  title="Grid view"
+                >
+                  <LayoutGrid size={16} />
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => setEpisodeLayout('list')}
+                  style={{
+                    padding: '8px 12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: episodeLayout === 'list' ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: episodeLayout === 'list' ? '#fff' : '#71717a',
+                    transition: 'all 0.2s',
+                  }}
+                  title="List view"
+                >
+                  <List size={16} />
+                </motion.button>
+              </div>
+
+              {/* Season dropdown */}
             <SeasonDropdown
               seasonsCount={normalizedSeasonCount}
               selectedSeason={selectedSeason}
-              onSelect={setSelectedSeason}
+              onSelect={(s) => { setSelectedSeason(s); setShowAllEpisodes(false); }}
             />
+            </div>
           </div>
 
-          {/* Episode Grid */}
+          {/* Episode Grid/List */}
+          <AnimatePresence mode="wait">
           <motion.div
+            key={`season-${selectedSeason}-${episodesLoading}-${episodeLayout}`}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fill, minmax(min(100%, 320px), 1fr))",
-              gap: "1.5rem",
+              display: episodeLayout === 'grid' ? 'grid' : 'flex',
+              flexDirection: episodeLayout === 'list' ? 'column' : undefined,
+              gridTemplateColumns: episodeLayout === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))' : undefined,
+              gap: episodeLayout === 'grid' ? '1.5rem' : '0.75rem',
             }}
-            key={`season-${selectedSeason}-${episodesLoading}`}
-            variants={episodesContainerVariants}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-60px" }}
           >
             {episodesLoading ? (
               // Skeleton placeholders while episodes load
@@ -1699,7 +1742,7 @@ export default function MovieDetails() {
               <p
                 style={{
                   color: "#52525b",
-                  gridColumn: "1/-1",
+                  gridColumn: episodeLayout === 'grid' ? '1/-1' : undefined,
                   textAlign: "center",
                   padding: "3rem 0",
                   fontSize: "1.1rem",
@@ -1707,259 +1750,155 @@ export default function MovieDetails() {
               >
                 No episodes found for this season.
               </p>
-            ) : (
-              episodes.map((ep, idx) => {
-                const isEpPlaying =
-                  isPlaying &&
-                  playingEpisode === ep.episodeNumber &&
-                  playMode !== "trailer";
+            ) : (() => {
+                const visibleEps = showAllEpisodes ? episodes : episodes.slice(0, EPISODES_INITIAL_COUNT);
+                const hasMore = episodes.length > EPISODES_INITIAL_COUNT;
                 return (
-                  <motion.div
-                    key={ep.id || idx}
-                    variants={episodeVariants}
-                    initial="rest"
-                    whileHover="hover"
-                    animate="rest"
-                    onClick={() => {
-                      if (SERVERS.length > 0) {
-                        setIsPlaying(true);
-                        setPlayingEpisode(ep.episodeNumber);
-                        updateProgress(
-                          { ...movie, source: resolvedPlatform, sourceName },
-                          selectedSeason,
-                          ep.episodeNumber,
-                        );
-                        TelemetryAdapter.trackPlay(
-                          movie.id,
-                          movie.title,
-                          resolvedPlatform,
-                        );
-                      }
-                    }}
-                    style={{
-                      background: isEpPlaying
-                        ? "linear-gradient(180deg, rgba(244,63,94,0.1) 0%, #050505 100%)"
-                        : "#0a0a0c",
-                      borderRadius: "16px",
-                      overflow: "hidden",
-                      border: isEpPlaying
-                        ? "1px solid rgba(244,63,94,0.4)"
-                        : "1px solid rgba(255,255,255,0.05)",
-                      cursor: SERVERS.length > 0 ? "pointer" : "default",
-                      opacity: SERVERS.length > 0 ? 1 : 0.6,
-                      position: "relative",
-                      boxShadow: isEpPlaying
-                        ? "0 10px 30px -10px rgba(244,63,94,0.15)"
-                        : "0 10px 30px -10px rgba(0,0,0,0.5)",
-                      transition:
-                        "border 0.3s ease, background 0.3s ease, box-shadow 0.3s ease",
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: "relative",
-                        aspectRatio: "16/9",
-                        background: "#18181b",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {ep.thumbnailUrl && (
-                        <motion.img
-                          src={ep.thumbnailUrl}
-                          alt={ep.title}
-                          variants={{
-                            rest: { scale: 1 },
-                            hover: { scale: 1.08 },
-                          }}
-                          transition={{
-                            duration: 0.6,
-                            ease: [0.16, 1, 0.3, 1],
-                          }}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      )}
+                  <>
+                  {visibleEps.map((ep, idx) => {
+                    const isEpPlaying = isPlaying && playingEpisode === ep.episodeNumber && playMode !== 'trailer';
+                    const isGrid = episodeLayout === 'grid';
+                    const isWatched = continueWatching?.some(m => String(m.id) === String(movie.id) && m.savedEpisode === ep.episodeNumber && m.timestamp > 0);
+                    const watchedTs = continueWatching?.find(m => String(m.id) === String(movie.id) && m.savedEpisode === ep.episodeNumber)?.timestamp || 0;
 
-                      {/* Hover Overlay Gradient */}
-                      <motion.div
-                        variants={{
-                          rest: { opacity: 0 },
-                          hover: { opacity: 1 },
-                        }}
-                        transition={{ duration: 0.3 }}
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          background:
-                            "linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 100%)",
-                        }}
-                      />
-
-                      {/* Play Button */}
-                      <motion.div
-                        variants={{
-                          rest: { opacity: 0, scale: 0.8, y: 10 },
-                          hover: { opacity: 1, scale: 1, y: 0 },
-                        }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 25,
-                        }}
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <div
+                    if (isGrid) {
+                      // ── GRID CARD ──
+                      return (
+                        <motion.div
+                          key={ep.id || idx}
+                          initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                          transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.3), ease: [0.16, 1, 0.3, 1] }}
+                          whileHover={{ y: -4, boxShadow: '0 16px 40px -10px rgba(0,0,0,0.7)' }}
+                          onClick={() => { if (SERVERS.length > 0) { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: resolvedPlatform, sourceName }, selectedSeason, ep.episodeNumber); TelemetryAdapter.trackPlay(movie.id, movie.title, resolvedPlatform); } }}
                           style={{
-                            width: "54px",
-                            height: "54px",
-                            borderRadius: "50%",
-                            background:
-                              "linear-gradient(135deg, #f43f5e, #fb923c)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            boxShadow: "0 8px 24px rgba(244,63,94,0.5)",
+                            background: isEpPlaying ? 'linear-gradient(180deg, rgba(244,63,94,0.1) 0%, #050505 100%)' : '#0a0a0c',
+                            borderRadius: '16px', overflow: 'hidden',
+                            border: isEpPlaying ? '1px solid rgba(244,63,94,0.4)' : '1px solid rgba(255,255,255,0.05)',
+                            cursor: SERVERS.length > 0 ? 'pointer' : 'default', opacity: SERVERS.length > 0 ? 1 : 0.6,
+                            position: 'relative',
+                            boxShadow: isEpPlaying ? '0 10px 30px -10px rgba(244,63,94,0.15)' : '0 10px 30px -10px rgba(0,0,0,0.5)',
+                            transition: 'border 0.3s ease, background 0.3s ease',
                           }}
                         >
-                          <Play
-                            size={24}
-                            fill="currentColor"
-                            stroke="none"
-                            style={{ marginLeft: "4px" }}
-                          />
-                        </div>
-                      </motion.div>
-
-                      {/* Tags */}
-                      {isEpPlaying && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "12px",
-                            right: "12px",
-                            background:
-                              "linear-gradient(135deg, #f43f5e, #fb923c)",
-                            color: "white",
-                            padding: "4px 10px",
-                            borderRadius: "6px",
-                            fontSize: "0.65rem",
-                            fontWeight: 800,
-                            letterSpacing: "0.06em",
-                            textTransform: "uppercase",
-                            zIndex: 10,
-                            boxShadow: "0 4px 12px rgba(244,63,94,0.3)",
-                          }}
-                        >
-                          Playing
-                        </div>
-                      )}
-                      <motion.div
-                        variants={{
-                          rest: { opacity: 1 },
-                          hover: { opacity: 0 },
-                        }}
-                        style={{
-                          position: "absolute",
-                          bottom: "10px",
-                          right: "10px",
-                          background: "rgba(0,0,0,0.75)",
-                          backdropFilter: "blur(4px)",
-                          padding: "3px 8px",
-                          borderRadius: "6px",
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                          letterSpacing: "0.02em",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                        }}
-                      >
-                        {ep.duration}
-                      </motion.div>
-                    </div>
-
-                    {/* Content */}
-                    <div
-                      style={{
-                        padding: "1.2rem",
-                        position: "relative",
-                        zIndex: 2,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: "12px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "1.3rem",
-                            fontWeight: 800,
-                            color: isEpPlaying ? "#f43f5e" : "#3f3f46",
-                            lineHeight: 1,
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {String(ep.episodeNumber).padStart(2, "0")}
-                        </span>
-                        <div>
-                          <h3
-                            style={{
-                              fontSize: "1.05rem",
-                              fontWeight: 600,
-                              margin: "0 0 0.5rem",
-                              lineHeight: 1.3,
-                              color: isEpPlaying ? "#fff" : "#e4e4e7",
-                              transition: "color 0.2s",
-                            }}
-                          >
-                            {ep.title}
-                          </h3>
-                          <p
-                            style={{
-                              fontSize: "0.85rem",
-                              color: "#a1a1aa",
-                              margin: 0,
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {ep.description}
-                          </p>
-                        </div>
-                      </div>
-                      {/* Episode progress bar */}
-                      {continueWatching?.some(m => String(m.id) === String(movie.id) && m.savedEpisode === ep.episodeNumber && m.timestamp > 0) && (
-                        <div style={{ marginTop: '0.75rem' }}>
-                          <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${Math.min(100, ((continueWatching.find(m => String(m.id) === String(movie.id) && m.savedEpisode === ep.episodeNumber)?.timestamp || 0) / 3600) * 100)}%`, background: 'linear-gradient(90deg, #f43f5e, #fb923c)', borderRadius: '2px', transition: 'width 0.3s' }} />
+                          <div style={{ position: 'relative', aspectRatio: '16/9', background: '#18181b', overflow: 'hidden' }}>
+                            {ep.thumbnailUrl && (
+                              <motion.img src={ep.thumbnailUrl} alt={ep.title} whileHover={{ scale: 1.06 }} transition={{ duration: 0.5 }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />
+                            )}
+                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 50%)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} className="ep-play-overlay">
+                              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #f43f5e, #fb923c)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 8px 24px rgba(244,63,94,0.5)' }}>
+                                <Play size={22} fill="currentColor" stroke="none" style={{ marginLeft: '3px' }} />
+                              </div>
+                            </div>
+                            {isEpPlaying && <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'linear-gradient(135deg, #f43f5e, #fb923c)', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', zIndex: 10 }}>Playing</div>}
+                            <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '2px 7px', borderRadius: '5px', fontSize: '0.65rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.08)' }}>{ep.duration}</div>
                           </div>
-                          <span style={{ fontSize: '0.7rem', color: '#71717a', marginTop: '4px', display: 'block' }}>
-                            {formatTime(continueWatching.find(m => String(m.id) === String(movie.id) && m.savedEpisode === ep.episodeNumber)?.timestamp || 0)} watched
-                          </span>
+                          <div style={{ padding: '1rem 1.1rem', position: 'relative', zIndex: 2 }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                              <span style={{ fontSize: '1.2rem', fontWeight: 800, color: isEpPlaying ? '#f43f5e' : '#3f3f46', lineHeight: 1, fontFamily: 'monospace' }}>{String(ep.episodeNumber).padStart(2, '0')}</span>
+                              <div style={{ flex: 1 }}>
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, margin: '0 0 0.35rem', color: isEpPlaying ? '#fff' : '#e4e4e7' }}>{ep.title}</h3>
+                                <p style={{ fontSize: '0.8rem', color: '#a1a1aa', margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5 }}>{ep.description}</p>
+                              </div>
+                            </div>
+                            {isWatched && (
+                              <div style={{ marginTop: '0.6rem' }}>
+                                <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${Math.min(100, (watchedTs / 3600) * 100)}%`, background: 'linear-gradient(90deg, #f43f5e, #fb923c)', borderRadius: '2px' }} />
+                                </div>
+                                <span style={{ fontSize: '0.65rem', color: '#71717a', marginTop: '3px', display: 'block' }}>{formatTime(watchedTs)} watched</span>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    }
+
+                    // ── LIST ROW ──
+                    return (
+                      <motion.div
+                        key={ep.id || idx}
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 12 }}
+                        transition={{ duration: 0.3, delay: Math.min(idx * 0.03, 0.25) }}
+                        whileHover={{ background: 'rgba(255,255,255,0.04)' }}
+                        onClick={() => { if (SERVERS.length > 0) { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: resolvedPlatform, sourceName }, selectedSeason, ep.episodeNumber); TelemetryAdapter.trackPlay(movie.id, movie.title, resolvedPlatform); } }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '1rem',
+                          padding: '0.75rem 1rem', borderRadius: '12px',
+                          background: isEpPlaying ? 'rgba(244,63,94,0.08)' : 'transparent',
+                          border: isEpPlaying ? '1px solid rgba(244,63,94,0.2)' : '1px solid transparent',
+                          cursor: SERVERS.length > 0 ? 'pointer' : 'default',
+                          transition: 'background 0.2s, border 0.2s',
+                        }}
+                      >
+                        {/* Thumbnail */}
+                        <div style={{ position: 'relative', width: '140px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', background: '#18181b' }}>
+                          {ep.thumbnailUrl && <img src={ep.thumbnailUrl} alt={ep.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />}
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Play size={14} fill="#fff" stroke="none" style={{ marginLeft: '2px' }} />
+                            </div>
+                          </div>
+                          {isEpPlaying && <div style={{ position: 'absolute', top: '4px', right: '4px', background: '#f43f5e', color: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase' }}>Playing</div>}
+                          <div style={{ position: 'absolute', bottom: '4px', right: '4px', background: 'rgba(0,0,0,0.7)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.55rem', fontWeight: 700 }}>{ep.duration}</div>
                         </div>
-                      )}
-                    </div>
-                  </motion.div>
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.25rem' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isEpPlaying ? '#f43f5e' : '#52525b', fontFamily: 'monospace' }}>E{String(ep.episodeNumber).padStart(2, '0')}</span>
+                            <h3 style={{ fontSize: '0.9rem', fontWeight: 600, margin: 0, color: isEpPlaying ? '#fff' : '#e4e4e7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ep.title}</h3>
+                          </div>
+                          <p style={{ fontSize: '0.78rem', color: '#71717a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ep.description}</p>
+                          {isWatched && (
+                            <div style={{ marginTop: '0.4rem' }}>
+                              <div style={{ height: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden', maxWidth: '120px' }}>
+                                <div style={{ height: '100%', width: `${Math.min(100, (watchedTs / 3600) * 100)}%`, background: 'linear-gradient(90deg, #f43f5e, #fb923c)', borderRadius: '2px' }} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                  {hasMore && (
+                    <motion.div
+                      key="see-more"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      style={{
+                        gridColumn: episodeLayout === 'grid' ? '1 / -1' : undefined,
+                        display: 'flex', justifyContent: 'center', paddingTop: '1rem',
+                      }}
+                    >
+                      <motion.button
+                        whileHover={{ scale: 1.03, background: 'rgba(255,255,255,0.1)' }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setShowAllEpisodes(!showAllEpisodes)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                          color: '#a1a1aa', padding: '8px 20px', borderRadius: '100px',
+                          fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+                          letterSpacing: '0.02em', transition: 'all 0.2s',
+                        }}
+                      >
+                        {showAllEpisodes ? 'Show less' : `Show all ${episodes.length} episodes`}
+                        <motion.span animate={{ rotate: showAllEpisodes ? 180 : 0 }} transition={{ duration: 0.25 }} style={{ display: 'flex' }}>
+                          <ChevronDownIcon size={14} />
+                        </motion.span>
+                      </motion.button>
+                    </motion.div>
+                  )}
+                  </>
                 );
-              })
-            )}
+              })()
+            }
           </motion.div>
+          </AnimatePresence>
         </motion.section>
       )}
 
