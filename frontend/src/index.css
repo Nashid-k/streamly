@@ -94,20 +94,21 @@ a {
   background: #050505;
 }
 
-/* Top Navbar */
-.navbar {
-  position: sticky;
+/* Top Navbar */.navbar {
+  position: fixed;
   top: 0;
-  z-index: 100;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.6rem clamp(1.5rem, 3vw, 3rem);
-  background: linear-gradient(180deg, rgba(5,5,5,0.95) 0%, rgba(5,5,5,0.88) 100%);
+  padding: 0.5rem clamp(1.5rem, 3vw, 3rem);
+  background: rgba(5, 5, 5, 0.92);
   backdrop-filter: blur(32px) saturate(200%);
   -webkit-backdrop-filter: blur(32px) saturate(200%);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.3s ease;
 }
 .navbar::after {
   content: '';
@@ -266,7 +267,7 @@ a {
 /* Main Content */
 .main-content {
   flex: 1;
-  padding: 0 2rem 4rem;
+  padding: 52px 2rem 4rem;
   max-width: 1800px;
   margin: 0 auto;
   width: 100%;
@@ -283,7 +284,7 @@ a {
   margin-right: -50vw;
 }
 
-/* Hero Section — Full-width edge-to-edge */
+/* Hero Section — Full-width edge-to-edge, behind navbar */
 .hero-container {
   position: relative;
   left: 50%;
@@ -294,7 +295,7 @@ a {
   max-height: 900px;
   border-radius: 0;
   overflow: hidden;
-  margin-top: 0;
+  margin-top: -52px;
   margin-bottom: 0;
   box-shadow: none;
   border: none;
@@ -958,8 +959,7 @@ input:focus-visible {
   /* Tablet / iPad Adjustments */
   .main-content,
   .main-content[style] {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding: 48px 0 4rem !important;
   }
 
   .details-content-wrapper {
@@ -1010,13 +1010,12 @@ input:focus-visible {
 
   .main-content,
   .main-content[style] {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding: 48px 0 4rem !important;
   }
 
   /* Navbar */
   .navbar {
-    padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1rem !important;
+    padding: calc(0.5rem + env(safe-area-inset-top, 0px)) 1rem !important;
     background: linear-gradient(180deg, rgba(5,5,5,0.95) 0%, rgba(5,5,5,0.88) 100%) !important;
     backdrop-filter: blur(32px) saturate(200%) !important;
     -webkit-backdrop-filter: blur(32px) saturate(200%) !important;

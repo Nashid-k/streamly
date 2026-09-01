@@ -120,16 +120,17 @@ const MovieRail = React.memo(
         className="movie-rail-wrapper"
         onMouseEnter={() => setShowArrows(true)}
         onMouseLeave={() => setShowArrows(false)}
-        style={{ position: "relative", minHeight: "280px" }}
-      >          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "baseline",
-              marginBottom: "0.35rem",
-              paddingRight: "0.25rem",
-            }}
-          >
+        style={{ position: "relative" }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: "0.25rem",
+            paddingLeft: "0.25rem",
+          }}
+        >
           <h3
             style={{
               fontSize: "1.1rem",
@@ -146,77 +147,75 @@ const MovieRail = React.memo(
               to={`/category/${encodeURIComponent(category.name)}`}
               style={{
                 fontSize: "0.72rem",
-                color: "rgba(255,255,255,0.4)",
+                color: "rgba(255,255,255,0.35)",
                 textDecoration: "none",
                 fontWeight: 500,
-                padding: "3px 10px",
-                borderRadius: "6px",
+                padding: "2px 8px",
+                borderRadius: "4px",
                 border: "none",
-                transition: "all 0.2s",
+                transition: "color 0.2s",
                 background: "transparent",
               }}
             >
-              Show all &rsaquo;
+              Show all ›
             </Link>
           )}
         </div>
 
         {inView && (
-          <>
+          <div style={{ position: "relative" }}>
             <AnimatePresence>
               {showArrows && (
                 <>
                   <motion.button
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                     onClick={() => scroll("left")}
                     style={{
                       position: "absolute",
-                      left: "-6px",
-                      top: "55%",
-                      transform: "translateY(-50%)",
+                      left: "4px",
+                      top: "calc(50% - 16px)",
                       zIndex: 10,
-                      background: "rgba(5,5,5,0.75)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "rgba(255,255,255,0.7)",
-                      borderRadius: "8px",
-                      width: "32px",
-                      height: "32px",
+                      background: "rgba(5,5,5,0.8)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      color: "rgba(255,255,255,0.6)",
+                      borderRadius: "6px",
+                      width: "30px",
+                      height: "30px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(12px)",
+                      backdropFilter: "blur(8px)",
                     }}
                   >
-                    <ChevronLeft size={18} aria-label="Scroll left" />
+                    <ChevronLeft size={16} />
                   </motion.button>
                   <motion.button
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                     onClick={() => scroll("right")}
                     style={{
                       position: "absolute",
-                      right: "-6px",
-                      top: "55%",
-                      transform: "translateY(-50%)",
+                      right: "4px",
+                      top: "calc(50% - 16px)",
                       zIndex: 10,
-                      background: "rgba(5,5,5,0.75)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "rgba(255,255,255,0.7)",
-                      borderRadius: "8px",
-                      width: "32px",
-                      height: "32px",
+                      background: "rgba(5,5,5,0.8)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      color: "rgba(255,255,255,0.6)",
+                      borderRadius: "6px",
+                      width: "30px",
+                      height: "30px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(12px)",
+                      backdropFilter: "blur(8px)",
                     }}
                   >
-                    <ChevronRight size={18} aria-label="Scroll right" />
+                    <ChevronRight size={16} />
                   </motion.button>
                 </>
               )}
@@ -228,35 +227,34 @@ const MovieRail = React.memo(
               onScroll={handleScroll}
               style={{
                 display: "flex",
-                gap: "0.65rem",
+                gap: "0.5rem",
                 WebkitOverflowScrolling: "touch",
                 overscrollBehaviorX: "contain",
                 overflowX: "auto",
                 scrollbarWidth: "none",
-                paddingTop: "0.5rem",
-                paddingBottom: "0.25rem",
+                padding: "0.25rem 0.25rem",
               }}
             >
               {category.movies.slice(0, visibleCount).map((movie, i) => (
                 <motion.div
                   key={`${movie.id}-${i}`}
-                  initial={{ opacity: 0, x: 30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-10px" }}
                   transition={{
-                    duration: 0.5,
-                    delay: (railIndex % 4) * 0.15 + (i % 10) * 0.05,
+                    duration: 0.35,
+                    delay: Math.min((i % 10) * 0.03, 0.15),
                     ease: "easeOut",
                   }}
                   style={{ flexShrink: 0 }}
                 >
-                  <div style={{ width: "200px" }}>
+                  <div style={{ width: "180px" }}>
                     <MovieCard movie={movie} />
                   </div>
                 </motion.div>
               ))}
             </div>
-          </>
+          </div>
         )}
       </div>
     );
@@ -316,81 +314,88 @@ const Top10Rail = React.memo(
         className="movie-rail-wrapper"
         onMouseEnter={() => setShowArrows(true)}
         onMouseLeave={() => setShowArrows(false)}
-        style={{ position: "relative", minHeight: "330px" }}
+        style={{ position: "relative" }}
       >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: "0.25rem",
+            paddingLeft: "0.25rem",
+          }}
+        >
         <h3
           style={{
-            fontSize: "1.3rem",
+            fontSize: "1.1rem",
             fontWeight: 700,
-            marginBottom: "0rem",
+            margin: 0,
             letterSpacing: "-0.02em",
           }}
         >
-          <span style={{ color: "#e50914", marginRight: "8px" }}>Top 10</span>
+          <span style={{ color: "#e50914", marginRight: "6px" }}>Top 10</span>
           {filter === "series" || filter === "tv shows"
-            ? "TV Shows "
+            ? "TV Shows"
             : filter === "movies"
-              ? "Movies "
-              : ""}
-          Today
+              ? "Movies"
+              : "Today"}
         </h3>
+        </div>
 
         {inView && (
-          <>
+          <div style={{ position: "relative" }}>
             <AnimatePresence>
               {showArrows && (
                 <>
                   <motion.button
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                     onClick={() => scroll("left")}
                     style={{
                       position: "absolute",
-                      left: "-6px",
-                      top: "55%",
-                      transform: "translateY(-50%)",
+                      left: "4px",
+                      top: "calc(50% - 16px)",
                       zIndex: 10,
-                      background: "rgba(5,5,5,0.75)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "rgba(255,255,255,0.7)",
-                      borderRadius: "8px",
-                      width: "32px",
-                      height: "32px",
+                      background: "rgba(5,5,5,0.8)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      color: "rgba(255,255,255,0.6)",
+                      borderRadius: "6px",
+                      width: "30px",
+                      height: "30px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(12px)",
+                      backdropFilter: "blur(8px)",
                     }}
                   >
-                    <ChevronLeft size={18} aria-label="Scroll left" />
+                    <ChevronLeft size={16} />
                   </motion.button>
                   <motion.button
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                     onClick={() => scroll("right")}
                     style={{
                       position: "absolute",
-                      right: "-6px",
-                      top: "55%",
-                      transform: "translateY(-50%)",
+                      right: "4px",
+                      top: "calc(50% - 16px)",
                       zIndex: 10,
-                      background: "rgba(5,5,5,0.75)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "rgba(255,255,255,0.7)",
-                      borderRadius: "8px",
-                      width: "32px",
-                      height: "32px",
+                      background: "rgba(5,5,5,0.8)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      color: "rgba(255,255,255,0.6)",
+                      borderRadius: "6px",
+                      width: "30px",
+                      height: "30px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(12px)",
+                      backdropFilter: "blur(8px)",
                     }}
                   >
-                    <ChevronRight size={18} aria-label="Scroll right" />
+                    <ChevronRight size={16} />
                   </motion.button>
                 </>
               )}
@@ -401,14 +406,12 @@ const Top10Rail = React.memo(
               className="movie-rail"
               style={{
                 display: "flex",
-                gap: "1.5rem",
+                gap: "1rem",
                 WebkitOverflowScrolling: "touch",
                 overscrollBehaviorX: "contain",
                 overflowX: "auto",
                 scrollbarWidth: "none",
-                paddingTop: "0.5rem",
-                paddingBottom: "0.25rem",
-                paddingLeft: "0.5rem",
+                padding: "0.25rem 0.25rem",
               }}
             >
               {top10.map((movie, i) => (
@@ -429,16 +432,16 @@ const Top10Rail = React.memo(
                       position: "relative",
                       display: "flex",
                       alignItems: "flex-end",
-                      width: "210px",
+                      width: "180px",
                       flexShrink: 0,
                     }}
                   >
                     <span
                       style={{
                         position: "absolute",
-                        bottom: "-14px",
-                        left: "-25px",
-                        fontSize: "8rem",
+                        bottom: "-8px",
+                        left: "-18px",
+                        fontSize: "7rem",
                         fontWeight: 900,
                         lineHeight: 1,
                         zIndex: 2,
@@ -446,31 +449,31 @@ const Top10Rail = React.memo(
                         userSelect: "none",
                         color:
                           i === 0
-                            ? "rgba(251,191,36,0.15)"
+                            ? "rgba(251,191,36,0.12)"
                             : i === 1
-                              ? "rgba(148,163,184,0.15)"
+                              ? "rgba(148,163,184,0.12)"
                               : i === 2
-                                ? "rgba(201,124,74,0.15)"
-                                : "#000000",
+                                ? "rgba(201,124,74,0.12)"
+                                : "rgba(255,255,255,0.04)",
                         WebkitTextStroke:
-                          "3px " +
+                          "2px " +
                           (i === 0
                             ? "#fbbf24"
                             : i === 1
                               ? "#94a3b8"
                               : i === 2
                                 ? "#c97c4a"
-                                : "rgba(255,255,255,0.4)"),
-                        textShadow: "0 0 20px rgba(0,0,0,0.8)",
+                                : "rgba(255,255,255,0.25)"),
+                        textShadow: "0 0 15px rgba(0,0,0,0.6)",
                       }}
                     >
                       {i + 1}
                     </span>
                     <div
                       style={{
-                        width: "160px",
+                        width: "140px",
                         flexShrink: 0,
-                        marginLeft: "40px",
+                        marginLeft: "35px",
                       }}
                     >
                       <MovieCard movie={movie} />
@@ -479,7 +482,7 @@ const Top10Rail = React.memo(
                 </motion.div>
               ))}
             </div>
-          </>
+          </div>
         )}
       </div>
     );
@@ -1265,44 +1268,7 @@ export default function Home({
           </h3>
         ) : (
           <>
-            {continueWatching &&
-              continueWatching.length > 0 &&
-              filter === "all" && (
-                <FadeInSection>
-                  <ErrorBoundary>
-                    <MovieRail
-                      railIndex={0}
-                      category={{
-                        name: "Continue Watching",
-                        movies: continueWatching,
-                      }}
-                    />
-                  </ErrorBoundary>
-                </FadeInSection>
-              )}
-            {filter === "all" && lastWatched && recommendations.length > 0 && (
-              <FadeInSection>
-                <ErrorBoundary>
-                  <MovieRail
-                    railIndex={1}
-                    category={{
-                      name: `Because you watched ${lastWatched.title}`,
-                      movies: recommendations,
-                    }}
-                  />
-                </ErrorBoundary>
-              </FadeInSection>
-            )}
-            {myList && myList.length > 0 && filter === "all" && (
-              <FadeInSection>
-                <ErrorBoundary>
-                  <MovieRail
-                    railIndex={2}
-                    category={{ name: "My List", movies: myList }}
-                  />
-                </ErrorBoundary>
-              </FadeInSection>
-            )}
+            {/* 1. Top 10 Today — first */}
             {(filter === "all" ||
               filter === "series" ||
               filter === "tv shows" ||
@@ -1311,12 +1277,54 @@ export default function Home({
               activeGenre === "All" && (
                 <FadeInSection>
                   <Top10Rail
-                    railIndex={3}
+                    railIndex={0}
                     movies={top10Movies}
                     filter={filter}
                   />
                 </FadeInSection>
               )}
+            {/* 2. Continue Watching */}
+            {continueWatching &&
+              continueWatching.length > 0 &&
+              filter === "all" && (
+                <FadeInSection>
+                  <ErrorBoundary>
+                    <MovieRail
+                      railIndex={1}
+                      category={{
+                        name: "Continue Watching",
+                        movies: continueWatching,
+                      }}
+                    />
+                  </ErrorBoundary>
+                </FadeInSection>
+              )}
+            {/* 3. Because you watched */}
+            {filter === "all" && lastWatched && recommendations.length > 0 && (
+              <FadeInSection>
+                <ErrorBoundary>
+                  <MovieRail
+                    railIndex={2}
+                    category={{
+                      name: `Because you watched ${lastWatched.title}`,
+                      movies: recommendations,
+                    }}
+                  />
+                </ErrorBoundary>
+              </FadeInSection>
+            )}
+            {/* 4. My List */}
+            {myList && myList.length > 0 && filter === "all" && (
+              <FadeInSection>
+                <ErrorBoundary>
+                  <MovieRail
+                    railIndex={3}
+                    category={{ name: "My List", movies: myList }}
+                  />
+                </ErrorBoundary>
+              </FadeInSection>
+            )}
+            {/* 5. Category rails */}
             {categories.slice(0, visibleCatCount).map((category, catIdx) => (
               <FadeInSection key={catIdx} delay={0.1}>
                 <ErrorBoundary key={category.id || catIdx}>
