@@ -1,0 +1,361 @@
+import { useQuery } from "@tanstack/react-query";
+import { movieService } from "../api/movieService";
+import { PlatformAdapter } from "../api/platformAdapter";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
+import { motion } from "framer-motion";
+import MovieCard from "../components/MovieCard";
+
+export default function SearchPage() {
+  const [searchParams] = useSearchParams();
+  const query = searchParams.get("q") || "";
+  const navigate = useNavigate();
+
+  const [localQuery, setLocalQuery] = useState(query);
+
+  useEffect(() => {
+    setLocalQuery(query);
+  }, [query]);
+
+  const [filterType, setFilterType] = useState("All");
+  const [sortBy, setSortBy] = useState("Relevance");
+
+  const {
+    data: rawResults,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["search", query],
+    queryFn: () => movieService.searchMovies(query),
+    enabled: !!query.trim(),
+  });
+
+  const results = useMemo(() => {
+    if (!rawResults || !rawResults.movies) return [];
+
+    const mapSource = (m) => {
+      let resolved = { id: "netflix", name: "Netflix" };
+      if (m.availablePlatforms && m.availablePlatforms.length > 0) {
+        resolved = PlatformAdapter.resolveFromRawName(m.availablePlatforms[0]);
+        // For robustness, find the first matched platform
+        for (const p of m.availablePlatforms) {
+          const match = PlatformAdapter.resolveFromRawName(p);
+          if (match.id !== "netflix" || p.toLowerCase().includes("netflix")) {
+            resolved = match;
+            break;
+          }
+        }
+      }
+      return { ...m, source: resolved.id, sourceName: resolved.name };
+    };
+
+    const mapped = rawResults.movies.map(mapSource);
+    const seen = new Set();
+    return mapped.filter((m) => {
+      const key = m.tmdbId || m.id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [rawResults]);
+
+  const error = queryError ? "Failed to load search results." : null;
+
+  const filteredAndSortedList = useMemo(() => {
+    let list = [...results];
+
+    if (filterType === "Movies") list = list.filter((m) => !m.isSeries);
+    else if (filterType === "TV Shows") list = list.filter((m) => m.isSeries);
+    else if (filterType === "Anime")
+      list = list.filter((m) => m.genres?.includes("Animation"));
+
+    if (sortBy === "Rating")
+      list.sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0));
+    else if (sortBy === "Year (Newest)")
+      list.sort(
+        (a, b) =>
+          (b.releaseYear || b.year || 0) - (a.releaseYear || a.year || 0),
+      );
+    else if (sortBy === "Year (Oldest)")
+      list.sort(
+        (a, b) =>
+          (a.releaseYear || a.year || 0) - (b.releaseYear || b.year || 0),
+      );
+
+    return list;
+  }, [results, filterType, sortBy]);
+
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [query, filterType, sortBy]);
+
+  useEffect(() => {
+    let inThrottle;
+    const handleScroll = () => {
+      if (!inThrottle) {
+        if (
+          window.innerHeight + window.scrollY >=
+          document.body.offsetHeight - 800
+        ) {
+          setVisibleCount((prev) =>
+            Math.min(prev + 20, filteredAndSortedList.length),
+          );
+        }
+        inThrottle = true;
+        setTimeout(() => (inThrottle = false), 200);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [filteredAndSortedList.length]);
+
+  const visibleResults = filteredAndSortedList.slice(0, visibleCount);
+
+  return (
+    <div
+      className="main-content"
+      style={{ padding: "0 3rem 4rem", minHeight: "80vh" }}
+    >
+      <div
+        style={{
+          padding: "2rem 0",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.5rem",
+        }}
+      >
+        {/* Mobile-friendly inline search refinement */}
+        <div className="mobile-only" style={{ marginBottom: "1.5rem" }}>
+          <div style={{ position: "relative" }}>
+            <Search
+              size={18}
+              style={{
+                position: "absolute",
+                left: "14px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#71717a",
+              }}
+            />
+            <input
+              type="text"
+              value={localQuery}
+              onChange={(e) => {
+                setLocalQuery(e.target.value);
+                if (e.target.value.trim()) {
+                  navigate(
+                    `/search?q=${encodeURIComponent(e.target.value.trim())}`,
+                    { replace: true },
+                  );
+                }
+              }}
+              placeholder="Search movies, shows..."
+              style={{
+                width: "100%",
+                background: "rgba(24,24,27,0.8)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "12px",
+                padding: "0.75rem 1rem 0.75rem 2.75rem",
+                fontSize: "1rem",
+                color: "#fff",
+                fontFamily: "inherit",
+                outline: "none",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div>
+            <h1
+              className="section-title"
+              style={{
+                margin: 0,
+                fontSize: "2.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+              }}
+            >
+              Search results for "{query}"
+              <span
+                style={{
+                  fontSize: "1rem",
+                  background: "rgba(255,255,255,0.1)",
+                  padding: "2px 12px",
+                  borderRadius: "100px",
+                  fontWeight: 600,
+                  color: "#a1a1aa",
+                }}
+              >
+                {results.length}
+              </span>
+            </h1>
+          </div>
+
+          {results.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                gap: "1.5rem",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {["All", "Movies", "TV Shows", "Anime"].map((f) => (
+                  <motion.button
+                    key={f}
+                    onClick={() => setFilterType(f)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{
+                      background:
+                        filterType === f ? "#fff" : "rgba(255,255,255,0.08)",
+                      color: filterType === f ? "#000" : "#fff",
+                      border:
+                        "1px solid " +
+                        (filterType === f
+                          ? "transparent"
+                          : "rgba(255,255,255,0.1)"),
+                      padding: "6px 16px",
+                      borderRadius: "100px",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition:
+                        "background 0.2s, color 0.2s, border-color 0.2s",
+                    }}
+                  >
+                    {f}
+                  </motion.button>
+                ))}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.4rem",
+                  flexWrap: "wrap",
+                  flexWrap: "wrap",
+                }}
+              >
+                {[
+                  { label: "Relevant", value: "Relevance" },
+                  { label: "Rating", value: "Rating" },
+                  { label: "Newest", value: "Year (Newest)" },
+                  { label: "Oldest", value: "Year (Oldest)" },
+                ].map((opt) => (
+                  <motion.button
+                    key={opt.value}
+                    onClick={() => setSortBy(opt.value)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{
+                      background:
+                        sortBy === opt.value
+                          ? "rgba(255,255,255,0.13)"
+                          : "rgba(255,255,255,0.05)",
+                      color: sortBy === opt.value ? "#fff" : "#a1a1aa",
+                      border:
+                        "1px solid " +
+                        (sortBy === opt.value
+                          ? "rgba(255,255,255,0.28)"
+                          : "rgba(255,255,255,0.08)"),
+                      padding: "5px 13px",
+                      borderRadius: "100px",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {opt.label}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="movie-grid" style={{ marginTop: "1rem" }}>
+            {[...Array(12)].map((_, i) => (
+              <div
+                key={i}
+                className="skeleton skeleton-card"
+                style={{ height: "350px" }}
+              ></div>
+            ))}
+          </div>
+        ) : error ? (
+          <div
+            style={{
+              padding: "4rem 0",
+              textAlign: "center",
+              color: "#ef4444",
+              fontSize: "1.2rem",
+            }}
+          >
+            {error}
+          </div>
+        ) : !query ? (
+          <div
+            style={{ padding: "4rem 0", textAlign: "center", color: "#a1a1aa" }}
+          >
+            Search for a movie, series, or actor to get started.
+          </div>
+        ) : filteredAndSortedList.length === 0 ? (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "6rem 0",
+              color: "#a1a1aa",
+            }}
+          >
+            <Search size={48} style={{ opacity: 0.2, marginBottom: "1rem" }} />
+            <h2 style={{ color: "#fff", marginBottom: "0.5rem" }}>
+              No results found
+            </h2>
+            <p style={{ marginBottom: "2rem" }}>
+              Try searching for a different title, actor, or genre.
+            </p>
+          </div>
+        ) : (
+          <div className="movie-grid" style={{ marginTop: "1rem" }}>
+            {visibleResults.map((movie, idx) => (
+              <motion.div
+                key={movie.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.4,
+                  delay: (idx % 20) * 0.05,
+                  ease: "easeOut",
+                }}
+              >
+                <MovieCard movie={movie} />
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
