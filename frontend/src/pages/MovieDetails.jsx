@@ -956,20 +956,6 @@ export default function MovieDetails() {
               initial="hidden"
               animate="show"
             >
-              <motion.div
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
-                style={{
-                  marginBottom: "1.5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                }}
-              >
-                <PlatformIcon platform={resolvedPlatform} />
-              </motion.div>
-
               {movie.nextEpisode && movie.nextEpisode.releaseDate && (
                 <motion.div
                   initial={{ opacity: 0, x: -12 }}
