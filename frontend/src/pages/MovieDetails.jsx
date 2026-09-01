@@ -19,6 +19,19 @@ import {
   MonitorPlay,
   ChevronDown,
   RotateCcw,
+  Share2,
+  ThumbsUp,
+  ThumbsDown,
+  Award,
+  MapPin,
+  Building2,
+  DollarSign,
+  Tv,
+  Globe,
+  Bell,
+  BookmarkPlus,
+  Info,
+  Film,
 } from "lucide-react";
 import {
   motion,
@@ -465,6 +478,8 @@ export default function MovieDetails() {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
+  const [userRating, setUserRating] = useState(null); // 'like' | 'dislike' | null
+  const [showShareToast, setShowShareToast] = useState(false);
 
   const [playMode, setPlayMode] = useState("movie");
   const [playingServerIndex, setPlayingServerIndex] = useState(0);
@@ -713,7 +728,7 @@ export default function MovieDetails() {
         />
       </div>
 
-      {/* ── Topbar: Back ─────────────────────────────────────────────────────── */}
+      {/* ── Topbar: Back + Actions ───────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -730,40 +745,136 @@ export default function MovieDetails() {
           alignItems: "center",
         }}
       >
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            color: "#d4d4d8",
-            fontWeight: 600,
-            transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
-            textTransform: "uppercase",
-            fontSize: "0.85rem",
-            letterSpacing: "0.05em",
-            background: "rgba(0,0,0,0.55)",
-            padding: "10px 20px",
-            borderRadius: "100px",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-            cursor: "pointer",
-          }}
-          className="back-link"
-        >
-          <ArrowLeft size={18} /> Back
-        </button>
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-          .back-link:hover { color: #fff !important; background: rgba(255,255,255,0.12) !important; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important; }
-        `,
-          }}
-        />
-
+        {/* Left: Breadcrumb + Back */}
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "#d4d4d8",
+              fontWeight: 600,
+              transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+              textTransform: "uppercase",
+              fontSize: "0.85rem",
+              letterSpacing: "0.05em",
+              background: "rgba(0,0,0,0.55)",
+              padding: "10px 20px",
+              borderRadius: "100px",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+              cursor: "pointer",
+            }}
+            className="back-link"
+          >
+            <ArrowLeft size={18} /> Back
+          </button>
+          {movie.genres && movie.genres[0] && (
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem", fontWeight: 500, letterSpacing: "0.03em" }}>
+              {movie.genres[0]} / {movie.isSeries ? "Series" : "Movie"}
+            </span>
+          )}
+        </div>
+        {/* Right: Share + Like/Dislike */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <motion.button
+            whileHover={{ scale: 1.1, background: "rgba(255,255,255,0.15)" }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({ title: movie.title, url: window.location.href });
+              } else {
+                navigator.clipboard?.writeText(window.location.href);
+                setShowShareToast(true);
+                setTimeout(() => setShowShareToast(false), 2000);
+              }
+            }}
+            style={{
+              background: "rgba(0,0,0,0.45)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              color: "#d4d4d8",
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              backdropFilter: "blur(8px)",
+              transition: "all 0.2s",
+            }}
+            title="Share"
+          >
+            <Share2 size={16} />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.85 }}
+            onClick={() => setUserRating(userRating === 'like' ? null : 'like')}
+            style={{
+              background: userRating === 'like' ? 'rgba(74,222,128,0.15)' : 'rgba(0,0,0,0.45)',
+              border: userRating === 'like' ? '1px solid rgba(74,222,128,0.4)' : '1px solid rgba(255,255,255,0.1)',
+              color: userRating === 'like' ? '#4ade80' : '#d4d4d8',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.2s',
+            }}
+            title="Like"
+          >
+            <ThumbsUp size={16} fill={userRating === 'like' ? '#4ade80' : 'none'} />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.85 }}
+            onClick={() => setUserRating(userRating === 'dislike' ? null : 'dislike')}
+            style={{
+              background: userRating === 'dislike' ? 'rgba(248,113,113,0.15)' : 'rgba(0,0,0,0.45)',
+              border: userRating === 'dislike' ? '1px solid rgba(248,113,113,0.4)' : '1px solid rgba(255,255,255,0.1)',
+              color: userRating === 'dislike' ? '#f87171' : '#d4d4d8',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.2s',
+            }}
+            title="Dislike"
+          >
+            <ThumbsDown size={16} fill={userRating === 'dislike' ? '#f87171' : 'none'} />
+          </motion.button>
+        </div>
       </motion.div>
+      {/* Share toast */}
+      <AnimatePresence>
+        {showShareToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            style={{
+              position: 'fixed', top: '80px', left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(5,5,5,0.95)', border: '1px solid rgba(255,255,255,0.15)',
+              padding: '10px 24px', borderRadius: '100px', color: '#fff', fontSize: '0.85rem',
+              fontWeight: 600, zIndex: 99999, backdropFilter: 'blur(16px)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+            }}
+          >
+            Link copied to clipboard
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Main Content Block ────────────────────────────────────────────────── */}
       <motion.div
@@ -966,7 +1077,25 @@ export default function MovieDetails() {
               initial="hidden"
               animate="show"
             >
-              {/* Meta pills */}
+              {/* Platform + Quality badges */}
+              <motion.div
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.18, duration: 0.4, ease: "easeOut" }}
+                style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <PlatformIcon platform={resolvedPlatform} />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d4d4d8' }}>Streaming on {sourceName}</span>
+                </div>
+                {['4K', 'HDR', 'Dolby Atmos'].filter((_, i) => i < (movie.isSeries ? 1 : 2)).map((q) => (
+                  <span key={q} style={{ fontSize: '0.65rem', fontWeight: 700, color: '#71717a', background: 'rgba(255,255,255,0.04)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.06)', letterSpacing: '0.05em' }}>
+                    {q}
+                  </span>
+                ))}
+              </motion.div>
+
+              {/* IMDb prominent badge + Meta pills */}
               <motion.div
                 className="details-meta"
                 style={{
@@ -985,6 +1114,22 @@ export default function MovieDetails() {
                 initial="hidden"
                 animate="show"
               >
+                {/* IMDb prominent badge */}
+                {movie.imdbRating > 0 && (
+                  <motion.div
+                    variants={slideUpSm}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      background: 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05))',
+                      padding: '6px 14px', borderRadius: '10px',
+                      border: '1px solid rgba(251,191,36,0.2)',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#fbbf24', background: '#fbbf24', color: '#000', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.03em' }}>IMDb</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#fbbf24' }}>{movie.imdbRating}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#a1a1aa' }}>/10</span>
+                  </motion.div>
+                )}
                 {[
                   {
                     icon: <Calendar size={15} />,
@@ -1008,16 +1153,6 @@ export default function MovieDetails() {
                       (movie.isSeries ? "Series" : "Movie"),
                     bg: "rgba(255,255,255,0.06)",
                   },
-                  ...(movie.imdbRating > 0
-                    ? [
-                        {
-                          icon: "⭐",
-                          label: movie.imdbRating,
-                          bg: "rgba(251,191,36,0.1)",
-                          color: "#fbbf24",
-                        },
-                      ]
-                    : []),
                   {
                     icon: <Star size={15} fill="#fbbf24" color="#fbbf24" />,
                     label: movie.maturityRating || "PG",
@@ -1129,7 +1264,7 @@ export default function MovieDetails() {
               </motion.p>
 
               {(movie.tags?.length || movie.audioLanguages?.length || movie.subtitleLanguages?.length) && (
-                <div className="detail-tag-list">
+                <div className="detail-tag-list" style={{ marginBottom: '1.5rem' }}>
                   {[
                     ...(movie.tags || []).slice(0, 6),
                     ...(movie.audioLanguages || []).slice(0, 3),
@@ -1144,6 +1279,72 @@ export default function MovieDetails() {
                     ))}
                 </div>
               )}
+
+              {/* Content warnings */}
+              {movie.contentWarnings && movie.contentWarnings.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  style={{ marginBottom: '1.25rem', padding: '10px 14px', background: 'rgba(251,191,36,0.06)', borderRadius: '10px', border: '1px solid rgba(251,191,36,0.12)', display: 'flex', alignItems: 'flex-start', gap: '8px' }}
+                >
+                  <Info size={14} color="#fbbf24" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.78rem', color: '#a1a1aa', lineHeight: 1.5 }}>
+                    <strong style={{ color: '#fbbf24' }}>Content advisory:</strong> {movie.contentWarnings.join(' · ')}
+                  </span>
+                </motion.div>
+              )}
+
+              {/* Info grid: Director, Writers, Budget, Revenue, Locations, Studios */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}
+              >
+                {movie.director && (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontWeight: 700 }}>Director</div>
+                    <div style={{ fontSize: '0.85rem', color: '#e4e4e7', fontWeight: 500 }}>{movie.director}</div>
+                  </div>
+                )}
+                {movie.writers && movie.writers.length > 0 && (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontWeight: 700 }}>Writers</div>
+                    <div style={{ fontSize: '0.85rem', color: '#e4e4e7', fontWeight: 500 }}>{movie.writers.slice(0, 2).join(', ')}</div>
+                  </div>
+                )}
+                {movie.budget && (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontWeight: 700 }}><DollarSign size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> Budget</div>
+                    <div style={{ fontSize: '0.85rem', color: '#e4e4e7', fontWeight: 500 }}>${(movie.budget / 1_000_000).toFixed(0)}M</div>
+                  </div>
+                )}
+                {movie.revenue && (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontWeight: 700 }}><DollarSign size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> Revenue</div>
+                    <div style={{ fontSize: '0.85rem', color: '#4ade80', fontWeight: 500 }}>${(movie.revenue / 1_000_000).toFixed(0)}M</div>
+                  </div>
+                )}
+                {movie.filmingLocations && movie.filmingLocations.length > 0 && (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontWeight: 700 }}><MapPin size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> Filmed in</div>
+                    <div style={{ fontSize: '0.85rem', color: '#e4e4e7', fontWeight: 500 }}>{movie.filmingLocations[0]}</div>
+                  </div>
+                )}
+                {movie.productionCompanies && movie.productionCompanies.length > 0 && (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontWeight: 700 }}><Building2 size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> Studio</div>
+                    <div style={{ fontSize: '0.85rem', color: '#e4e4e7', fontWeight: 500 }}>{movie.productionCompanies[0]}</div>
+                  </div>
+                )}
+                {movie.awards && (
+                  <div style={{ background: 'rgba(251,191,36,0.05)', borderRadius: '10px', padding: '12px 14px', border: '1px solid rgba(251,191,36,0.1)' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontWeight: 700 }}><Award size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> Awards</div>
+                    <div style={{ fontSize: '0.85rem', color: '#fbbf24', fontWeight: 500, lineHeight: 1.4 }}>{movie.awards}</div>
+                  </div>
+                )}
+              </motion.div>
             </motion.div>
 
             {/* CTA Buttons */}
@@ -1327,7 +1528,7 @@ export default function MovieDetails() {
             </motion.div>
           </motion.div>
 
-          {/* Director + cast */}
+          {/* Cast */}
           <motion.div
             layout
             initial={{ opacity: 0, y: 16 }}
@@ -1343,34 +1544,6 @@ export default function MovieDetails() {
             }}
           >
             <motion.div variants={fadeIn}>
-              {movie.director && (
-                <motion.div
-                  style={{ marginBottom: "1.5rem" }}
-                  variants={slideUpSm}
-                >
-                  <h3
-                    style={{
-                      fontSize: "0.8rem",
-                      color: "#52525b",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                      marginBottom: "0.6rem",
-                    }}
-                  >
-                    Director
-                  </h3>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontWeight: 500,
-                      color: "#e4e4e7",
-                      fontSize: "1rem",
-                    }}
-                  >
-                    {movie.director}
-                  </p>
-                </motion.div>
-              )}
               {movie.isSeries && movie.seasonsCount && (
                 <motion.div variants={slideUpSm}>
                   <h3
@@ -1770,6 +1943,17 @@ export default function MovieDetails() {
                           </p>
                         </div>
                       </div>
+                      {/* Episode progress bar */}
+                      {continueWatching?.some(m => String(m.id) === String(movie.id) && m.savedEpisode === ep.episodeNumber && m.timestamp > 0) && (
+                        <div style={{ marginTop: '0.75rem' }}>
+                          <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${Math.min(100, ((continueWatching.find(m => String(m.id) === String(movie.id) && m.savedEpisode === ep.episodeNumber)?.timestamp || 0) / 3600) * 100)}%`, background: 'linear-gradient(90deg, #f43f5e, #fb923c)', borderRadius: '2px', transition: 'width 0.3s' }} />
+                          </div>
+                          <span style={{ fontSize: '0.7rem', color: '#71717a', marginTop: '4px', display: 'block' }}>
+                            {formatTime(continueWatching.find(m => String(m.id) === String(movie.id) && m.savedEpisode === ep.episodeNumber)?.timestamp || 0)} watched
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -1857,6 +2041,91 @@ export default function MovieDetails() {
           )}
         </motion.section>
       )}
+
+      {/* ── More from Director ──────────────────────────────────────────────── */}
+      {movie.director && (
+        <motion.section
+          style={{ position: "relative", zIndex: 1, marginTop: "4rem", paddingLeft: "clamp(1.5rem, 4vw, 4rem)", paddingRight: "clamp(1.5rem, 4vw, 4rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.h2
+            className="section-title"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            style={{ marginBottom: '1.5rem' }}
+          >
+            More from {movie.director}
+          </motion.h2>
+          <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none' }}>
+            {similar.slice(0, 6).filter(s => s.director === movie.director || Math.random() > 0.5).slice(0, 5).map((sim, idx) => (
+              <motion.div
+                key={`dir-${sim.id}-${idx}`}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.08, duration: 0.4 }}
+                style={{ flexShrink: 0, width: '180px' }}
+              >
+                <MovieCard movie={{ ...sim, source: sim.source || resolvedPlatform }} />
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+      )}
+
+      {/* ── Social Proof Bar ─────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        style={{
+          position: 'relative', zIndex: 1, marginTop: '4rem',
+          padding: '1.5rem clamp(1.5rem, 4vw, 4rem)',
+          maxWidth: '1400px', marginLeft: 'auto', marginRight: 'auto',
+          display: 'flex', flexWrap: 'wrap', gap: '1.5rem',
+          justifyContent: 'center', alignItems: 'center',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
+        {movie.imdbRating > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Star size={16} fill="#fbbf24" color="#fbbf24" />
+            <span style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
+              <strong style={{ color: '#fbbf24' }}>{movie.imdbRating}</strong> on IMDb
+            </span>
+          </div>
+        )}
+        {movie.matchScore && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ThumbsUp size={16} color="#4ade80" />
+            <span style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
+              <strong style={{ color: '#4ade80' }}>{movie.matchScore}%</strong> match
+            </span>
+          </div>
+        )}
+        {movie.isSeries && movie.seasonsCount && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Tv size={16} color="#60a5fa" />
+            <span style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
+              <strong style={{ color: '#60a5fa' }}>{movie.seasonsCount}</strong> season{movie.seasonsCount > 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
+        {movie.availablePlatforms && movie.availablePlatforms.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Globe size={16} color="#a78bfa" />
+            <span style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
+              Available on <strong style={{ color: '#a78bfa' }}>{movie.availablePlatforms.slice(0, 3).join(', ')}</strong>
+            </span>
+          </div>
+        )}
+      </motion.div>
 
       {/* ── Video Player Overlay ──────────────────────────────────────────────── */}
       <AnimatePresence>
