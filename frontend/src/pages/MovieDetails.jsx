@@ -664,7 +664,7 @@ export default function MovieDetails() {
       style={{
         position: "relative",
         width: "100%",
-        marginTop: "-52px",
+        marginTop: "-56px",
         paddingTop: 0,
       }}
     >
@@ -748,23 +748,26 @@ export default function MovieDetails() {
             pointerEvents: "none",
           }}
         />
-      </div>
-
-      {/* ── Topbar: Back + Actions ───────────────────────────────────────────── */}
+      </div>        {/* ── Topbar: Back + Actions ───────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
         style={{
-          position: "relative",
+          position: "sticky",
+          top: 56,
           zIndex: 10,
-          paddingTop: "1.5rem",
+          paddingTop: "0.75rem",
           paddingBottom: "0.5rem",
           paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)",
           paddingRight: "clamp(1rem, 2.5vw, 2.5rem)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          background: "rgba(5,5,5,0.85)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
         }}
       >
         {/* Left: Breadcrumb + Back */}

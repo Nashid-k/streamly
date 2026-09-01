@@ -163,7 +163,7 @@ const MovieRail = React.memo(
         </div>
 
         {inView && (
-          <div style={{ position: "relative" }}>
+          <>
             <AnimatePresence>
               {showArrows && (
                 <>
@@ -174,23 +174,25 @@ const MovieRail = React.memo(
                     onClick={() => scroll("left")}
                     style={{
                       position: "absolute",
-                      left: "4px",
-                      top: "calc(50% - 16px)",
+                      left: "-16px",
+                      top: "calc(50% + 8px)",
+                      transform: "translateY(-50%)",
                       zIndex: 10,
-                      background: "rgba(5,5,5,0.8)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "rgba(255,255,255,0.6)",
-                      borderRadius: "6px",
-                      width: "30px",
-                      height: "30px",
+                      background: "rgba(5,5,5,0.85)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.7)",
+                      borderRadius: "50%",
+                      width: "36px",
+                      height: "36px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(8px)",
+                      backdropFilter: "blur(12px)",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
                     }}
                   >
-                    <ChevronLeft size={16} />
+                    <ChevronLeft size={18} />
                   </motion.button>
                   <motion.button
                     initial={{ opacity: 0 }}
@@ -199,23 +201,25 @@ const MovieRail = React.memo(
                     onClick={() => scroll("right")}
                     style={{
                       position: "absolute",
-                      right: "4px",
-                      top: "calc(50% - 16px)",
+                      right: "-16px",
+                      top: "calc(50% + 8px)",
+                      transform: "translateY(-50%)",
                       zIndex: 10,
-                      background: "rgba(5,5,5,0.8)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "rgba(255,255,255,0.6)",
-                      borderRadius: "6px",
-                      width: "30px",
-                      height: "30px",
+                      background: "rgba(5,5,5,0.85)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.7)",
+                      borderRadius: "50%",
+                      width: "36px",
+                      height: "36px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(8px)",
+                      backdropFilter: "blur(12px)",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
                     }}
                   >
-                    <ChevronRight size={16} />
+                    <ChevronRight size={18} />
                   </motion.button>
                 </>
               )}
@@ -254,7 +258,7 @@ const MovieRail = React.memo(
                 </motion.div>
               ))}
             </div>
-          </div>
+          </>
         )}
       </div>
     );
@@ -343,7 +347,7 @@ const Top10Rail = React.memo(
         </div>
 
         {inView && (
-          <div style={{ position: "relative" }}>
+          <>
             <AnimatePresence>
               {showArrows && (
                 <>
@@ -354,23 +358,25 @@ const Top10Rail = React.memo(
                     onClick={() => scroll("left")}
                     style={{
                       position: "absolute",
-                      left: "4px",
-                      top: "calc(50% - 16px)",
+                      left: "-16px",
+                      top: "calc(50% + 8px)",
+                      transform: "translateY(-50%)",
                       zIndex: 10,
-                      background: "rgba(5,5,5,0.8)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "rgba(255,255,255,0.6)",
-                      borderRadius: "6px",
-                      width: "30px",
-                      height: "30px",
+                      background: "rgba(5,5,5,0.85)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.7)",
+                      borderRadius: "50%",
+                      width: "36px",
+                      height: "36px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(8px)",
+                      backdropFilter: "blur(12px)",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
                     }}
                   >
-                    <ChevronLeft size={16} />
+                    <ChevronLeft size={18} />
                   </motion.button>
                   <motion.button
                     initial={{ opacity: 0 }}
@@ -379,23 +385,25 @@ const Top10Rail = React.memo(
                     onClick={() => scroll("right")}
                     style={{
                       position: "absolute",
-                      right: "4px",
-                      top: "calc(50% - 16px)",
+                      right: "-16px",
+                      top: "calc(50% + 8px)",
+                      transform: "translateY(-50%)",
                       zIndex: 10,
-                      background: "rgba(5,5,5,0.8)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "rgba(255,255,255,0.6)",
-                      borderRadius: "6px",
-                      width: "30px",
-                      height: "30px",
+                      background: "rgba(5,5,5,0.85)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.7)",
+                      borderRadius: "50%",
+                      width: "36px",
+                      height: "36px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(8px)",
+                      backdropFilter: "blur(12px)",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
                     }}
                   >
-                    <ChevronRight size={16} />
+                    <ChevronRight size={18} />
                   </motion.button>
                 </>
               )}
@@ -480,9 +488,8 @@ const Top10Rail = React.memo(
                     </div>
                   </div>
                 </motion.div>
-              ))}
-            </div>
-          </div>
+              ))}            </div>
+          </>
         )}
       </div>
     );

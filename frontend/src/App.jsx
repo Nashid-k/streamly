@@ -240,7 +240,7 @@ function Layout({ children }) {
     <div className="app-container">
       {/* Top Navbar */}
       <nav
-        className="navbar"
+        className={`navbar${isScrolled ? ' scrolled' : ''}`}
         style={{
           background: isScrolled
             ? "linear-gradient(180deg, rgba(5,5,5,0.97) 0%, rgba(5,5,5,0.95) 100%)"
