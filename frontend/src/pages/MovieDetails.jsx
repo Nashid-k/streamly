@@ -644,51 +644,72 @@ export default function MovieDetails() {
       <div
         className="details-backdrop"
         style={{
-          height: "min(72vh, 760px)",
+          height: "min(80vh, 820px)",
           overflow: "hidden",
           top: "0",
           left: "0",
-          width: "100%",
+          width: "100vw",
+          marginLeft: "calc(-50vw + 50%)",
           marginTop: "-2rem",
           backgroundImage: backdropSrc ? `url(${backdropSrc})` : "none",
           backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundPosition: "center top",
         }}
       >
 
-        {/* Side vignettes */}
+        {/* Deep cinematic base darkening */}
         <div
           style={{
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(90deg, rgba(0,0,0,0.85) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.85) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.95) 100%)",
             pointerEvents: "none",
           }}
         />
-        {/* Top fade */}
+        {/* Side vignettes — deep dark edges */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(90deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 20%, transparent 40%, transparent 60%, rgba(0,0,0,0.5) 80%, rgba(0,0,0,0.92) 100%)",
+            pointerEvents: "none",
+          }}
+        />
+        {/* Top fade — navbar blend */}
         <div
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
-            height: "120px",
+            height: "180px",
             background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)",
+              "linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)",
             pointerEvents: "none",
           }}
         />
-        {/* Bottom fade */}
+        {/* Bottom fade — heavy gradient into content area */}
         <div
           style={{
             position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
-            height: "55%",
+            height: "60%",
             background:
-              "linear-gradient(to top, #000000 0%, rgba(0,0,0,0.92) 25%, rgba(0,0,0,0.6) 55%, transparent 100%)",
+              "linear-gradient(to top, #050505 0%, rgba(5,5,5,0.98) 15%, rgba(5,5,5,0.85) 35%, rgba(0,0,0,0.5) 60%, transparent 100%)",
+            pointerEvents: "none",
+          }}
+        />
+        {/* Radial spotlight from center — adds depth */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 80% 50% at 50% 35%, transparent 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.8) 100%)",
             pointerEvents: "none",
           }}
         />
@@ -703,10 +724,11 @@ export default function MovieDetails() {
           position: "relative",
           zIndex: 10,
           paddingTop: "1rem",
+          paddingLeft: "clamp(1.5rem, 4vw, 4rem)",
+          paddingRight: "clamp(1.5rem, 4vw, 4rem)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          paddingRight: "2rem",
         }}
       >
         <button
@@ -760,14 +782,14 @@ export default function MovieDetails() {
           <div
             style={{
               position: "absolute",
-              inset: "-12%",
+              inset: "-15%",
               background: `url(${movie.posterUrl})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
-              filter: "blur(48px) brightness(0.5)",
+              filter: "blur(60px) brightness(0.4) saturate(1.2)",
               zIndex: -1,
               borderRadius: "50%",
-              opacity: 0.8,
+              opacity: 0.7,
             }}
           />
           <motion.img
@@ -775,11 +797,11 @@ export default function MovieDetails() {
             alt={movie.title}
             className="details-poster-large"
             whileHover={{
-              scale: 1.03,
-              y: -6,
-              boxShadow: "0 40px 80px -12px rgba(0,0,0,0.95)",
+              scale: 1.04,
+              y: -8,
+              boxShadow: "0 50px 100px -20px rgba(0,0,0,0.98)",
             }}
-            transition={{ type: "spring", stiffness: 280, damping: 22 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
             onError={(e) => {
               e.currentTarget.style.opacity = "0";
             }}

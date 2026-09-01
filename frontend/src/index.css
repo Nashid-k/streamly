@@ -631,36 +631,36 @@ a {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: min(68vh, 720px);
+  width: 100vw;
+  height: min(80vh, 820px);
   z-index: 0;
   overflow: hidden;
-  background-color: #111;
+  background-color: #0a0a0c;
   background-size: cover;
-  background-position: center;
+  background-position: center top;
 }
 
 .details-content-wrapper {
   display: flex;
-  gap: clamp(0.9rem, 1.8vw, 1.8rem);
-  margin-top: min(17vh, 180px);
+  gap: clamp(1.2rem, 2.4vw, 2.4rem);
+  margin-top: min(22vh, 240px);
   margin-bottom: var(--spacing-3xl);
-  padding-left: clamp(0.2rem, 0.8vw, 0.8rem);
-  padding-right: clamp(0.2rem, 0.8vw, 0.8rem);
-  max-width: 1680px;
+  padding-left: clamp(1.5rem, 4vw, 4rem);
+  padding-right: clamp(1.5rem, 4vw, 4rem);
+  max-width: 1400px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .details-poster-large {
-  height: 390px;
+  height: 420px;
   width: auto;
   aspect-ratio: 2 / 3;
   object-fit: cover;
   flex-shrink: 0;
-  border-radius: 24px;
-  box-shadow: 0 30px 55px -18px rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.95), 0 0 60px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .details-text {
@@ -1172,9 +1172,11 @@ input:focus-visible {
   }
   .details-content-wrapper {
     flex-direction: column !important;
-    margin-top: 30vh !important;
+    margin-top: 28vh !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
     padding-top: 1.5rem !important;
-    background: linear-gradient(to bottom, transparent, #09090b 10%, #09090b);
+    background: linear-gradient(to bottom, transparent, #050505 8%, #050505);
   }
   div[style*="height: '100vh'"] {
     height: 50vh !important;
