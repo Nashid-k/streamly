@@ -202,6 +202,9 @@ const CustomVideoPlayer = ({
   const [subtitleEnabled, setSubtitleEnabled] = useState(false);
   const [subtitleFileName, setSubtitleFileName] = useState("");
 
+  // Derived TV detection — consistent with MovieDetails isTvContent
+  const isTvContent = movie?.isSeries || String(movie?.id || '').startsWith('tmdb-tv-');
+
   // Reset on episode/season change
   useEffect(() => {
     hasTriggeredNextRef.current = false;
@@ -330,7 +333,8 @@ const CustomVideoPlayer = ({
         }
       }
 
-      const newSignature = `${targetId}-${movie.isSeries ? season : "m"}-${movie.isSeries ? episode : "m"}`;
+      const isTv = movie?.isSeries || String(movie?.id || '').startsWith('tmdb-tv-');
+      const newSignature = `${targetId}-${isTv ? season : "m"}-${isTv ? episode : "m"}`;
       const isNewContent = contentSignatureRef.current !== newSignature;
       contentSignatureRef.current = newSignature;
 
@@ -344,8 +348,8 @@ const CustomVideoPlayer = ({
       let url = VideoSourceAdapter.getStreamUrl(
         activeServerIndex,
         targetId,
-        movie.isSeries ? season : null,
-        movie.isSeries ? episode : null,
+        isTv ? season : null,
+        isTv ? episode : null,
         resolvedImdbId,
         movie.title,
       );
@@ -3287,7 +3291,7 @@ const CustomVideoPlayer = ({
                         flexShrink: 0,
                       }}
                     >
-                      {movie.isSeries ? `S${season} E${episode}` : "MOVIE"}
+                      {isTvContent ? `S${season} E${episode}` : "MOVIE"}
                     </span>
                     <span
                       style={{
@@ -3300,7 +3304,7 @@ const CustomVideoPlayer = ({
                     >
                       {movie.title || movie.name}
                     </span>
-                    {movie.isSeries && (
+                    {isTvContent && (
                       <span
                         style={{
                           color: "#FF6B00",

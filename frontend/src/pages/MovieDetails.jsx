@@ -447,7 +447,7 @@ function ServerDropdown({ servers, selectedIndex, onSelect }) {
 
 export default function MovieDetails() {
   const { id } = useParams();
-  const platform = "netflix"; // Global search handles cross-platform lookups now
+  const platform = "netflix"; // Default platform; cross-platform search handles lookups
   const navigate = useNavigate();
   const [selectedSeason, setSelectedSeason] = useState(1);
   const { isInList, toggleMyList, continueWatching, updateProgress } =
@@ -481,7 +481,15 @@ export default function MovieDetails() {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
-  const [userRating, setUserRating] = useState(null);
+  const [userRating, setUserRating] = useState(() => {
+    try { return localStorage.getItem(`rating-${id}`) || null; } catch { return null; }
+  });
+  useEffect(() => {
+    try {
+      if (userRating) localStorage.setItem(`rating-${id}`, userRating);
+      else localStorage.removeItem(`rating-${id}`);
+    } catch {}
+  }, [userRating, id]);
   const [showShareToast, setShowShareToast] = useState(false);
   const [episodeLayout, setEpisodeLayout] = useState("grid"); // 'grid' | 'list'
   const [showAllEpisodes, setShowAllEpisodes] = useState(false);
@@ -521,6 +529,10 @@ export default function MovieDetails() {
   const similar = Array.isArray(similarData) ? similarData : EMPTY_ARRAY;
 
   const [visibleCount, setVisibleCount] = useState(12);
+  // Reset visible count when navigating to a different movie
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [id]);
   useEffect(() => {
     let inThrottle;
     const handleScroll = () => {
@@ -541,10 +553,10 @@ export default function MovieDetails() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [similar]);
 
-  // Detect series reliably: isSeries flag, tv- prefix in ID, or seasonsCount > 0
+  // Detect series reliably: isSeries flag, tmdb-tv- prefix in ID, or seasonsCount > 0
   const isTvContent = Boolean(
     movie?.isSeries ||
-    String(movie?.id || id).includes("-tv-") ||
+    String(movie?.id || id).startsWith("tmdb-tv-") ||
     (movie?.seasonsCount && movie.seasonsCount > 0),
   );
   const normalizedSeasonCount = Math.max(
@@ -561,7 +573,7 @@ export default function MovieDetails() {
   const hasSeriesEpisodes = isTvContent && (normalizedSeasonCount > 0 || episodes.length > 0);
 
   useEffect(() => {
-    if (movie && movie.isSeries) {
+    if (movie && isTvContent) {
       const saved = cwRef.current.find(
         (m) => String(m.id) === String(movie.id),
       );
@@ -784,7 +796,7 @@ export default function MovieDetails() {
           </button>
           {movie.genres && movie.genres[0] && (
             <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem", fontWeight: 500, letterSpacing: "0.03em" }}>
-              {movie.genres[0]} / {movie.isSeries ? "Series" : "Movie"}
+              {movie.genres[0]} / {isTvContent ? "Series" : "Movie"}
             </span>
           )}
         </div>
@@ -1084,7 +1096,7 @@ export default function MovieDetails() {
                   <PlatformIcon platform={resolvedPlatform} />
                   <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d4d4d8' }}>Streaming on {sourceName}</span>
                 </div>
-                {['4K', 'HDR', 'Dolby Atmos'].filter((_, i) => i < (movie.isSeries ? 1 : 2)).map((q) => (
+                {['4K', 'HDR', 'Dolby Atmos'].filter((_, i) => i < (isTvContent ? 1 : 2)).map((q) => (
                   <span key={q} style={{ fontSize: '0.65rem', fontWeight: 700, color: '#71717a', background: 'rgba(255,255,255,0.04)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.06)', letterSpacing: '0.05em' }}>
                     {q}
                   </span>
@@ -1146,7 +1158,7 @@ export default function MovieDetails() {
                     icon: <Clock size={15} />,
                     label:
                       movie.duration ||
-                      (movie.isSeries ? "Series" : "Movie"),
+                      (isTvContent ? "Series" : "Movie"),
                     bg: "rgba(255,255,255,0.06)",
                   },
                   {
@@ -1372,21 +1384,21 @@ export default function MovieDetails() {
                           setPlayMode("movie");
                           setIsPlaying(true);
                           if (progressItem && progressItem.timestamp > 0) {
-                            if (movie.isSeries) {
+                            if (isTvContent) {
                               setSelectedSeason(progressItem.savedSeason || 1);
                               setPlayingEpisode(progressItem.savedEpisode || 1);
                             }
                           } else {
                             setPlayingEpisode(1);
-                            if (movie.isSeries) setSelectedSeason(1);
+                            if (isTvContent) setSelectedSeason(1);
                             updateProgress(
                               {
                                 ...movie,
                                 source: resolvedPlatform,
                                 sourceName,
                               },
-                              movie.isSeries ? 1 : null,
-                              movie.isSeries ? 1 : null,
+                              isTvContent ? 1 : null,
+                              isTvContent ? 1 : null,
                               0,
                             );
                           }
@@ -1419,15 +1431,15 @@ export default function MovieDetails() {
                                 setPlayMode("movie");
                                 setIsPlaying(true);
                                 setPlayingEpisode(1);
-                                if (movie.isSeries) setSelectedSeason(1);
+                                if (isTvContent) setSelectedSeason(1);
                                 updateProgress(
                                   {
                                     ...movie,
                                     source: resolvedPlatform,
                                     sourceName,
                                   },
-                                  movie.isSeries ? 1 : null,
-                                  movie.isSeries ? 1 : null,
+                                  isTvContent ? 1 : null,
+                                  isTvContent ? 1 : null,
                                   0,
                                 );
                                 TelemetryAdapter.trackPlay(
@@ -1540,7 +1552,7 @@ export default function MovieDetails() {
             }}
           >
             <motion.div variants={fadeIn}>
-              {movie.isSeries && movie.seasonsCount && (
+              {isTvContent && movie.seasonsCount && (
                 <motion.div variants={slideUpSm}>
                   <h3
                     style={{
@@ -1577,7 +1589,7 @@ export default function MovieDetails() {
       </motion.div>
 
       {/* ── Episodes ─────────────────────────────────────────────────────────── */}
-      {movie.isSeries && hasSeriesEpisodes && (
+      {isTvContent && hasSeriesEpisodes && (
         <motion.section
           style={{ position: "relative", zIndex: 1, marginTop: "2rem", paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)", paddingRight: "clamp(1rem, 2.5vw, 2.5rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
           initial={{ opacity: 0, y: 40 }}
@@ -1792,7 +1804,7 @@ export default function MovieDetails() {
                             {isWatched && (
                               <div style={{ marginTop: '0.6rem' }}>
                                 <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-                                  <div style={{ height: '100%', width: `${Math.min(100, (watchedTs / 3600) * 100)}%`, background: 'linear-gradient(90deg, #f43f5e, #fb923c)', borderRadius: '2px' }} />
+                                  <div style={{ height: '100%', width: `${Math.min(100, (watchedTs / (ep.durationMins ? ep.durationMins * 60 : 3600)) * 100)}%`, background: 'linear-gradient(90deg, #f43f5e, #fb923c)', borderRadius: '2px' }} />
                                 </div>
                                 <span style={{ fontSize: '0.65rem', color: '#71717a', marginTop: '3px', display: 'block' }}>{formatTime(watchedTs)} watched</span>
                               </div>
@@ -1842,7 +1854,7 @@ export default function MovieDetails() {
                           {isWatched && (
                             <div style={{ marginTop: '0.4rem' }}>
                               <div style={{ height: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden', maxWidth: '120px' }}>
-                                <div style={{ height: '100%', width: `${Math.min(100, (watchedTs / 3600) * 100)}%`, background: 'linear-gradient(90deg, #f43f5e, #fb923c)', borderRadius: '2px' }} />
+                                <div style={{ height: '100%', width: `${Math.min(100, (watchedTs / (ep.durationMins ? ep.durationMins * 60 : 3600)) * 100)}%`, background: 'linear-gradient(90deg, #f43f5e, #fb923c)', borderRadius: '2px' }} />
                               </div>
                             </div>
                           )}
@@ -1968,7 +1980,7 @@ export default function MovieDetails() {
       )}
 
       {/* ── More from Director ──────────────────────────────────────────────── */}
-      {movie.director && (
+      {movie.director && similar.some(s => s.director && s.director === movie.director) && (
         <motion.section
           style={{ position: "relative", zIndex: 1, marginTop: "3rem", paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)", paddingRight: "clamp(1rem, 2.5vw, 2.5rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
           initial={{ opacity: 0 }}
@@ -1987,7 +1999,7 @@ export default function MovieDetails() {
             More from {movie.director}
           </motion.h2>
           <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none' }}>
-            {similar.slice(0, 6).filter(s => s.director === movie.director || Math.random() > 0.5).slice(0, 5).map((sim, idx) => (
+            {similar.slice(0, 8).filter(s => s.director && s.director === movie.director).slice(0, 5).map((sim, idx) => (
               <motion.div
                 key={`dir-${sim.id}-${idx}`}
                 initial={{ opacity: 0, x: 20 }}
@@ -2034,7 +2046,7 @@ export default function MovieDetails() {
             </span>
           </div>
         )}
-        {movie.isSeries && movie.seasonsCount && (
+        {isTvContent && movie.seasonsCount && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Tv size={16} color="#60a5fa" />
             <span style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
@@ -2145,7 +2157,7 @@ export default function MovieDetails() {
                     <span style={{ color: "#71717a", fontWeight: 400 }}>
                       — Official Trailer
                     </span>
-                  ) : movie.isSeries ? (
+                  ) : isTvContent ? (
                     `— S${selectedSeason} E${playingEpisode}${episodes.find((e) => e.episodeNumber === playingEpisode)?.title ? `: ${episodes.find((e) => e.episodeNumber === playingEpisode).title}` : ""}`
                   ) : (
                     ""

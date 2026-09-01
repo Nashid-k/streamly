@@ -93,6 +93,7 @@ export default function MovieCard({
   const hoverTimeoutRef = useRef(null);
   const [detailedLogo, setDetailedLogo] = useState(null);
   const [logoFetchAttempted, setLogoFetchAttempted] = useState(false);
+  const isTvContent = movie?.isSeries || String(movie?.id || '').startsWith('tmdb-tv-');
 
   const handleMouseEnter = useCallback(() => {
     // 1. Instantly trigger background data prefetch for 0ms load times if clicked
@@ -229,7 +230,7 @@ export default function MovieCard({
             )}
 
             {/* Permanent SERIES/MOVIE type badge */}
-            {movie.isSeries && !isHovered && (
+            {isTvContent && !isHovered && (
               <div
                 style={{
                   position: "absolute",
@@ -374,7 +375,7 @@ export default function MovieCard({
                       .substring(0, 4)}
                   </span>
                 )}
-                {movie.isSeries && (
+                {isTvContent && (
                   <span
                     style={{
                       background: "rgba(251,146,60,0.15)",

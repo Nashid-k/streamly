@@ -4,8 +4,8 @@ export class VideoSourceAdapter {
       name: "Server 1",
       url: (id, s, e) =>
         s
-          ? `https://cinesrc.st/embed/tv/${id}?s=${s}&e=${e}&color=%23FF6B00&autoplay=true&autoskip=false&autonext=false&controls=false`
-          : `https://cinesrc.st/embed/movie/${id}?color=%23FF6B00&autoplay=true&controls=false`,
+          ? `https://cinesrc.st/embed/tv/${id}?s=${s}&e=${e}&color=%23FF6B00&autoplay=true&autoskip=false&autonext=false`
+          : `https://cinesrc.st/embed/movie/${id}?color=%23FF6B00&autoplay=true`,
     },
     {
       name: "Server 2",
