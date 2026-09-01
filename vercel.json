@@ -1,0 +1,21 @@
+{
+  "framework": "vite",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    {
+      "source": "/movie/:type/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(bot|facebook|twitter|discord|telegram).*"
+        }
+      ],
+      "destination": "/api/og?type=$type&id=$id"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
