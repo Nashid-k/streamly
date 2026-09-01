@@ -646,18 +646,18 @@ a {
   position: relative;
   z-index: 1;
   display: flex;
-  gap: clamp(1.2rem, 2.4vw, 2.4rem);
+  gap: clamp(1rem, 2vw, 2rem);
   margin-top: min(22vh, 240px);
   margin-bottom: var(--spacing-3xl);
-  padding-left: clamp(1.5rem, 4vw, 4rem);
-  padding-right: clamp(1.5rem, 4vw, 4rem);
-  max-width: 1400px;
+  padding-left: clamp(1rem, 2.5vw, 2.5rem);
+  padding-right: clamp(1rem, 2.5vw, 2.5rem);
+  max-width: 1500px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .details-poster-large {
-  height: 420px;
+  height: 380px;
   width: auto;
   aspect-ratio: 2 / 3;
   object-fit: cover;
@@ -1176,9 +1176,9 @@ input:focus-visible {
   }
   .details-content-wrapper {
     flex-direction: column !important;
-    margin-top: 20vh !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    margin-top: 18vh !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
     padding-top: 1.5rem !important;
     padding-bottom: 5rem !important;
     background: linear-gradient(to bottom, transparent, #050505 8%, #050505);

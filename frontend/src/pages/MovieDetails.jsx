@@ -748,8 +748,8 @@ export default function MovieDetails() {
           zIndex: 10,
           paddingTop: "1.5rem",
           paddingBottom: "0.5rem",
-          paddingLeft: "clamp(1.5rem, 4vw, 4rem)",
-          paddingRight: "clamp(1.5rem, 4vw, 4rem)",
+          paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)",
+          paddingRight: "clamp(1rem, 2.5vw, 2.5rem)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -769,8 +769,8 @@ export default function MovieDetails() {
               textTransform: "uppercase",
               fontSize: "0.85rem",
               letterSpacing: "0.05em",
-              background: "rgba(0,0,0,0.55)",
-              padding: "10px 20px",
+            background: "rgba(0,0,0,0.55)",
+            padding: "8px 16px",
               borderRadius: "100px",
               backdropFilter: "blur(16px)",
               WebkitBackdropFilter: "blur(16px)",
@@ -1593,7 +1593,7 @@ export default function MovieDetails() {
       {/* ── Episodes ─────────────────────────────────────────────────────────── */}
       {movie.isSeries && hasSeriesEpisodes && (
         <motion.section
-          style={{ position: "relative", zIndex: 1, marginTop: "2rem", paddingLeft: "clamp(1.5rem, 4vw, 4rem)", paddingRight: "clamp(1.5rem, 4vw, 4rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
+          style={{ position: "relative", zIndex: 1, marginTop: "2rem", paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)", paddingRight: "clamp(1rem, 2.5vw, 2.5rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -1905,7 +1905,7 @@ export default function MovieDetails() {
       {/* ── More Like This ────────────────────────────────────────────────────── */}
       {(loading || (similar && similar.length > 0)) && (
         <motion.section
-          style={{ position: "relative", zIndex: 1, marginTop: "5rem", paddingLeft: "clamp(1.5rem, 4vw, 4rem)", paddingRight: "clamp(1.5rem, 4vw, 4rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
+          style={{ position: "relative", zIndex: 1, marginTop: "3.5rem", paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)", paddingRight: "clamp(1rem, 2.5vw, 2.5rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -1984,7 +1984,7 @@ export default function MovieDetails() {
       {/* ── More from Director ──────────────────────────────────────────────── */}
       {movie.director && (
         <motion.section
-          style={{ position: "relative", zIndex: 1, marginTop: "4rem", paddingLeft: "clamp(1.5rem, 4vw, 4rem)", paddingRight: "clamp(1.5rem, 4vw, 4rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
+          style={{ position: "relative", zIndex: 1, marginTop: "3rem", paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)", paddingRight: "clamp(1rem, 2.5vw, 2.5rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -2024,7 +2024,7 @@ export default function MovieDetails() {
         viewport={{ once: true }}
         style={{
           position: 'relative', zIndex: 1, marginTop: '4rem',
-          padding: '1.5rem clamp(1.5rem, 4vw, 4rem)',
+          padding: '1.5rem clamp(1rem, 2.5vw, 2.5rem)',
           maxWidth: '1400px', marginLeft: 'auto', marginRight: 'auto',
           display: 'flex', flexWrap: 'wrap', gap: '1.5rem',
           justifyContent: 'center', alignItems: 'center',
