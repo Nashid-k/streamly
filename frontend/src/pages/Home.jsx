@@ -121,19 +121,18 @@ const MovieRail = React.memo(
         onMouseEnter={() => setShowArrows(true)}
         onMouseLeave={() => setShowArrows(false)}
         style={{ position: "relative", minHeight: "280px" }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-end",
-            marginBottom: "0rem",
-            paddingRight: "1rem",
-          }}
-        >
+      >          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              marginBottom: "0.25rem",
+              paddingRight: "1rem",
+            }}
+          >
           <h3
             style={{
-              fontSize: "1.3rem",
+              fontSize: "1.15rem",
               fontWeight: 700,
               margin: 0,
               letterSpacing: "-0.02em",
@@ -228,13 +227,13 @@ const MovieRail = React.memo(
               onScroll={handleScroll}
               style={{
                 display: "flex",
-                gap: "1rem",
+                gap: "0.65rem",
                 WebkitOverflowScrolling: "touch",
                 overscrollBehaviorX: "contain",
                 overflowX: "auto",
                 scrollbarWidth: "none",
-                paddingTop: "1rem",
-                paddingBottom: "0.5rem",
+                paddingTop: "0.5rem",
+                paddingBottom: "0.25rem",
               }}
             >
               {category.movies.slice(0, visibleCount).map((movie, i) => (
@@ -401,14 +400,14 @@ const Top10Rail = React.memo(
               className="movie-rail"
               style={{
                 display: "flex",
-                gap: "2rem",
+                gap: "1.5rem",
                 WebkitOverflowScrolling: "touch",
                 overscrollBehaviorX: "contain",
                 overflowX: "auto",
                 scrollbarWidth: "none",
-                paddingTop: "1rem",
-                paddingBottom: "0.5rem",
-                paddingLeft: "1rem",
+                paddingTop: "0.5rem",
+                paddingBottom: "0.25rem",
+                paddingLeft: "0.5rem",
               }}
             >
               {top10.map((movie, i) => (
@@ -1198,8 +1197,8 @@ export default function Home({
             overscrollBehaviorX: "contain",
             overflowX: "auto",
             scrollbarWidth: "none",
-            padding: "0.5rem 0 1.5rem",
-            marginBottom: "0.5rem",
+            padding: "0.4rem 0 0.75rem",
+            marginBottom: "0.25rem",
           }}
         >
           {GENRE_OPTIONS.map((genre) => (
@@ -1238,7 +1237,7 @@ export default function Home({
 
       {/* Categories Section */}
       <section
-        style={{ display: "flex", flexDirection: "column", gap: "3rem" }}
+        style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
       >
         <div className="section-header" style={{ marginBottom: 0 }}>
           <h2 className="section-title">{title}</h2>
@@ -1246,7 +1245,7 @@ export default function Home({
 
         {loading ? (
           <div
-            style={{ display: "flex", flexDirection: "column", gap: "3rem" }}
+            style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
           >
             {[1, 2, 3, 4].map((rail) => (
               <div key={rail}>
