@@ -663,7 +663,7 @@ export default function MovieDetails() {
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.95) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.35) 65%, #050505 100%)",
             pointerEvents: "none",
           }}
         />
@@ -673,7 +673,7 @@ export default function MovieDetails() {
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(90deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 20%, transparent 40%, transparent 60%, rgba(0,0,0,0.5) 80%, rgba(0,0,0,0.92) 100%)",
+              "linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 18%, transparent 38%, transparent 62%, rgba(0,0,0,0.6) 82%, rgba(0,0,0,0.95) 100%)",
             pointerEvents: "none",
           }}
         />
@@ -684,32 +684,32 @@ export default function MovieDetails() {
             top: 0,
             left: 0,
             right: 0,
-            height: "180px",
+            height: "200px",
             background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)",
+              "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 45%, transparent 100%)",
             pointerEvents: "none",
           }}
         />
-        {/* Bottom fade — heavy gradient into content area */}
+        {/* Bottom fade — solid #050505 seam into content */}
         <div
           style={{
             position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
-            height: "60%",
+            height: "65%",
             background:
-              "linear-gradient(to top, #050505 0%, rgba(5,5,5,0.98) 15%, rgba(5,5,5,0.85) 35%, rgba(0,0,0,0.5) 60%, transparent 100%)",
+              "linear-gradient(to top, #050505 0%, #050505 12%, rgba(5,5,5,0.97) 28%, rgba(5,5,5,0.75) 50%, rgba(0,0,0,0.35) 75%, transparent 100%)",
             pointerEvents: "none",
           }}
         />
-        {/* Radial spotlight from center — adds depth */}
+        {/* Radial vignette — focus center */}
         <div
           style={{
             position: "absolute",
             inset: 0,
             background:
-              "radial-gradient(ellipse 80% 50% at 50% 35%, transparent 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.8) 100%)",
+              "radial-gradient(ellipse 75% 55% at 50% 30%, transparent 0%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0.85) 100%)",
             pointerEvents: "none",
           }}
         />
@@ -1562,8 +1562,8 @@ export default function MovieDetails() {
                     }}
                     style={{
                       background: isEpPlaying
-                        ? "linear-gradient(180deg, rgba(244,63,94,0.1) 0%, rgba(9,9,11,1) 100%)"
-                        : "#09090b",
+                        ? "linear-gradient(180deg, rgba(244,63,94,0.1) 0%, #050505 100%)"
+                        : "#0a0a0c",
                       borderRadius: "16px",
                       overflow: "hidden",
                       border: isEpPlaying
@@ -1902,7 +1902,7 @@ export default function MovieDetails() {
                 display: "flex",
                 justifyContent: "space-between",
                 background:
-                  playMode === "trailer" ? "rgba(0,0,0,0.4)" : "#09090b",
+                  playMode === "trailer" ? "rgba(0,0,0,0.4)" : "#0a0a0c",
                 alignItems: "center",
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
                 zIndex: 1000,
