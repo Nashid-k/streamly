@@ -641,14 +641,18 @@ export default function Home({
       let dynamicName = cat.name;
 
       if (filter === "series" || filter === "tv shows") {
-        filtered = filtered.filter((m) => m.isSeries);
+        filtered = filtered.filter((m) =>
+          Boolean(m.isSeries || String(m.id).startsWith("tmdb-tv-") || m.type === "tv" || (m.seasonsCount && m.seasonsCount > 0))
+        );
         if (
           !dynamicName.toLowerCase().includes("series") &&
           !dynamicName.toLowerCase().includes("tv")
         )
           dynamicName = `${dynamicName} TV Shows`;
       } else if (filter === "movies") {
-        filtered = filtered.filter((m) => !m.isSeries);
+        filtered = filtered.filter((m) =>
+          !Boolean(m.isSeries || String(m.id).startsWith("tmdb-tv-") || m.type === "tv" || (m.seasonsCount && m.seasonsCount > 0))
+        );
         if (!dynamicName.toLowerCase().includes("movie"))
           dynamicName = `${dynamicName} Movies`;
       } else if (filter === "anime") {
@@ -696,10 +700,9 @@ export default function Home({
         filter === "movies" ||
         filter === "anime"
       ) {
+        // Sort by rating descending for quality-first ordering
         filtered = filtered.sort(
-          (a, b) =>
-            (String(a.id).charCodeAt(a.id.length - 1) % 10) -
-            (String(b.id).charCodeAt(b.id.length - 1) % 10),
+          (a, b) => (b.imdbRating || 0) - (a.imdbRating || 0),
         );
       }
 
@@ -758,12 +761,20 @@ export default function Home({
       return hashB - hashA;
     });
 
+    const isSeriesCheck = (m) => Boolean(m.isSeries || String(m.id).startsWith("tmdb-tv-") || m.type === "tv" || (m.seasonsCount && m.seasonsCount > 0));
+
     const finalTop10 =
       filter === "series" || filter === "tv shows"
-        ? shuffled.filter((m) => m.isSeries)
+        ? shuffled.filter(isSeriesCheck)
         : filter === "movies"
-          ? shuffled.filter((m) => !m.isSeries)
-          : shuffled;
+          ? shuffled.filter((m) => !isSeriesCheck(m))
+          : filter === "anime"
+            ? shuffled.filter(
+                (m) =>
+                  m.genres?.includes("Animation") ||
+                  (m.tags && m.tags.some((t) => t.toLowerCase().includes("anime"))),
+              )
+            : shuffled;
 
     return finalTop10.slice(0, 10);
   }, [rawCategories, filter]);
@@ -1279,7 +1290,8 @@ export default function Home({
             {(filter === "all" ||
               filter === "series" ||
               filter === "tv shows" ||
-              filter === "movies") &&
+              filter === "movies" ||
+              filter === "anime") &&
               top10Movies.length > 0 &&
               activeGenre === "All" && (
                 <FadeInSection>

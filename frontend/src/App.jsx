@@ -1574,17 +1574,13 @@ function Layout({ children }) {
 
       {/* Main Content Area with Page Transitions */}
       <main className="main-content">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={location.pathname}
-            initial={
-              location.pathname.startsWith("/watch/")
-                ? false
-                : { opacity: 0, y: 8 }
-            }
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: location.pathname.startsWith("/watch/") ? 0.08 : 0.18, ease: "easeOut" }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             style={{ flex: 1 }}
           >
             {children}

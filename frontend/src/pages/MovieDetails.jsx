@@ -554,16 +554,16 @@ export default function MovieDetails() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [similar]);
 
-  // Detect series reliably: isSeries flag, tmdb-tv- prefix in ID, or seasonsCount > 0
+  // Detect series: check id prefix (most reliable), isSeries flag, or seasonsCount
   const isTvContent = Boolean(
-    movie?.isSeries ||
     String(movie?.id || id).startsWith("tmdb-tv-") ||
-    (movie?.seasonsCount && movie.seasonsCount > 0),
+    movie?.isSeries === true ||
+    (movie?.type === "tv") ||
+    (movie?.seasonsCount && Number(movie.seasonsCount) > 0 && !String(movie?.id || id).startsWith("tmdb-movie-")),
   );
-  const normalizedSeasonCount = Math.max(
-    1,
-    Number(movie?.seasonsCount) || (isTvContent ? 1 : 0),
-  );
+  const normalizedSeasonCount = isTvContent
+    ? Math.max(1, Number(movie?.seasonsCount) || 1)
+    : 0;
 
   const { data: episodesData, isLoading: episodesLoading } = useQuery({
     queryKey: ["episodes", id, selectedSeason, platform],
@@ -841,7 +841,13 @@ export default function MovieDetails() {
         {/* Left: Breadcrumb + Back */}
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate("/");
+              }
+            }}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -1613,7 +1619,7 @@ export default function MovieDetails() {
             }}
           >
             <motion.div variants={fadeIn}>
-              {isTvContent && movie.seasonsCount && (
+              {isTvContent && normalizedSeasonCount > 0 && (
                 <motion.div variants={slideUpSm}>
                   <h3
                     style={{
@@ -1634,8 +1640,8 @@ export default function MovieDetails() {
                       fontSize: "1rem",
                     }}
                   >
-                    {movie.seasonsCount} Season
-                    {movie.seasonsCount > 1 ? "s" : ""}
+                  {normalizedSeasonCount} Season
+                    {normalizedSeasonCount > 1 ? "s" : ""}
                   </p>
                 </motion.div>
               )}
@@ -2135,11 +2141,11 @@ export default function MovieDetails() {
             </span>
           </div>
         )}
-        {isTvContent && movie.seasonsCount && (
+        {isTvContent && normalizedSeasonCount > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Tv size={16} color="#60a5fa" />
             <span style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
-              <strong style={{ color: '#60a5fa' }}>{movie.seasonsCount}</strong> season{movie.seasonsCount > 1 ? 's' : ''}
+              <strong style={{ color: '#60a5fa' }}>{normalizedSeasonCount}</strong> season{normalizedSeasonCount > 1 ? 's' : ''}
             </span>
           </div>
         )}
@@ -2261,7 +2267,7 @@ export default function MovieDetails() {
                   alignItems: "center",
                 }}
               >
-                {movie.isSeries && playMode !== "trailer" && (
+                {isTvContent && playMode !== "trailer" && (
                   <div
                     style={{
                       display: "flex",
@@ -2424,15 +2430,15 @@ export default function MovieDetails() {
               ) : (
                 <CustomVideoPlayer
                   movie={movie}
-                  season={movie.isSeries ? selectedSeason : undefined}
-                  episode={movie.isSeries ? playingEpisode : undefined}
+                  season={isTvContent ? selectedSeason : undefined}
+                  episode={isTvContent ? playingEpisode : undefined}
                   preferredServerIndex={playingServerIndex}
                   onServerChange={setPlayingServerIndex}
                   onClose={() => setIsPlaying(false)}
                   thumbnailUrl={movie.backdropUrl || movie.posterUrl}
                   startTime={savedTimestamp}
                   hasNextEpisode={
-                    movie.isSeries && playingEpisode < episodes.length
+                    isTvContent && playingEpisode < episodes.length
                   }
                   onNextEpisode={() => {
                     if (playingEpisode < episodes.length) {

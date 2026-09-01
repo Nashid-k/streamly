@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { movieService } from "../api/movieService";
 import { ChevronLeft } from "lucide-react";
@@ -23,12 +23,32 @@ export default function CategoryPage() {
 
   const category = useMemo(() => {
     if (!categoriesData) return null;
-    return categoriesData.find(
+    // 1. Exact match
+    let found = categoriesData.find(
       (c) => c.name.toLowerCase() === categoryName.toLowerCase(),
     );
+    // 2. Partial / fuzzy match — handles slight naming differences between rails and categories
+    if (!found) {
+      found = categoriesData.find(
+        (c) =>
+          c.name.toLowerCase().includes(categoryName.toLowerCase()) ||
+          categoryName.toLowerCase().includes(c.name.toLowerCase()),
+      );
+    }
+    // 3. Token match — e.g. "Horror & Thrills" matches "Horror"
+    if (!found) {
+      const tokens = categoryName.toLowerCase().split(/[&\s]+/).filter(Boolean);
+      found = categoriesData.find((c) => {
+        const catLower = c.name.toLowerCase();
+        return tokens.length > 0 && tokens.every((t) => catLower.includes(t));
+      });
+    }
+    return found;
   }, [categoriesData, categoryName]);
 
-  const allMovies = category ? category.movies : [];
+  const { state } = useLocation();
+
+  const allMovies = state?.movies ? state.movies : (category ? category.movies : []);
 
   // Infinite scroll logic
   const [visibleCount, setVisibleCount] = useState(20);
