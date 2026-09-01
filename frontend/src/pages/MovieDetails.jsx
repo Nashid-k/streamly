@@ -664,8 +664,8 @@ export default function MovieDetails() {
         position: "relative",
         isolation: "isolate",
         width: "100%",
-        marginTop: "-2rem",
-        paddingTop: "2rem",
+        marginTop: 0,
+        paddingTop: 0,
       }}
     >
       <SEO
@@ -685,7 +685,7 @@ export default function MovieDetails() {
           left: "50%",
           width: "100vw",
           marginLeft: "-50vw",
-          marginTop: "-2rem",
+          marginTop: 0,
           backgroundImage: backdropSrc ? `url(${backdropSrc})` : "none",
           backgroundSize: "cover",
           backgroundPosition: "center top",
