@@ -1580,11 +1580,11 @@ function Layout({ children }) {
             initial={
               location.pathname.startsWith("/watch/")
                 ? false
-                : { opacity: 0, y: 12 }
+                : { opacity: 0, y: 8 }
             }
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: location.pathname.startsWith("/watch/") ? 0.08 : 0.18, ease: "easeOut" }}
             style={{ flex: 1 }}
           >
             {children}

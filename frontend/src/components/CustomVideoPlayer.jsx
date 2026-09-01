@@ -1282,7 +1282,7 @@ const CustomVideoPlayer = ({
             height: "100%",
             border: "none",
             background: "#000",
-            pointerEvents: showCustomUI ? "none" : "auto",
+            pointerEvents: isCineSrc ? "auto" : (showCustomUI ? "none" : "auto"),
             opacity: isLoading && showCustomUI && !hasInitiallyLoaded ? 0 : 1,
             transition:
               "opacity 0.3s ease, transform 0.5s cubic-bezier(0.4,0,0.2,1)",
@@ -1296,7 +1296,7 @@ const CustomVideoPlayer = ({
       )}
 
       {/* ── CLICK OVERLAY ─────────────────────────────── */}
-      {showCustomUI && (
+      {showCustomUI && !isCineSrc && (
         <div
           onClick={handleOverlayClick}
           style={{ position: "absolute", inset: 0, zIndex: 10 }}

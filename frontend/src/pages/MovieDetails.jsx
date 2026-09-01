@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { movieService } from "../api/movieService";
 import Loader from "../components/Loader";
 import { TelemetryAdapter } from "../api/telemetryAdapter";
+import { createPortal } from "react-dom";
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
@@ -662,7 +663,6 @@ export default function MovieDetails() {
       ref={pageRef}
       style={{
         position: "relative",
-        isolation: "isolate",
         width: "100%",
         marginTop: 0,
         paddingTop: 0,
@@ -2064,7 +2064,8 @@ export default function MovieDetails() {
         )}
       </motion.div>
 
-      {/* ── Video Player Overlay ──────────────────────────────────────────────── */}
+      {/* ── Video Player Overlay (portal to body for z-index above navbar) ── */}
+      {createPortal(
       <AnimatePresence>
         {isPlaying && (
           <motion.div
@@ -2364,7 +2365,9 @@ export default function MovieDetails() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   );
 }
