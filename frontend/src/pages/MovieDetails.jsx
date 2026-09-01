@@ -1407,7 +1407,7 @@ export default function MovieDetails() {
       {/* ── Episodes ─────────────────────────────────────────────────────────── */}
       {movie.isSeries && hasSeriesEpisodes && (
         <motion.section
-          style={{ marginTop: "2rem" }}
+          style={{ position: "relative", zIndex: 1, marginTop: "2rem" }}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -1779,7 +1779,7 @@ export default function MovieDetails() {
       {/* ── More Like This ────────────────────────────────────────────────────── */}
       {(loading || (similar && similar.length > 0)) && (
         <motion.section
-          style={{ marginTop: "5rem" }}
+          style={{ position: "relative", zIndex: 1, marginTop: "5rem" }}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, margin: "-80px" }}
