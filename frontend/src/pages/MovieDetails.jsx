@@ -593,7 +593,7 @@ export default function MovieDetails() {
   useEffect(() => {
     let timer;
     if (!loading && movie && movie.trailerUrl && !isPlaying) {
-      timer = setTimeout(() => setShowBgTrailer(true), 5000);
+      timer = setTimeout(() => setShowBgTrailer(true), 10000);
     } else {
       setShowBgTrailer(false);
       setIsBgTrailerReady(false);
@@ -1328,13 +1328,20 @@ export default function MovieDetails() {
                     </div>
                   </div>
 
-                  {movie.tags && movie.tags.length > 0 && (
+                  {(movie.tags?.length || movie.audioLanguages?.length || movie.subtitleLanguages?.length) && (
                     <div className="detail-tag-list">
-                      {movie.tags.slice(0, 8).map((tag) => (
-                        <span key={tag} className="detail-tag">
-                          {tag}
-                        </span>
-                      ))}
+                      {[
+                        ...(movie.tags || []).slice(0, 6),
+                        ...(movie.audioLanguages || []).slice(0, 3),
+                        ...(movie.subtitleLanguages || []).slice(0, 3),
+                      ]
+                        .filter(Boolean)
+                        .slice(0, 12)
+                        .map((tag) => (
+                          <span key={tag} className="detail-tag">
+                            {tag}
+                          </span>
+                        ))}
                     </div>
                   )}
                 </motion.div>
