@@ -5,3 +5,5 @@ dist/
 .env.*
 !.env.example
 backend/data/
+*.apk
+builds/*.apk

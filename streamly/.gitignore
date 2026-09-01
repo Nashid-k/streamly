@@ -66,6 +66,10 @@ yarn-error.log
 # testing
 /coverage
 
+# Build artifacts
+*.apk
+builds/*.apk
+
 # Yarn
 .yarn/*
 !.yarn/patches
