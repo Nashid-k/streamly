@@ -644,9 +644,10 @@ a {
 .details-backdrop {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  height: min(80vh, 820px);
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
+  height: min(85vh, 900px);
   z-index: 0;
   overflow: hidden;
   background-color: #050505;

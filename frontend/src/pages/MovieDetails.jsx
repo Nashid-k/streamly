@@ -679,12 +679,12 @@ export default function MovieDetails() {
       <div
         className="details-backdrop"
         style={{
-          height: "min(80vh, 820px)",
+          height: "min(85vh, 900px)",
           overflow: "hidden",
-          top: "0",
-          left: "0",
-          left: 0,
-          right: 0,
+          top: 0,
+          left: "50%",
+          width: "100vw",
+          marginLeft: "-50vw",
           marginTop: "-2rem",
           backgroundImage: backdropSrc ? `url(${backdropSrc})` : "none",
           backgroundSize: "cover",
