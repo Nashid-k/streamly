@@ -125,17 +125,18 @@ const MovieRail = React.memo(
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "flex-end",
-              marginBottom: "0.25rem",
-              paddingRight: "1rem",
+              alignItems: "baseline",
+              marginBottom: "0.35rem",
+              paddingRight: "0.25rem",
             }}
           >
           <h3
             style={{
-              fontSize: "1.15rem",
+              fontSize: "1.1rem",
               fontWeight: 700,
               margin: 0,
               letterSpacing: "-0.02em",
+              color: "rgba(255,255,255,0.9)",
             }}
           >
             {category.name}
@@ -144,15 +145,15 @@ const MovieRail = React.memo(
             <Link
               to={`/category/${encodeURIComponent(category.name)}`}
               style={{
-                fontSize: "0.8rem",
-                color: "#a1a1aa",
+                fontSize: "0.72rem",
+                color: "rgba(255,255,255,0.4)",
                 textDecoration: "none",
-                fontWeight: 600,
-                padding: "4px 12px",
-                borderRadius: "100px",
-                border: "1px solid rgba(255,255,255,0.12)",
+                fontWeight: 500,
+                padding: "3px 10px",
+                borderRadius: "6px",
+                border: "none",
                 transition: "all 0.2s",
-                background: "rgba(255,255,255,0.04)",
+                background: "transparent",
               }}
             >
               Show all &rsaquo;
@@ -166,56 +167,56 @@ const MovieRail = React.memo(
               {showArrows && (
                 <>
                   <motion.button
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
+                    exit={{ opacity: 0, x: 10 }}
                     onClick={() => scroll("left")}
                     style={{
                       position: "absolute",
-                      left: "-10px",
+                      left: "-6px",
                       top: "55%",
                       transform: "translateY(-50%)",
                       zIndex: 10,
-                      background: "rgba(0,0,0,0.8)",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      color: "white",
-                      borderRadius: "50%",
-                      width: "40px",
-                      height: "40px",
+                      background: "rgba(5,5,5,0.75)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.7)",
+                      borderRadius: "8px",
+                      width: "32px",
+                      height: "32px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(8px)",
+                      backdropFilter: "blur(12px)",
                     }}
                   >
-                    <ChevronLeft size={22} aria-label="Scroll left" />
+                    <ChevronLeft size={18} aria-label="Scroll left" />
                   </motion.button>
                   <motion.button
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
+                    exit={{ opacity: 0, x: -10 }}
                     onClick={() => scroll("right")}
                     style={{
                       position: "absolute",
-                      right: "-10px",
+                      right: "-6px",
                       top: "55%",
                       transform: "translateY(-50%)",
                       zIndex: 10,
-                      background: "rgba(0,0,0,0.8)",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      color: "white",
-                      borderRadius: "50%",
-                      width: "40px",
-                      height: "40px",
+                      background: "rgba(5,5,5,0.75)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.7)",
+                      borderRadius: "8px",
+                      width: "32px",
+                      height: "32px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(8px)",
+                      backdropFilter: "blur(12px)",
                     }}
                   >
-                    <ChevronRight size={22} aria-label="Scroll right" />
+                    <ChevronRight size={18} aria-label="Scroll right" />
                   </motion.button>
                 </>
               )}
@@ -340,56 +341,56 @@ const Top10Rail = React.memo(
               {showArrows && (
                 <>
                   <motion.button
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
+                    exit={{ opacity: 0, x: 10 }}
                     onClick={() => scroll("left")}
                     style={{
                       position: "absolute",
-                      left: "-10px",
+                      left: "-6px",
                       top: "55%",
                       transform: "translateY(-50%)",
                       zIndex: 10,
-                      background: "rgba(0,0,0,0.8)",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      color: "white",
-                      borderRadius: "50%",
-                      width: "40px",
-                      height: "40px",
+                      background: "rgba(5,5,5,0.75)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.7)",
+                      borderRadius: "8px",
+                      width: "32px",
+                      height: "32px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(8px)",
+                      backdropFilter: "blur(12px)",
                     }}
                   >
-                    <ChevronLeft size={22} aria-label="Scroll left" />
+                    <ChevronLeft size={18} aria-label="Scroll left" />
                   </motion.button>
                   <motion.button
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
+                    exit={{ opacity: 0, x: -10 }}
                     onClick={() => scroll("right")}
                     style={{
                       position: "absolute",
-                      right: "-10px",
+                      right: "-6px",
                       top: "55%",
                       transform: "translateY(-50%)",
                       zIndex: 10,
-                      background: "rgba(0,0,0,0.8)",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      color: "white",
-                      borderRadius: "50%",
-                      width: "40px",
-                      height: "40px",
+                      background: "rgba(5,5,5,0.75)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.7)",
+                      borderRadius: "8px",
+                      width: "32px",
+                      height: "32px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backdropFilter: "blur(8px)",
+                      backdropFilter: "blur(12px)",
                     }}
                   >
-                    <ChevronRight size={22} aria-label="Scroll right" />
+                    <ChevronRight size={18} aria-label="Scroll right" />
                   </motion.button>
                 </>
               )}

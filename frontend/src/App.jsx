@@ -243,13 +243,13 @@ function Layout({ children }) {
         className="navbar"
         style={{
           background: isScrolled
-            ? "rgba(5, 5, 5, 0.98)"
-            : "rgba(5, 5, 5, 0.85)",
+            ? "linear-gradient(180deg, rgba(5,5,5,0.97) 0%, rgba(5,5,5,0.95) 100%)"
+            : "linear-gradient(180deg, rgba(5,5,5,0.92) 0%, rgba(5,5,5,0.85) 100%)",
           borderBottom: isScrolled
             ? "1px solid rgba(255,255,255,0.08)"
-            : "1px solid rgba(255,255,255,0.05)",
+            : "1px solid rgba(255,255,255,0.06)",
           boxShadow: isScrolled
-            ? "0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.6)"
+            ? "0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.5)"
             : "none",
         }}
       >
