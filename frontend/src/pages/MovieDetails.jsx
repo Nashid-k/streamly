@@ -1594,18 +1594,18 @@ export default function MovieDetails() {
       {/* ── Episodes ─────────────────────────────────────────────────────────── */}
       {isTvContent && hasSeriesEpisodes && (
         <motion.section
-          style={{ position: "relative", zIndex: 1, marginTop: "2rem", paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)", paddingRight: "clamp(1rem, 2.5vw, 2.5rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
-          initial={{ opacity: 0, y: 40 }}
+          style={{ position: "relative", zIndex: 1, marginTop: "1.5rem", paddingLeft: "1rem", paddingRight: "1rem", maxWidth: "1600px", marginLeft: "auto", marginRight: "auto" }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "2rem",
+              marginBottom: "1rem",
               flexWrap: "wrap",
               gap: "1rem",
             }}
@@ -1672,8 +1672,8 @@ export default function MovieDetails() {
             style={{
               display: episodeLayout === 'grid' ? 'grid' : 'flex',
               flexDirection: episodeLayout === 'list' ? 'column' : undefined,
-              gridTemplateColumns: episodeLayout === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))' : undefined,
-              gap: episodeLayout === 'grid' ? '1.5rem' : '0.75rem',
+              gridTemplateColumns: episodeLayout === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))' : undefined,
+              gap: episodeLayout === 'grid' ? '0.8rem' : '0.5rem',
             }}
           >
             {episodesLoading ? (
@@ -1683,7 +1683,7 @@ export default function MovieDetails() {
                   key={idx}
                   style={{
                     background: "#0a0a0d",
-                    borderRadius: "16px",
+                    borderRadius: "12px",
                     overflow: "hidden",
                     border: "1px solid rgba(255,255,255,0.04)",
                   }}
@@ -1693,7 +1693,7 @@ export default function MovieDetails() {
                     style={{ width: "100%", aspectRatio: "16/9" }}
                   ></div>
                   <div
-                    style={{ padding: "1.2rem", display: "flex", gap: "10px" }}
+                    style={{ padding: "0.8rem 1rem", display: "flex", gap: "8px" }}
                   >
                     <div
                       className="skeleton"
@@ -1796,7 +1796,7 @@ export default function MovieDetails() {
                             {isEpPlaying && <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'linear-gradient(135deg, #f43f5e, #fb923c)', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', zIndex: 10 }}>Playing</div>}
                             <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '2px 7px', borderRadius: '5px', fontSize: '0.65rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.08)' }}>{ep.duration}</div>
                           </div>
-                          <div style={{ padding: '1rem 1.1rem', position: 'relative', zIndex: 2 }}>
+                          <div style={{ padding: '0.7rem 0.9rem', position: 'relative', zIndex: 2 }}>
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                               <span style={{ fontSize: '1.2rem', fontWeight: 800, color: isEpPlaying ? '#f43f5e' : '#3f3f46', lineHeight: 1, fontFamily: 'monospace' }}>{String(ep.episodeNumber).padStart(2, '0')}</span>
                               <div style={{ flex: 1 }}>
@@ -1906,11 +1906,11 @@ export default function MovieDetails() {
       {/* ── More Like This ────────────────────────────────────────────────────── */}
       {(loading || (similar && similar.length > 0)) && (
         <motion.section
-          style={{ position: "relative", zIndex: 1, marginTop: "3.5rem", paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)", paddingRight: "clamp(1rem, 2.5vw, 2.5rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
+          style={{ position: "relative", zIndex: 1, marginTop: "2rem", paddingLeft: "1rem", paddingRight: "1rem", maxWidth: "1600px", marginLeft: "auto", marginRight: "auto" }}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.5 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.4 }}
         >
           <motion.h2
             className="section-title"
@@ -1985,11 +1985,11 @@ export default function MovieDetails() {
       {/* ── More from Director ──────────────────────────────────────────────── */}
       {movie.director && similar.some(s => s.director && s.director === movie.director) && (
         <motion.section
-          style={{ position: "relative", zIndex: 1, marginTop: "3rem", paddingLeft: "clamp(1rem, 2.5vw, 2.5rem)", paddingRight: "clamp(1rem, 2.5vw, 2.5rem)", maxWidth: "1400px", marginLeft: "auto", marginRight: "auto" }}
+          style={{ position: "relative", zIndex: 1, marginTop: "2rem", paddingLeft: "1rem", paddingRight: "1rem", maxWidth: "1600px", marginLeft: "auto", marginRight: "auto" }}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.5 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.4 }}
         >
           <motion.h2
             className="section-title"
@@ -1997,7 +1997,7 @@ export default function MovieDetails() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            style={{ marginBottom: '1.5rem' }}
+            style={{ marginBottom: '1rem' }}
           >
             More from {movie.director}
           </motion.h2>
@@ -2024,9 +2024,9 @@ export default function MovieDetails() {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         style={{
-          position: 'relative', zIndex: 1, marginTop: '4rem',
-          padding: '1.5rem clamp(1rem, 2.5vw, 2.5rem)',
-          maxWidth: '1400px', marginLeft: 'auto', marginRight: 'auto',
+          position: 'relative', zIndex: 1, marginTop: '2rem',
+          padding: '1rem 1rem',
+          maxWidth: '1600px', marginLeft: 'auto', marginRight: 'auto',
           display: 'flex', flexWrap: 'wrap', gap: '1.5rem',
           justifyContent: 'center', alignItems: 'center',
           borderTop: '1px solid rgba(255,255,255,0.05)',
