@@ -1608,15 +1608,13 @@ export default function MovieDetails() {
                     </>
                   ),
                 },
-                ...(!movie.isUpcoming && movie.trailerUrl
+                ...(!movie.isUpcoming && !movie.isInTheaters && movie.trailerUrl
                   ? [
                       {
-                        cls: "btn btn-glass",
+                        cls: "btn btn-trailer",
                         style: {
                           fontSize: "clamp(0.9rem, 1vw, 1.06rem)",
                           padding: "clamp(0.8rem, 1.4vw, 1.12rem) clamp(1.2rem, 2.8vw, 2.05rem)",
-                          background: "transparent",
-                          borderColor: "rgba(255,255,255,0.25)",
                         },
                         onClick: () => {
                           setPlayMode("trailer");
@@ -1633,7 +1631,7 @@ export default function MovieDetails() {
                   whileHover={{ scale: 1.04, y: -2 }}
                   whileTap={{ scale: 0.96 }}
                   transition={{ type: "spring", stiffness: 380, damping: 22 }}
-                  className={btn.cls}
+                  className={`${btn.cls} btn-animate-in`}
                   style={btn.style}
                   onClick={btn.onClick}
                 >

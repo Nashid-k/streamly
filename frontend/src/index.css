@@ -473,42 +473,132 @@ a {
   font-size: clamp(0.86rem, 1vw, 1.04rem);
   line-height: 1.2;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
 }
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%, rgba(255,255,255,0.08) 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.btn:hover::after { opacity: 1; }
 
+/* ── Primary Button (Play, Watch Trailer) ── */
 .btn-primary {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #be123c 100%);
+  background-size: 200% 200%;
+  background-position: 0% 50%;
   color: white;
-  box-shadow: 0 10px 18px rgba(225, 29, 72, 0.28);
+  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 .btn-primary:hover {
-  transform: translateY(-2px) scale(1.01);
-  background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
-  box-shadow: 0 16px 30px rgba(225, 29, 72, 0.35);
+  transform: translateY(-3px) scale(1.03);
+  background-position: 100% 50%;
+  box-shadow: 0 14px 36px rgba(225, 29, 72, 0.45), inset 0 1px 0 rgba(255,255,255,0.2);
 }
 .btn-primary:active {
-  transform: translateY(1px) scale(0.98);
-  box-shadow: 0 6px 12px rgba(225, 29, 72, 0.25);
+  transform: translateY(1px) scale(0.97);
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+  transition-duration: 0.1s;
 }
 
+/* ── Glass Button (My List, secondary actions) ── */
 .btn-glass {
   background: rgba(255, 255, 255, 0.06);
   color: white;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .btn-glass:hover {
-  background: rgba(255, 255, 255, 0.11);
-  transform: translateY(-2px) scale(1.01);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px) scale(1.02);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 .btn-glass:active {
-  transform: translateY(1px) scale(0.98);
+  transform: translateY(1px) scale(0.97);
   background: rgba(255, 255, 255, 0.08);
+  transition-duration: 0.1s;
+}
+
+/* ── In Theaters Button ── */
+.btn-theaters {
+  background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05));
+  color: #fbbf24;
+  border: 1px solid rgba(251,191,36,0.25);
+  box-shadow: 0 4px 16px rgba(251,191,36,0.1);
+}
+.btn-theaters:hover {
+  background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(251,191,36,0.1));
+  border-color: rgba(251,191,36,0.4);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(251,191,36,0.15);
+}
+
+/* ── Trailer Button (secondary primary) ── */
+.btn-trailer {
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  color: white;
+  border: 1px solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(8px);
+}
+.btn-trailer:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06));
+  border-color: rgba(255,255,255,0.35);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+/* ── CTA Pulse Animation ── */
+@keyframes cta-glow {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(225, 29, 72, 0.3), 0 0 0 0 rgba(244, 63, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 12px 32px rgba(225, 29, 72, 0.45), 0 0 0 8px rgba(244, 63, 94, 0);
+  }
+}
+.btn-cta-pulse {
+  animation: cta-glow 2.5s ease-in-out infinite;
+}
+.btn-cta-pulse:hover {
+  animation: none;
+}
+
+/* ── Shimmer effect for loading states ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.btn-loading {
+  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+/* ── Ripple on click ── */
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(4); opacity: 0; }
+}
+.btn .ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  width: 20px; height: 20px;
+  animation: ripple 0.6s ease-out;
+  pointer-events: none;
 }
 
 /* Grids */
@@ -915,27 +1005,7 @@ img {
   }
 }
 
-/* Play button CTA pulse animation */
-@keyframes cta-pulse {
-  0% {
-    box-shadow:
-      0 4px 14px rgba(244, 63, 94, 0.3),
-      0 0 0 0 rgba(244, 63, 94, 0.5);
-  }
-  70% {
-    box-shadow:
-      0 4px 14px rgba(244, 63, 94, 0.3),
-      0 0 0 14px rgba(244, 63, 94, 0);
-  }
-  100% {
-    box-shadow:
-      0 4px 14px rgba(244, 63, 94, 0.3),
-      0 0 0 0 rgba(244, 63, 94, 0);
-  }
-}
-.btn-cta-pulse {
-  animation: cta-pulse 2.5s ease-out infinite;
-}
+/* Removed old cta-pulse — replaced with cta-glow in button section */
 
 /* Accessibility Focus States */
 a:focus-visible,
@@ -1215,9 +1285,12 @@ input:focus-visible {
     margin-bottom: 0.5rem;
   }
   .btn-primary {
-    background: linear-gradient(135deg, #f43f5e, #e11d48) !important;
-    box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4) !important;
+    background: linear-gradient(135deg, #f43f5e, #e11d48, #be123c) !important;
+    box-shadow: 0 6px 20px rgba(225, 29, 72, 0.45) !important;
     border: none !important;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px) scale(1.02) !important;
   }
 
   /* Toast mobile position — above bottom nav, centered */
@@ -1535,45 +1608,7 @@ input:focus-visible {
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all var(--duration-normal) var(--ease-spring);
-  border: none;
-  outline: none;
-  white-space: nowrap;
-}
-.btn:active {
-  transform: scale(0.97);
-}
-
-.btn-primary {
-  background: var(--accent-gradient);
-  color: #fff;
-  box-shadow: 0 3px 12px rgba(244, 63, 94, 0.4);
-}
-.btn-primary:hover {
-  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.5);
-  transform: translateY(-1px);
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border: 1px solid var(--border-medium);
-}
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: var(--border-strong);
-}
+/* Duplicate button block removed — styles in main .btn section above */
 
 .btn-ghost {
   background: transparent;
@@ -1782,4 +1817,120 @@ input:focus-visible {
 }
 .animate-pulse {
   animation: pulse 2s ease-in-out infinite;
+}
+
+/* ── Enhanced Button Animations ────────────────────────────── */
+
+/* Floating entrance for CTA buttons */
+@keyframes btn-float-in {
+  0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+  60% { transform: translateY(-4px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.btn-animate-in {
+  animation: btn-float-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Glow ring for active/live content */
+@keyframes glow-ring {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4), 0 8px 24px rgba(225, 29, 72, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(244, 63, 94, 0), 0 8px 24px rgba(225, 29, 72, 0.45);
+  }
+}
+.btn-glow {
+  animation: glow-ring 2s ease-in-out infinite;
+}
+
+/* Scale bounce on hover for cards */
+@keyframes card-hover-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.05); }
+  70% { transform: scale(0.98); }
+  100% { transform: scale(1.03); }
+}
+
+/* Slide in from left for rails */
+@keyframes slide-in-left {
+  0% { opacity: 0; transform: translateX(-40px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.rail-animate-in {
+  animation: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Fade up for content sections */
+@keyframes fade-up {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Staggered children animation helper */
+.stagger-children > *:nth-child(1) { animation-delay: 0s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.25s; }
+
+/* Episode card hover lift */
+@keyframes episode-lift {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-6px) scale(1.01); }
+}
+
+/* Badge pulse for LIVE/NEW */
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+.badge-pulse {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* Gradient text shimmer */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.gradient-text-animated {
+  background: linear-gradient(135deg, #f43f5e, #fb923c, #f43f5e);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Button icon spin on hover */
+.btn:hover .btn-icon-spin {
+  transform: rotate(90deg);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn .btn-icon-spin {
+  transition: transform 0.3s;
+}
+
+/* Loading spinner for buttons */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.btn-spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
