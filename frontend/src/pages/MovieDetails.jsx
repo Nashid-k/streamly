@@ -448,7 +448,6 @@ function ServerDropdown({ servers, selectedIndex, onSelect }) {
 
 export default function MovieDetails() {
   const { id } = useParams();
-  const platform = "netflix"; // Default platform; cross-platform search handles lookups
   const navigate = useNavigate();
   const [selectedSeason, setSelectedSeason] = useState(1);
   const { isInList, toggleMyList, continueWatching, updateProgress } =
@@ -518,13 +517,26 @@ export default function MovieDetails() {
   };
 
   const { data: movie, isLoading: loading } = useQuery({
-    queryKey: ["movie", id, platform],
-    queryFn: () => movieService.getMovieDetails(id, platform),
+    queryKey: ["movie", id],
+    queryFn: () => movieService.getMovieDetails(id),
   });
 
+  // Resolve the actual platform from movie's availablePlatforms
+  const effectivePlatform = (() => {
+    if (!movie?.availablePlatforms?.length) return 'netflix';
+    const ap = movie.availablePlatforms[0].toLowerCase();
+    if (ap.includes('prime')) return 'prime';
+    if (ap.includes('hotstar') || ap.includes('disney')) return 'hotstar';
+    if (ap.includes('apple')) return 'appletv';
+    if (ap.includes('zee5')) return 'zee5';
+    if (ap.includes('sony')) return 'sonyliv';
+    if (ap.includes('jio')) return 'jio';
+    return 'netflix';
+  })();
+
   const { data: similarData } = useQuery({
-    queryKey: ["similar", id, platform],
-    queryFn: () => movieService.getSimilarMovies(id, platform),
+    queryKey: ["similar", id],
+    queryFn: () => movieService.getSimilarMovies(id),
     enabled: !!movie,
   });
   const similar = Array.isArray(similarData) ? similarData : EMPTY_ARRAY;
@@ -566,9 +578,9 @@ export default function MovieDetails() {
     : 0;
 
   const { data: episodesData, isLoading: episodesLoading } = useQuery({
-    queryKey: ["episodes", id, selectedSeason, platform],
-    queryFn: () => movieService.getSeasonEpisodes(id, selectedSeason, platform),
-    enabled: isTvContent,
+    queryKey: ["episodes", id, selectedSeason, effectivePlatform],
+    queryFn: () => movieService.getSeasonEpisodes(id, selectedSeason, effectivePlatform),
+    enabled: isTvContent && !!movie,
     retry: 3,
     retryDelay: 1000,
     staleTime: 1000 * 60,
@@ -698,17 +710,7 @@ export default function MovieDetails() {
     );
   }
 
-  let resolvedPlatform = platform;
-  if (movie.availablePlatforms && movie.availablePlatforms.length > 0) {
-    const ap = movie.availablePlatforms[0].toLowerCase();
-    if (ap.includes("prime")) resolvedPlatform = "prime";
-    else if (ap.includes("netflix")) resolvedPlatform = "netflix";
-    else if (ap.includes("hotstar")) resolvedPlatform = "hotstar";
-    else if (ap.includes("apple")) resolvedPlatform = "appletv";
-    else if (ap.includes("zee5")) resolvedPlatform = "zee5";
-    else if (ap.includes("sony")) resolvedPlatform = "sonyliv";
-    else if (ap.includes("jio")) resolvedPlatform = "jio";
-  }
+  const resolvedPlatform = effectivePlatform;
   const sourceName =
     resolvedPlatform === "netflix"
       ? "Netflix"
