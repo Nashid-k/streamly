@@ -18,6 +18,29 @@
 
     <title>Streamly</title>
     <link rel="manifest" href="/manifest.json" />
+    <script>
+      // Force-clear stale SW caches on every new deploy
+      (function() {
+        var BUILD_VERSION = 'v3.0';
+        var prevVersion = null;
+        try { prevVersion = localStorage.getItem('_sv'); } catch(e) {}
+        if (prevVersion !== BUILD_VERSION) {
+          try {
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                names.forEach(function(name) { caches.delete(name); });
+              });
+            }
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                regs.forEach(function(r) { r.unregister(); });
+              });
+            }
+            localStorage.setItem('_sv', BUILD_VERSION);
+          } catch(e) {}
+        }
+      })();
+    </script>
   <link rel="apple-touch-icon" href="/favicon.svg" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
