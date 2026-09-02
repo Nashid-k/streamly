@@ -527,6 +527,8 @@ export default function Home({
     queryKey: ["airingThisWeek"],
     queryFn: () => movieService.getAiringThisWeek("all"),
     staleTime: 1000 * 60 * 5,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const rawCategories = categoriesData || EMPTY_ARRAY;
