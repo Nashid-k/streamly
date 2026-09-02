@@ -1697,6 +1697,14 @@ export default function MovieDetails() {
               Episodes {isAiring && totalEpisodes > episodes.length
                 ? <span style={{ fontSize: '0.7em', color: '#52525b', fontWeight: 400 }}>({releasedEpisodes} of {totalEpisodes} released)</span>
                 : episodes.length > 0 && <span style={{ fontSize: '0.7em', color: '#52525b', fontWeight: 400 }}>({episodes.length})</span>}
+              {isAiring && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginLeft: '10px', fontSize: '0.65rem', fontWeight: 600, color: '#fb923c', background: 'rgba(251,146,60,0.1)', padding: '3px 10px', borderRadius: '100px', border: '1px solid rgba(251,146,60,0.15)' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#fb923c', animation: 'pulse 2s infinite' }} />
+                  {movie?.nextEpisode?.releaseDate
+                    ? `Next episode ${new Date(movie.nextEpisode.releaseDate).toLocaleDateString('en-US', { weekday: 'long' })}`
+                    : 'Airing now'}
+                </span>
+              )}
             </motion.h2>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

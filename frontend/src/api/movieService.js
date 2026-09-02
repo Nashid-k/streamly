@@ -54,7 +54,11 @@ export const movieService = {
     const res = await apiClient.get(`/movies/${id}/season/${seasonNumber}`, {
       params: { platform, _cb: "v2" },
     });
-    return res.data;
+    // Read metadata from X-* response headers
+    const totalEpisodes = parseInt(res.headers['x-total-episodes'] || '0', 10);
+    const releasedEpisodes = parseInt(res.headers['x-released-episodes'] || '0', 10);
+    const isAiring = res.headers['x-is-airing'] === 'true';
+    return { episodes: res.data, totalEpisodes, releasedEpisodes, isAiring };
   },
 
   getExternalIds: async (id, platform) => {

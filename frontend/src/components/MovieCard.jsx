@@ -237,19 +237,48 @@ export default function MovieCard({
                   bottom: "8px",
                   left: "8px",
                   zIndex: 10,
-                  background: "rgba(251,146,60,0.15)",
-                  border: "1px solid rgba(251,146,60,0.35)",
-                  color: "#fb923c",
-                  padding: "2px 7px",
-                  borderRadius: "4px",
-                  fontSize: "0.58rem",
-                  fontWeight: 800,
-                  letterSpacing: "0.08em",
-                  backdropFilter: "blur(4px)",
+                  display: "flex",
+                  gap: "4px",
+                  alignItems: "center",
                   pointerEvents: "none",
                 }}
               >
-                SERIES
+                <div
+                  style={{
+                    background: "rgba(251,146,60,0.15)",
+                    border: "1px solid rgba(251,146,60,0.35)",
+                    color: "#fb923c",
+                    padding: "2px 7px",
+                    borderRadius: "4px",
+                    fontSize: "0.58rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    backdropFilter: "blur(4px)",
+                  }}
+                >
+                  SERIES
+                </div>
+                {movie.nextEpisode?.releaseDate && (
+                  <div
+                    style={{
+                      background: "rgba(244,63,94,0.2)",
+                      border: "1px solid rgba(244,63,94,0.4)",
+                      color: "#f43f5e",
+                      padding: "2px 7px",
+                      borderRadius: "4px",
+                      fontSize: "0.55rem",
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      backdropFilter: "blur(4px)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#f43f5e', animation: 'pulse 2s infinite' }} />
+                    NEW {new Date(movie.nextEpisode.releaseDate).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                  </div>
+                )}
               </div>
             )}
 
@@ -389,6 +418,22 @@ export default function MovieCard({
                     }}
                   >
                     SERIES
+                  </span>
+                )}
+                {isTvContent && movie.nextEpisode?.releaseDate && (
+                  <span
+                    style={{
+                      background: "rgba(244,63,94,0.12)",
+                      border: "1px solid rgba(244,63,94,0.25)",
+                      color: "#f43f5e",
+                      padding: "1px 6px",
+                      borderRadius: "4px",
+                      fontSize: "0.58rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    {new Date(movie.nextEpisode.releaseDate).toLocaleDateString('en-US', { weekday: 'short' })}s
                   </span>
                 )}
                 {/* Genre dots */}
