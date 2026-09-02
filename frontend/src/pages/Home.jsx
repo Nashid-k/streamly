@@ -138,52 +138,9 @@ const MovieRail = React.memo(
               margin: 0,
               letterSpacing: "-0.02em",
               color: "rgba(255,255,255,0.9)",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
             }}
           >
             {category.name}
-            {(() => {
-              const name = (category.name || '').toLowerCase();
-              const movies = category.movies || [];
-              const hasAiring = movies.some(m => m.nextEpisode?.releaseDate);
-              const hasNew = movies.some(m => m.isRecentlyAdded);
-              const hasLeavingSoon = movies.some(m => m.isLeavingSoon);
-              const isTrending = name.includes('trending') || name.includes('popular') || name.includes('hot');
-              const isNew = name.includes('new') || name.includes('recently') || name.includes('fresh');
-              const isTop = name.includes('top');
-              return (
-                <>
-                  {hasAiring && (
-                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#f43f5e', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.2)', padding: '2px 7px', borderRadius: '100px', letterSpacing: '0.05em', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#f43f5e', animation: 'pulse 2s infinite' }} />
-                      AIRING
-                    </span>
-                  )}
-                  {hasLeavingSoon && (
-                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#fbbf24', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', padding: '2px 7px', borderRadius: '100px', letterSpacing: '0.05em' }}>
-                      LEAVING SOON
-                    </span>
-                  )}
-                  {isTrending && (
-                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#fb923c', background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.15)', padding: '2px 7px', borderRadius: '100px', letterSpacing: '0.05em' }}>
-                      🔥 TRENDING
-                    </span>
-                  )}
-                  {isTop && (
-                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.15)', padding: '2px 7px', borderRadius: '100px', letterSpacing: '0.05em' }}>
-                      ⭐ TOP RATED
-                    </span>
-                  )}
-                  {isNew && hasNew && (
-                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#38bdf8', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.15)', padding: '2px 7px', borderRadius: '100px', letterSpacing: '0.05em' }}>
-                      ✨ NEW
-                    </span>
-                  )}
-                </>
-              );
-            })()}
           </h3>
           {!isDynamicRail && (
             <Link

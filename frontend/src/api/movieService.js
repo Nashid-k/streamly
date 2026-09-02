@@ -52,7 +52,8 @@ export const movieService = {
 
   getSeasonEpisodes: async (id, seasonNumber, platform) => {
     const res = await apiClient.get(`/movies/${id}/season/${seasonNumber}`, {
-      params: { platform, _cb: "v2" },
+      params: { platform, _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
     });
     // Read metadata from X-* response headers
     const totalEpisodes = parseInt(res.headers['x-total-episodes'] || '0', 10);

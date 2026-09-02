@@ -229,7 +229,7 @@ export default function MovieCard({
               </div>
             )}
 
-            {/* Permanent SERIES/MOVIE type badge */}
+            {/* Bottom-left badges: SERIES + airing day */}
             {isTvContent && !isHovered && (
               <div
                 style={{
@@ -245,15 +245,15 @@ export default function MovieCard({
               >
                 <div
                   style={{
-                    background: "rgba(251,146,60,0.15)",
-                    border: "1px solid rgba(251,146,60,0.35)",
-                    color: "#fb923c",
-                    padding: "2px 7px",
-                    borderRadius: "4px",
-                    fontSize: "0.58rem",
-                    fontWeight: 800,
-                    letterSpacing: "0.08em",
-                    backdropFilter: "blur(4px)",
+                    background: "rgba(0,0,0,0.7)",
+                    backdropFilter: "blur(6px)",
+                    color: "#fff",
+                    padding: "2px 6px",
+                    borderRadius: "3px",
+                    fontSize: "0.55rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.06em",
+                    border: "1px solid rgba(255,255,255,0.1)",
                   }}
                 >
                   SERIES
@@ -261,21 +261,21 @@ export default function MovieCard({
                 {movie.nextEpisode?.releaseDate && (
                   <div
                     style={{
-                      background: "rgba(244,63,94,0.2)",
-                      border: "1px solid rgba(244,63,94,0.4)",
-                      color: "#f43f5e",
-                      padding: "2px 7px",
-                      borderRadius: "4px",
-                      fontSize: "0.55rem",
+                      background: "linear-gradient(135deg, rgba(244,63,94,0.9), rgba(239,68,68,0.9))",
+                      color: "#fff",
+                      padding: "2px 6px",
+                      borderRadius: "3px",
+                      fontSize: "0.5rem",
                       fontWeight: 800,
-                      letterSpacing: "0.08em",
-                      backdropFilter: "blur(4px)",
+                      letterSpacing: "0.04em",
+                      backdropFilter: "blur(6px)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "4px",
+                      gap: "3px",
+                      textShadow: "0 1px 2px rgba(0,0,0,0.3)",
                     }}
                   >
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#f43f5e', animation: 'pulse 2s infinite' }} />
+                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#fff', flexShrink: 0 }} />
                     NEW {new Date(movie.nextEpisode.releaseDate).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
                   </div>
                 )}
@@ -407,14 +407,13 @@ export default function MovieCard({
                 {isTvContent && (
                   <span
                     style={{
-                      background: "rgba(251,146,60,0.15)",
-                      border: "1px solid rgba(251,146,60,0.35)",
-                      color: "#fb923c",
-                      padding: "1px 6px",
-                      borderRadius: "4px",
-                      fontSize: "0.6rem",
-                      fontWeight: 800,
-                      letterSpacing: "0.07em",
+                      background: "rgba(0,0,0,0.5)",
+                      color: "#a1a1aa",
+                      padding: "1px 5px",
+                      borderRadius: "3px",
+                      fontSize: "0.58rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.06em",
                     }}
                   >
                     SERIES
@@ -423,14 +422,13 @@ export default function MovieCard({
                 {isTvContent && movie.nextEpisode?.releaseDate && (
                   <span
                     style={{
-                      background: "rgba(244,63,94,0.12)",
-                      border: "1px solid rgba(244,63,94,0.25)",
+                      background: "rgba(0,0,0,0.5)",
                       color: "#f43f5e",
-                      padding: "1px 6px",
-                      borderRadius: "4px",
-                      fontSize: "0.58rem",
+                      padding: "1px 5px",
+                      borderRadius: "3px",
+                      fontSize: "0.55rem",
                       fontWeight: 700,
-                      letterSpacing: "0.05em",
+                      letterSpacing: "0.04em",
                     }}
                   >
                     {new Date(movie.nextEpisode.releaseDate).toLocaleDateString('en-US', { weekday: 'short' })}s
