@@ -31,37 +31,18 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   </React.StrictMode>,
 );
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    // Unregister ALL old service workers first (aggressive cleanup)
-    navigator.serviceWorker.getRegistrations().then((regs) => {
-      const oldRegs = regs.filter((r) => r.active && r.active.scriptURL.includes('/sw.js'));
-      // If there's already an active SW, check if it's stale
-      if (oldRegs.length > 0) {
-        const active = oldRegs[0].active;
-        if (active) {
-          active.postMessage({ type: 'CHECK_VERSION' });
-        }
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      // Step 1: Unregister ALL existing service workers immediately
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const reg of regs) {
+        await reg.unregister();
       }
-    }).catch(() => {});
-
-    navigator.serviceWorker.register("/sw.js").then((reg) => {
-      // Check for SW updates every 15 seconds (faster detection)
-      const checkUpdate = () => reg.update().catch(() => {});
-      setInterval(checkUpdate, 15000);
-      // When new SW takes over, reload the page
-      reg.addEventListener("updatefound", () => {
-        const newWorker = reg.installing;
-        if (newWorker) {
-          newWorker.addEventListener("statechange", () => {
-            if (newWorker.state === "activated" && navigator.serviceWorker.controller) {
-              // Clear React Query cache before reload
-              try { queryClient.clear(); } catch {}
-              window.location.reload();
-            }
-          });
-        }
-      });
-    }).catch(console.warn);
+      // Step 2: Register fresh SW
+      const newReg = await navigator.serviceWorker.register('/sw.js');
+      // Step 3: Check for updates every 30s
+      setInterval(() => newReg.update().catch(() => {}), 30000);
+    } catch {}
   });
 }

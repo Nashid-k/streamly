@@ -19,24 +19,20 @@
     <title>Streamly</title>
     <link rel="manifest" href="/manifest.json" />
     <script>
-      // Force-clear stale SW caches on every new deploy
+      // Force-clear all caches and reload on new deploy
       (function() {
-        var BUILD_VERSION = 'v9.0';
-        var prevVersion = null;
-        try { prevVersion = localStorage.getItem('_sv'); } catch(e) {}
-        if (prevVersion !== BUILD_VERSION) {
+        var V = 'v10.0';
+        var prev = null;
+        try { prev = localStorage.getItem('_sv'); } catch(e) {}
+        if (prev !== V) {
           try {
-            if ('caches' in window) {
-              caches.keys().then(function(names) {
-                names.forEach(function(name) { caches.delete(name); });
-              });
-            }
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations().then(function(regs) {
-                regs.forEach(function(r) { r.unregister(); });
-              });
-            }
-            localStorage.setItem('_sv', BUILD_VERSION);
+            localStorage.setItem('_sv', V);
+            // Clear all caches
+            if ('caches' in window) caches.keys().then(function(n) { n.forEach(function(k) { caches.delete(k); }); });
+            // Unregister all service workers
+            if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function(r) { r.forEach(function(x) { x.unregister(); }); });
+            // Force hard reload (skip cache)
+            window.location.reload();
           } catch(e) {}
         }
       })();

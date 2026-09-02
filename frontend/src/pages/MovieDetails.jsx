@@ -526,8 +526,9 @@ export default function MovieDetails() {
 
   // Resolve the actual platform from movie's availablePlatforms (fully dynamic)
   const effectivePlatform = useMemo(() => {
-    if (!movie?.availablePlatforms?.length) return 'netflix';
+    if (!movie?.availablePlatforms?.length) return 'unknown';
     const ap = movie.availablePlatforms[0].toLowerCase();
+    if (ap.includes('netflix')) return 'netflix';
     if (ap.includes('prime')) return 'prime';
     if (ap.includes('hotstar') || ap.includes('disney')) return 'hotstar';
     if (ap.includes('apple')) return 'appletv';
@@ -714,20 +715,13 @@ export default function MovieDetails() {
   }
 
   const resolvedPlatform = effectivePlatform;
-  const sourceName =
-    resolvedPlatform === "netflix"
-      ? "Netflix"
-      : resolvedPlatform === "prime"
-        ? "Prime Video"
-        : resolvedPlatform === "hotstar"
-          ? "Hotstar"
-          : resolvedPlatform === "appletv"
-            ? "Apple TV+"
-            : resolvedPlatform === "zee5"
-              ? "Zee5"
-              : resolvedPlatform === "sonyliv"
-                ? "Sony LIV"
-                : "JioCinema";
+  const sourceName = (() => {
+    const map = {
+      netflix: 'Netflix', prime: 'Prime Video', hotstar: 'Hotstar',
+      appletv: 'Apple TV+', zee5: 'Zee5', sonyliv: 'Sony LIV', jio: 'JioCinema',
+    };
+    return map[resolvedPlatform] || movie?.availablePlatforms?.[0] || 'Streaming';
+  })();
 
   const formatTime = (time) => {
     if (!time || isNaN(time)) return "0:00";
