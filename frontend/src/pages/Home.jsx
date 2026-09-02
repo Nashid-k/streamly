@@ -76,11 +76,12 @@ const MovieRail = React.memo(
       return () => observer.disconnect();
     }, []);
 
-    const [visibleCount, setVisibleCount] = useState(10);
+    const [visibleCount, setVisibleCount] = useState(15);
     const inThrottle = useRef(false);
+    const throttleTimeoutRef = useRef(null);
 
     useEffect(() => {
-      setVisibleCount(10);
+      setVisibleCount(15);
       if (railRef.current) {
         railRef.current.scrollLeft = 0;
       }
@@ -97,7 +98,8 @@ const MovieRail = React.memo(
         );
       }
       inThrottle.current = true;
-      setTimeout(() => (inThrottle.current = false), 150);
+      if (throttleTimeoutRef.current) clearTimeout(throttleTimeoutRef.current);
+      throttleTimeoutRef.current = setTimeout(() => (inThrottle.current = false), 150);
     };
 
     const scroll = (dir) => {
@@ -503,9 +505,7 @@ export default function Home({
   filter = "all",
   title = "Trending Across Platforms",
 }) {
-  const [featuredIndex, setFeaturedIndex] = useState(() =>
-    Math.floor(Math.random() * 20),
-  );
+  const [featuredIndex, setFeaturedIndex] = useState(0);
   const [visibleCatCount, setVisibleCatCount] = useState(4);
   const [activeGenre, setActiveGenre] = useState("All");
   const { continueWatching, myList, isInList, toggleMyList } = useAppAuth();

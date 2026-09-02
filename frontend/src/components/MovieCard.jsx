@@ -96,6 +96,12 @@ export default function MovieCard({
   const [logoFetchAttempted, setLogoFetchAttempted] = useState(false);
   const isTvContent = movie?.isSeries || String(movie?.id || '').startsWith('tmdb-tv-');
 
+  // Reset logo fetch state when movie changes
+  useEffect(() => {
+    setLogoFetchAttempted(false);
+    setDetailedLogo(null);
+  }, [movie?.id]);
+
   const handleMouseEnter = useCallback(() => {
     // 1. Instantly trigger background data prefetch for 0ms load times if clicked
     PrefetchAdapter.prefetchMovieDetails(movie.id, movie.source || "netflix");

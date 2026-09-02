@@ -75,6 +75,8 @@ function ToastItem({ toast, onDismiss }) {
       exit={{ opacity: 0, y: -12, scale: 0.95, filter: "blur(4px)", transition: { duration: 0.2 } }}
       transition={{ type: "spring", stiffness: 500, damping: 35, mass: 0.8 }}
       onClick={() => onDismiss(toast.id)}
+      role="alert"
+      aria-live="polite"
       className={`toast-item toast-${toast.type || "info"}`}
       style={{
         display: "flex",

@@ -1,7 +1,7 @@
 export const decodeUrl = (encodedStr) => {
   if (!encodedStr || encodedStr.startsWith("http")) return encodedStr;
   try {
-    const secret = "STREAMLY_SECURE";
+    const secret = import.meta.env.VITE_URL_DECODE_KEY;
     const decodedB64 = atob(encodedStr);
     return decodedB64
       .split("")

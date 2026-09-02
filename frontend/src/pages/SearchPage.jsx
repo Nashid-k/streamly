@@ -151,9 +151,11 @@ export default function SearchPage() {
               value={localQuery}
               onChange={(e) => {
                 setLocalQuery(e.target.value);
-                if (e.target.value.trim()) {
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && localQuery.trim()) {
                   navigate(
-                    `/search?q=${encodeURIComponent(e.target.value.trim())}`,
+                    `/search?q=${encodeURIComponent(localQuery.trim())}`,
                     { replace: true },
                   );
                 }

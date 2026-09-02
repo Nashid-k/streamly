@@ -61,6 +61,8 @@ function Layout({ children }) {
         e.preventDefault();
         if (window.innerWidth > 768 && searchInputRef.current) {
           searchInputRef.current.focus();
+        } else if (mobileInputRef.current) {
+          mobileInputRef.current.focus();
         } else {
           navigate("/search");
         }
@@ -103,6 +105,7 @@ function Layout({ children }) {
   const notificationsRef = useRef(null);
   const searchRef = useRef(null);
   const mobileSearchRef = useRef(null);
+  const mobileInputRef = useRef(null);
 
   const {
     data: rawResults,
@@ -276,10 +279,11 @@ function Layout({ children }) {
                   style={{ cursor: "pointer", padding: "10px" }}
                 />
                 <input
-                  ref={searchInputRef}
+                  ref={mobileInputRef}
                   type="text"
                   className="search-input"
                   placeholder="Search movies, shows... (Cmd+K)"
+                  aria-label="Search movies and TV shows"
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -411,9 +415,12 @@ function Layout({ children }) {
                         <div
                           style={{ display: "flex", flexDirection: "column" }}
                         >
+                          <div role="listbox" aria-label="Search results">
                           {results.map((r, i) => (
                             <motion.div
                               key={`${r.id}-${i}`}
+                              role="option"
+                              aria-selected={selectedResultIndex === i}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: i * 0.05, duration: 0.2 }}
@@ -523,6 +530,7 @@ function Layout({ children }) {
                               </div>
                             </motion.div>
                           ))}
+                          </div>
                           {/* Keyboard nav hint */}
                           <div
                             style={{
@@ -690,6 +698,7 @@ function Layout({ children }) {
               type="text"
               className="search-input"
               placeholder="Search movies, shows... (Cmd+K)"
+              aria-label="Search movies and TV shows"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -1138,6 +1147,10 @@ function Layout({ children }) {
           >
             <div
               className="user-avatar"
+              role="button"
+              tabIndex={0}
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+              aria-expanded={showNotifications}
               onClick={() => {
                 setShowNotifications(!showNotifications);
                 if (
@@ -1145,6 +1158,15 @@ function Layout({ children }) {
                   notifications.some((n) => !n.isRead)
                 ) {
                   markAllAsRead();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setShowNotifications(!showNotifications);
+                  if (!showNotifications && notifications.some((n) => !n.isRead)) {
+                    markAllAsRead();
+                  }
                 }
               }}
               style={{

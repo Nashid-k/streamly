@@ -51,10 +51,22 @@ export default function GlobalShortcuts() {
     },
   ];
 
+  // Trap focus inside the modal when open
+  const modalRef = useRef(null);
+  useEffect(() => {
+    if (!isOpen || !modalRef.current) return;
+    const focusable = modalRef.current.querySelector('button, [tabindex]:not([tabindex="-1"])');
+    if (focusable) focusable.focus();
+  }, [isOpen]);
+
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Keyboard Shortcuts"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

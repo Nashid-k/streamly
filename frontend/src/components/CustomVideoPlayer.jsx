@@ -169,6 +169,7 @@ const CustomVideoPlayer = ({
   const upNextShownRef = useRef(false);
   const centerIconKeyRef = useRef(0); // stable key — incremented only when icon triggers, never on re-render
   const subtitleInputRef = useRef(null);
+  const toastTimeoutRef = useRef(null);
 
   // Sync refs for stale closures in message listener
   const backendIntroTimingsRef = useRef(null);
@@ -206,7 +207,7 @@ const CustomVideoPlayer = ({
   // Derived TV detection — consistent with MovieDetails isTvContent
   const isTvContent = movie?.isSeries || String(movie?.id || '').startsWith('tmdb-tv-');
 
-  // Reset on episode/season change
+  // Reset on episode/season/movie change
   useEffect(() => {
     hasTriggeredNextRef.current = false;
     upNextShownRef.current = false;
@@ -214,7 +215,7 @@ const CustomVideoPlayer = ({
     setSkipIntroTime(null);
     setShowSkipIntro(false);
     setUpNextCountdown(15);
-  }, [season, episode]);
+  }, [movie?.id, season, episode]);
 
   useEffect(() => {
     // Fetch precise intro timings from backend
@@ -498,7 +499,6 @@ const CustomVideoPlayer = ({
           break;
 
         case "cinesrc:response":
-          console.log("CINESRC RESPONSE:", data.command, data.result);
           switch (data.command) {
             case "getCurrentTime":
               if (data.result != null && targetSeekTimeRef.current === null)
@@ -742,7 +742,6 @@ const CustomVideoPlayer = ({
           break;
 
         default:
-          console.log("CINESRC UNHANDLED EVENT:", type, data);
           break;
       }
     };
@@ -949,8 +948,6 @@ const CustomVideoPlayer = ({
       showToast("Error downloading subtitle");
     } finally {
       setIsFetchingSubtitles(false);
-      // Reset select back to default
-      e.target.value = "";
     }
   };
 
@@ -980,8 +977,9 @@ const CustomVideoPlayer = ({
   };
 
   const showToast = useCallback((msg) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 2000);
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(""), 2000);
   }, []);
 
   const handleProgressScrub = useCallback(

@@ -7,6 +7,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { clearAdapterCache } from "./storageAdapter";
 
 export class AuthAdapter {
   static onAuthStateChanged(callback) {
@@ -47,6 +48,7 @@ export class AuthAdapter {
   }
 
   static async logout() {
+    clearAdapterCache();
     return signOut(auth);
   }
 }

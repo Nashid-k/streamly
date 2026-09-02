@@ -171,8 +171,8 @@ export default function PersonDetails() {
               loading="lazy"
               decoding="async"
               style={{
-                width: "300px",
-                height: "450px",
+                width: "min(300px, 80vw)",
+                aspectRatio: "2/3",
                 objectFit: "cover",
                 borderRadius: "1.25rem",
                 boxShadow: "0 25px 50px -12px rgba(0,0,0,0.8)",
@@ -182,8 +182,8 @@ export default function PersonDetails() {
           ) : (
             <div
               style={{
-                width: "300px",
-                height: "450px",
+                width: "min(300px, 80vw)",
+                aspectRatio: "2/3",
                 background: "#18181b",
                 borderRadius: "1.25rem",
                 display: "flex",

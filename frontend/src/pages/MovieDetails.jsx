@@ -54,7 +54,7 @@ const getNumericId = (id) => id.replace(/^tmdb-(tv|movie)-/, "");
 const decodeUrl = (encodedStr) => {
   if (!encodedStr || encodedStr.startsWith("http")) return encodedStr;
   try {
-    const secret = import.meta.env.VITE_URL_DECODE_KEY || "STREAMLY_SECURE";
+    const secret = import.meta.env.VITE_URL_DECODE_KEY;
     const decodedB64 = atob(encodedStr);
     return decodedB64
       .split("")
@@ -492,6 +492,7 @@ export default function MovieDetails() {
     } catch {}
   }, [userRating, id]);
   const [showShareToast, setShowShareToast] = useState(false);
+  const shareToastTimeoutRef = useRef(null);
   const [episodeLayout, setEpisodeLayout] = useState("grid"); // 'grid' | 'list'
   const [showAllEpisodes, setShowAllEpisodes] = useState(false);
   const EPISODES_INITIAL_COUNT = 8;
@@ -896,7 +897,8 @@ export default function MovieDetails() {
               } else {
                 navigator.clipboard?.writeText(window.location.href);
                 setShowShareToast(true);
-                setTimeout(() => setShowShareToast(false), 2000);
+                if (shareToastTimeoutRef.current) clearTimeout(shareToastTimeoutRef.current);
+                shareToastTimeoutRef.current = setTimeout(() => setShowShareToast(false), 2000);
               }
             }}
             style={{
@@ -1247,7 +1249,7 @@ export default function MovieDetails() {
                       border: '1px solid rgba(251,191,36,0.2)',
                     }}
                   >
-                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#fbbf24', background: '#fbbf24', color: '#000', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.03em' }}>IMDb</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#000', background: '#fbbf24', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.03em' }}>IMDb</span>
                     <span style={{ fontSize: '1rem', fontWeight: 700, color: '#fbbf24' }}>{movie.imdbRating}</span>
                     <span style={{ fontSize: '0.7rem', color: '#a1a1aa' }}>/10</span>
                   </motion.div>

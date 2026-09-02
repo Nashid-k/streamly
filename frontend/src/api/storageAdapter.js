@@ -223,6 +223,16 @@ class LocalStorageAdapter {
 const adapterCache = new Map();
 let localAdapter = null;
 
+/** Clear cached adapter instances (call on logout) */
+export function clearAdapterCache() {
+  // Unsubscribe any active Firestore listeners
+  for (const adapter of adapterCache.values()) {
+    if (adapter._unsubscribe) adapter._unsubscribe();
+  }
+  adapterCache.clear();
+  localAdapter = null;
+}
+
 export function getStorageAdapter(user) {
   if (!user) {
     if (!localAdapter) localAdapter = new LocalStorageAdapter();
