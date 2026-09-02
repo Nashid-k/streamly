@@ -80,4 +80,12 @@ export const movieService = {
     const res = await apiClient.get(`/person/${id}`);
     return res.data;
   },
+
+  getAiringThisWeek: async (platform = 'all') => {
+    const res = await apiClient.get('/movies/airing', {
+      params: { platform, _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
+    });
+    return res.data;
+  },
 };

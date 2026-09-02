@@ -523,6 +523,12 @@ export default function Home({
     queryFn: () => movieService.getCategories("all"),
   });
 
+  const { data: airingData } = useQuery({
+    queryKey: ["airingThisWeek"],
+    queryFn: () => movieService.getAiringThisWeek("all"),
+    staleTime: 1000 * 60 * 5,
+  });
+
   const rawCategories = categoriesData || EMPTY_ARRAY;
   const featuredMovies = useMemo(
     () =>
@@ -1343,7 +1349,18 @@ export default function Home({
                 </ErrorBoundary>
               </FadeInSection>
             )}
-            {/* 5. Category rails */}
+            {/* 5. Airing This Week */}
+            {filter === 'all' && airingData && airingData.length > 0 && (
+              <FadeInSection>
+                <ErrorBoundary>
+                  <MovieRail
+                    railIndex={4}
+                    category={{ name: 'Airing This Week', movies: airingData }}
+                  />
+                </ErrorBoundary>
+              </FadeInSection>
+            )}
+            {/* 6. Category rails */}
             {categories.slice(0, visibleCatCount).map((category, catIdx) => (
               <FadeInSection key={catIdx} delay={0.1}>
                 <ErrorBoundary key={category.id || catIdx}>
