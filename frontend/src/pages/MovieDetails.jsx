@@ -565,7 +565,7 @@ export default function MovieDetails() {
     ? Math.max(1, Number(movie?.seasonsCount) || 1)
     : 0;
 
-  const { data: episodesData, isLoading: episodesLoading } = useQuery({
+  const { data: episodesData, isLoading: episodesLoading, error: episodesError } = useQuery({
     queryKey: ["episodes", id, selectedSeason, platform],
     queryFn: () => movieService.getSeasonEpisodes(id, selectedSeason, platform),
     enabled: isTvContent,
@@ -581,6 +581,8 @@ export default function MovieDetails() {
     : Array.isArray(episodesData?.episodes)
       ? episodesData.episodes
       : [];
+  // Debug: log episodes data to console
+  if (isTvContent) console.log('[Episodes Debug]', { episodesData, episodesLength: episodes.length, episodesLoading, isTvContent, episodesError });
   const totalEpisodes = episodesData?.totalEpisodes || episodes.length;
   const releasedEpisodes = episodesData?.releasedEpisodes || episodes.length;
   const isAiring = episodesData?.isAiring || false;
@@ -1827,6 +1829,14 @@ export default function MovieDetails() {
                 <Tv size={32} color="#52525b" style={{ marginBottom: "1rem" }} />
                 <p style={{ color: "#71717a", fontSize: "1rem", marginBottom: "0.5rem" }}>
                   No episodes found for Season {selectedSeason}.
+                </p>
+                {episodesError && (
+                  <p style={{ color: "#ef4444", fontSize: "0.8rem", marginBottom: "0.5rem" }}>
+                    Error: {episodesError.message || String(episodesError)}
+                  </p>
+                )}
+                <p style={{ color: "#52525b", fontSize: "0.8rem", marginBottom: "1.25rem", fontFamily: 'monospace' }}>
+                  ID: {id} | Season: {selectedSeason} | Loading: {String(episodesLoading)} | Data: {episodesData === undefined ? 'undefined' : episodesData === null ? 'null' : Array.isArray(episodesData) ? `Array(${episodesData.length})` : typeof episodesData}
                 </p>
                 <p style={{ color: "#52525b", fontSize: "0.85rem", marginBottom: "1.25rem" }}>
                   {normalizedSeasonCount > 1
