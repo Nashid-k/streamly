@@ -1018,7 +1018,6 @@ img {
   color: transparent; /* hide broken-image alt text */
 }
 .movie-poster,
-.hero-bg,
 .details-poster-large {
   animation: fadeInImage 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }

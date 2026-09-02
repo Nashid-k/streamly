@@ -568,10 +568,12 @@ export default function Home({
   }, [rawCategories?.length]);
 
   const [isHeroHovered, setIsHeroHovered] = useState(false);
+  const isHeroHoveredRef = useRef(false);
   const heroRef = useRef(null);
   const [heroVisible, setHeroVisible] = useState(true);
 
   // Pause kenBurns animation when hero scrolls off-screen to save GPU
+  // Re-observe when heroRef changes (e.g., after AnimatePresence re-mounts the hero)
   useEffect(() => {
     const el = heroRef.current;
     if (!el) return;
@@ -581,7 +583,7 @@ export default function Home({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [heroRef.current]);
 
   // Interval logic moved below totalFeatured
 
@@ -960,13 +962,16 @@ export default function Home({
   const activeFeaturedMovie =
     totalFeatured > 0 ? finalPool[featuredIndex % totalFeatured] : null;
 
+  // Auto-rotation: use ref for hover state to avoid stale closures and unnecessary interval restarts
   useEffect(() => {
-    if (isHeroHovered || totalFeatured <= 1) return;
+    if (totalFeatured <= 1) return;
     const timer = setInterval(() => {
-      setFeaturedIndex((prev) => prev + 1);
+      if (!isHeroHoveredRef.current) {
+        setFeaturedIndex((prev) => prev + 1);
+      }
     }, 6000);
     return () => clearInterval(timer);
-  }, [isHeroHovered, totalFeatured]);
+  }, [totalFeatured]);
 
   // Preload next hero image to eliminate flash on slide change
   useEffect(() => {
@@ -1003,8 +1008,8 @@ export default function Home({
             exit={{ opacity: 0, filter: "blur(8px)", scale: 1.02 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
             style={{ willChange: "opacity, transform" }}
-            onMouseEnter={() => setIsHeroHovered(true)}
-            onMouseLeave={() => setIsHeroHovered(false)}
+            onMouseEnter={() => { isHeroHoveredRef.current = true; setIsHeroHovered(true); }}
+            onMouseLeave={() => { isHeroHoveredRef.current = false; setIsHeroHovered(false); }}
           >
             <motion.img
               src={
