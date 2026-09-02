@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Plus, Check, Star } from "lucide-react";
 import slugify from "slugify";
 import PlatformIcon from "./PlatformIcon";
+import { getTMDBWeekdayShort } from "../utils/timezone";
 import { useNavigate } from "react-router-dom";
 import { movieService } from "../api/movieService";
 import { useAppAuth } from "../context/AuthContext";
@@ -273,7 +274,7 @@ export default function MovieCard({
                     }}
                   >
                     <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#fff', flexShrink: 0 }} />
-                    NEW {new Date(movie.nextEpisode.releaseDate).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                    NEW {getTMDBWeekdayShort(movie.nextEpisode.releaseDate).toUpperCase()}
                   </div>
                 )}
               </div>
@@ -428,7 +429,7 @@ export default function MovieCard({
                       letterSpacing: "0.04em",
                     }}
                   >
-                    {new Date(movie.nextEpisode.releaseDate).toLocaleDateString('en-US', { weekday: 'short' })}s
+                    {getTMDBWeekdayShort(movie.nextEpisode.releaseDate)}s
                   </span>
                 )}
                 {/* Genre dots */}
