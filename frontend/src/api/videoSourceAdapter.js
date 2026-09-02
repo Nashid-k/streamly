@@ -62,12 +62,11 @@ export class VideoSourceAdapter {
     return this.SERVERS;
   }
 
-  static getStreamUrl(serverIndex, movieId, season, episode, imdbId, title) {
+  static getStreamUrl(serverIndex, movieId, season, episode, imdbId) {
     const index =
       serverIndex >= 0 && serverIndex < this.SERVERS.length ? serverIndex : 0;
     const server = this.SERVERS[index];
 
-    // Fallback logic could be added here in the future
-    return server.url(movieId, season, episode, imdbId, title);
+    return server.url(movieId, season, episode, imdbId);
   }
 }

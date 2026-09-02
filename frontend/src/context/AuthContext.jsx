@@ -6,7 +6,7 @@
  *
  * Wrap your app with <AuthProvider> and consume with useAppAuth().
  */
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import {
   useAuth,
   useMyList,
@@ -24,10 +24,15 @@ export function AuthProvider({ children }) {
   const shData = useSearchHistory(auth.user);
   const notifData = useNotifications(auth.user);
 
+  // Fix C10: memoize to prevent context value from being a new object every render,
+  // which causes all consumers to re-render unnecessarily
+  const value = useMemo(
+    () => ({ ...auth, ...myListData, ...cwData, ...shData, ...notifData }),
+    [auth, myListData, cwData, shData, notifData],
+  );
+
   return (
-    <AuthContext.Provider
-      value={{ ...auth, ...myListData, ...cwData, ...shData, ...notifData }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

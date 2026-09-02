@@ -27,7 +27,15 @@ export const db = getFirestore(app);
 
 // Analytics — only in browser environments that support it
 isSupported().then((supported) => {
-  if (supported) getAnalytics(app);
+  if (supported) {
+    try {
+      getAnalytics(app);
+    } catch {
+      // Analytics blocked by CSP, ad blockers, or other browser restrictions
+    }
+  }
+}).catch(() => {
+  // isSupported() check itself failed — silently ignore
 });
 
 export default app;

@@ -84,6 +84,7 @@ export default function MovieCard({
   movie,
   showProgress = false,
   progressValue = 0,
+  compact = false,
 }) {
   const navigate = useNavigate();
   const { isInList, toggleMyList } = useAppAuth();
@@ -321,8 +322,8 @@ export default function MovieCard({
                 flexDirection: "column",
                 justifyContent: "flex-end",
                 alignItems: "center",
-                padding: "1.25rem",
-                gap: "12px",
+                padding: compact ? "0.75rem" : "1.25rem",
+                gap: compact ? "8px" : "12px",
                 textAlign: "center",
                 zIndex: 5,
               }}
@@ -356,17 +357,17 @@ export default function MovieCard({
                   <h4
                     style={{
                       margin: 0,
-                      fontSize: "0.92rem",
+                      fontSize: compact ? "0.78rem" : "0.92rem",
                       fontWeight: 700,
                       color: "#fff",
                       lineHeight: 1.25,
                       letterSpacing: "-0.01em",
                       display: "-webkit-box",
-                      WebkitLineClamp: 3,
+                      WebkitLineClamp: compact ? 2 : 3,
                       WebkitBoxOrient: "vertical",
                       overflow: "hidden",
                       textShadow: "0 2px 8px rgba(0,0,0,0.8)",
-                      marginBottom: "4px",
+                      marginBottom: compact ? "2px" : "4px",
                     }}
                   >
                     {movie.title}
@@ -380,8 +381,8 @@ export default function MovieCard({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
-                  fontSize: "0.72rem",
+                  gap: compact ? "5px" : "8px",
+                  fontSize: compact ? "0.62rem" : "0.72rem",
                   fontWeight: 600,
                   color: "#a1a1aa",
                   flexWrap: "wrap",
@@ -483,8 +484,8 @@ export default function MovieCard({
                 variants={btnVariants}
                 style={{
                   display: "flex",
-                  gap: "10px",
-                  marginTop: "10px",
+                  gap: compact ? "6px" : "10px",
+                  marginTop: compact ? "6px" : "10px",
                   width: "100%",
                 }}
               >
@@ -500,21 +501,21 @@ export default function MovieCard({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: "5px",
-                    padding: "7px 0",
+                    gap: "4px",
+                    padding: compact ? "5px 0" : "7px 0",
                     borderRadius: "100px",
                     background:
                       "linear-gradient(135deg, #f43f5e 0%, #fb923c 100%)",
                     border: "none",
                     color: "#fff",
-                    fontSize: "0.78rem",
+                    fontSize: compact ? "0.68rem" : "0.78rem",
                     fontWeight: 700,
                     cursor: "pointer",
                     letterSpacing: "0.01em",
                     boxShadow: "0 3px 12px rgba(244,63,94,0.4)",
                   }}
                 >
-                  <Play size={14} fill="currentColor" stroke="none" />
+                  <Play size={compact ? 12 : 14} fill="currentColor" stroke="none" />
                   <span className="desktop-only">Watch</span>
                 </button>
 
@@ -524,8 +525,8 @@ export default function MovieCard({
                   title={inList ? "Remove from list" : "Add to My List"}
                   className="curtain-list-btn"
                   style={{
-                    width: "32px",
-                    height: "32px",
+                    width: compact ? "26px" : "32px",
+                    height: compact ? "26px" : "32px",
                     flexShrink: 0,
                     display: "flex",
                     alignItems: "center",
@@ -542,7 +543,7 @@ export default function MovieCard({
                     backdropFilter: "blur(4px)",
                   }}
                 >
-                  {inList ? <Check size={14} /> : <Plus size={14} />}
+                  {inList ? <Check size={compact ? 12 : 14} /> : <Plus size={compact ? 12 : 14} />}
                 </button>
               </motion.div>
             </motion.div>

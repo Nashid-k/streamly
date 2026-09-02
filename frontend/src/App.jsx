@@ -425,6 +425,7 @@ function Layout({ children }) {
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: i * 0.05, duration: 0.2 }}
                               onClick={() => {
+                                addSearch(r.title); // Fix #21: save to history on click
                                 navigate(
                                   `/watch/${r.id}/${slugify(r.title, { lower: true, strict: true })}`,
                                 );
@@ -589,6 +590,7 @@ function Layout({ children }) {
                           {/* See all results link */}
                           <div
                             onClick={() => {
+                              addSearch(query); // Fix #21: save to history on mobile see-all
                               navigate(
                                 `/search?q=${encodeURIComponent(query)}`,
                               );
@@ -930,6 +932,7 @@ function Layout({ children }) {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.05, duration: 0.2 }}
                             onClick={() => {
+                              addSearch(r.title); // Fix #21: save to history on desktop click
                               navigate(
                                 `/watch/${r.id}/${slugify(r.title, { lower: true, strict: true })}`,
                               );

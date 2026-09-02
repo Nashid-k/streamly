@@ -256,7 +256,6 @@ export default function SearchPage() {
                   display: "flex",
                   gap: "0.4rem",
                   flexWrap: "wrap",
-                  flexWrap: "wrap",
                 }}
               >
                 {[

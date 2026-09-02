@@ -55,6 +55,7 @@ const decodeUrl = (encodedStr) => {
   if (!encodedStr || encodedStr.startsWith("http")) return encodedStr;
   try {
     const secret = import.meta.env.VITE_URL_DECODE_KEY;
+    if (!secret) return encodedStr; // Guard: env var not set
     const decodedB64 = atob(encodedStr);
     return decodedB64
       .split("")
@@ -451,6 +452,7 @@ export default function MovieDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedSeason, setSelectedSeason] = useState(1);
+  const [playingEpisode, setPlayingEpisode] = useState(1);
   const { isInList, toggleMyList, continueWatching, updateProgress } =
     useAppAuth();
   const { toast } = useToast();
@@ -460,22 +462,32 @@ export default function MovieDetails() {
   }, [continueWatching]);
 
   // Wrap toggleMyList to show toast feedback
-  const handleToggleMyList = (movieObj) => {
+  // Fix C2: await adapter call before showing toast to avoid false confirmation on failure
+  const handleToggleMyList = async (movieObj) => {
     const wasInList = isInList(movieObj.id);
-    toggleMyList(movieObj);
-    if (wasInList) {
+    try {
+      await toggleMyList(movieObj);
+      if (wasInList) {
+        toast({
+          title: "Removed from List",
+          message: `"${movieObj.title}" was removed.`,
+          type: "info",
+          duration: 2500,
+        });
+      } else {
+        toast({
+          title: "Added to My List",
+          message: `"${movieObj.title}" saved to your list.`,
+          type: "success",
+          duration: 2500,
+        });
+      }
+    } catch {
       toast({
-        title: "Removed from List",
-        message: `"${movieObj.title}" was removed.`,
-        type: "info",
-        duration: 2500,
-      });
-    } else {
-      toast({
-        title: "Added to My List",
-        message: `"${movieObj.title}" saved to your list.`,
-        type: "success",
-        duration: 2500,
+        title: "Error",
+        message: `Failed to update list for "${movieObj.title}".`,
+        type: "error",
+        duration: 3000,
       });
     }
   };
@@ -499,7 +511,6 @@ export default function MovieDetails() {
 
   const [playMode, setPlayMode] = useState("movie");
   const [playingServerIndex, setPlayingServerIndex] = useState(0);
-  const [playingEpisode, setPlayingEpisode] = useState(1);
 
   // Trigger loading state when iframe src/key is about to change
   useEffect(() => {
@@ -570,6 +581,12 @@ export default function MovieDetails() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [similar]);
+
+  // Reset season/episode when navigating to a different movie (#8 fix)
+  useEffect(() => {
+    setSelectedSeason(1);
+    setPlayingEpisode(1);
+  }, [id]);
 
   // Detect series: check id prefix (most reliable), isSeries flag, or seasonsCount
   const isTvContent = Boolean(

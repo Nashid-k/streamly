@@ -34,7 +34,7 @@ import { SubtitleEngine } from "../utils/SubtitleEngine";
 const getNumericId = (idString) => {
   if (!idString) return null;
   const match = idString.toString().match(/\d+/);
-  return match ? match[0] : idString;
+  return match ? match[0] : null; // Fix C14: return null instead of non-numeric fallback
 };
 
 const ASPECT_RATIOS = [
@@ -101,6 +101,10 @@ const CustomVideoPlayer = ({
 }) => {
   const [activeServerIndex, setActiveServerIndex] =
     useState(preferredServerIndex);
+  const activeServerIndexRef = useRef(activeServerIndex);
+  useEffect(() => {
+    activeServerIndexRef.current = activeServerIndex;
+  }, [activeServerIndex]);
   const [iframeUrl, setIframeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
@@ -189,6 +193,11 @@ const CustomVideoPlayer = ({
   useEffect(() => {
     isLoopingRef.current = isLooping;
   }, [isLooping]);
+
+  const autoPlayNextRef = useRef(autoPlayNext);
+  useEffect(() => {
+    autoPlayNextRef.current = autoPlayNext;
+  }, [autoPlayNext]);
 
   // Subtitle state
   const subtitleEngineRef = useRef(new SubtitleEngine());
@@ -289,11 +298,13 @@ const CustomVideoPlayer = ({
               text: `You might also like: ${m.title || m.name} (${(m.release_date || m.first_air_date || "").substring(0, 4)})`,
               icon: Film,
             }));
-            setDynamicTips(
-              [...LOADING_TIPS, ...recommendations].sort(
-                () => 0.5 - Math.random(),
-              ),
-            );
+            // Fisher-Yates shuffle for uniform random ordering
+            const shuffled = [...LOADING_TIPS, ...recommendations];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            setDynamicTips(shuffled);
           }
         })
         .catch(() => {}); // silently fail if similar movies can't be fetched
@@ -320,6 +331,14 @@ const CustomVideoPlayer = ({
       let resolvedImdbId =
         movie.imdbId || movie.imdb_id || movie.external_ids?.imdb_id;
       const targetId = getNumericId(movie.id);
+
+      // Fix C12: guard against null/undefined targetId — abort URL generation if no valid ID
+      if (!targetId) {
+        console.warn("No valid numeric ID for movie:", movie.id);
+        setIsLoading(false);
+        setErrorMessage("Unable to load: no valid content ID found.");
+        return;
+      }
 
       // Only explicitly fetch IMDB ID if missing AND the current server needs it (e.g. Server 3 or 4)
       // Server 1 (CineSrc) strictly uses TMDB IDs now, so we shouldn't block its loading!
@@ -379,20 +398,25 @@ const CustomVideoPlayer = ({
               "Player watchdog triggered: No response from iframe after 12s. Assuming fatal crash.",
             );
             setServerErrorCounts((errs) => {
-              const newCount = (errs[activeServerIndex] || 0) + 1;
-              if (newCount >= 1) {
+              const serverIdx = activeServerIndexRef.current; // Use ref to avoid stale closure
+              const newCount = (errs[serverIdx] || 0) + 1;
+              if (newCount >= 2) { // Fix #16: require 2 timeouts before switching servers
                 setErrorMessage(
-                  `Server ${activeServerIndex + 1} timed out. Trying next...`,
+                  `Server ${serverIdx + 1} timed out. Trying next...`,
                 );
                 setTimeout(() => {
                   setErrorMessage("");
-                  handleServerChange(
-                    (activeServerIndex + 1) %
-                      VideoSourceAdapter.getServers().length,
-                  );
+                  const nextIdx = (serverIdx + 1) %
+                    VideoSourceAdapter.getServers().length;
+                  setActiveServerIndex(nextIdx);
+                  onServerChange?.(nextIdx);
                 }, 2000);
+              } else {
+                // Fix #17: retry same server once before switching
+                setErrorMessage(`Server ${serverIdx + 1} timed out. Retrying...`);
+                setTimeout(() => setErrorMessage(""), 3000);
               }
-              return { ...errs, [activeServerIndex]: newCount };
+              return { ...errs, [serverIdx]: newCount };
             });
             return false;
           }
@@ -427,7 +451,7 @@ const CustomVideoPlayer = ({
     upNextShownRef.current = true;
     setShowUpNext(true);
 
-    if (autoPlayNext) {
+    if (autoPlayNextRef.current) {
       setUpNextCountdown(15);
       let count = 15;
       upNextIntervalRef.current = setInterval(() => {
@@ -445,7 +469,7 @@ const CustomVideoPlayer = ({
     } else {
       setUpNextCountdown(null); // Indicates manual mode
     }
-  }, [hasNextEpisode, onNextEpisode, autoPlayNext]);
+  }, [hasNextEpisode, onNextEpisode]); // autoPlayNext removed: uses ref to avoid stale closure in countdown
 
   const dismissUpNext = useCallback(() => {
     clearInterval(upNextIntervalRef.current);
@@ -720,13 +744,14 @@ const CustomVideoPlayer = ({
         case "cinesrc:error":
           console.error("CineSrc Error:", data.error);
           setIsLoading(false);
+          const errServerIdx = activeServerIndexRef.current; // Fix C1: use ref to avoid stale closure
           setServerErrorCounts((prev) => {
-            const newCount = (prev[activeServerIndex] || 0) + 1;
-            const updated = { ...prev, [activeServerIndex]: newCount };
+            const newCount = (prev[errServerIdx] || 0) + 1;
+            const updated = { ...prev, [errServerIdx]: newCount };
             if (newCount >= 2) {
-              const nextIdx = activeServerIndex + 1;
+              const nextIdx = (errServerIdx + 1) % VideoSourceAdapter.getServers().length;
               setErrorMessage(
-                `Server ${activeServerIndex + 1} failed. Trying next…`,
+                `Server ${errServerIdx + 1} failed. Trying next…`,
               );
               setTimeout(() => {
                 setErrorMessage("");

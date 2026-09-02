@@ -6,7 +6,7 @@
  *   isOpen  {boolean}  — whether the modal is visible
  *   onClose {function} — close callback
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import Loader from "./Loader";
@@ -40,6 +40,8 @@ export default function AuthModal({ isOpen, onClose }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
+  const lastAttemptRef = useRef(0); // Rate limit ref
+  const failedAttemptsRef = useRef(0); // Track consecutive failures for progressive backoff
 
   function resetForm() {
     setEmail("");
@@ -80,19 +82,31 @@ export default function AuthModal({ isOpen, onClose }) {
     e.preventDefault();
     setError("");
     setSuccess("");
+    // Rate limit: minimum 1 second between attempts + progressive backoff on failures
+    const now = Date.now();
+    const minDelay = failedAttemptsRef.current >= 5 ? 5000 : failedAttemptsRef.current >= 3 ? 3000 : 1000;
+    if (now - lastAttemptRef.current < minDelay) {
+      setError(`Please wait ${Math.ceil((minDelay - (now - lastAttemptRef.current)) / 1000)}s before trying again.`);
+      setBusy(false);
+      return;
+    }
+    lastAttemptRef.current = now;
     setBusy(true);
     try {
       if (mode === "register") {
         await register(email.trim(), pass, name.trim());
+        failedAttemptsRef.current = 0;
         setSuccess("Account created! Welcome to Streamly 🎉");
         setTimeout(onClose, 1200);
       } else {
         await login(email.trim(), pass);
+        failedAttemptsRef.current = 0;
         setSuccess("Signed in successfully!");
         setTimeout(onClose, 800);
       }
     } catch (err) {
       setError(friendly(err));
+      failedAttemptsRef.current += 1;
     } finally {
       setBusy(false);
     }
@@ -309,6 +323,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   <input
                     type={showPw ? "text" : "password"}
                     required
+                    minLength={mode === "register" ? 6 : undefined}
                     value={pass}
                     onChange={(e) => setPass(e.target.value)}
                     placeholder={

@@ -5,19 +5,21 @@ export function ServerWakeupNotification() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    let fadeTimer;
     const handleWakeup = () => {
       setMounted(true);
       setTimeout(() => setVisible(true), 50);
     };
     const handleDone = () => {
       setVisible(false);
-      setTimeout(() => setMounted(false), 400); // wait for fade-out before unmounting
+      fadeTimer = setTimeout(() => setMounted(false), 400); // wait for fade-out before unmounting
     };
 
     window.addEventListener("server-wakeup", handleWakeup);
     window.addEventListener("server-wakeup-done", handleDone);
 
     return () => {
+      clearTimeout(fadeTimer);
       window.removeEventListener("server-wakeup", handleWakeup);
       window.removeEventListener("server-wakeup-done", handleDone);
     };

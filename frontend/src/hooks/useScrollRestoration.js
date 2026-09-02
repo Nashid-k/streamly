@@ -39,16 +39,22 @@ export function useScrollRestoration() {
   const navType = useNavigationType();
 
   useEffect(() => {
+    let scrollTimer;
     const handleScroll = () => {
-      sessionStorage.setItem(
-        `scroll-${location.key}`,
-        window.scrollY.toString(),
-      );
+      // Debounce sessionStorage writes to avoid thrashing on fast scroll
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        sessionStorage.setItem(
+          `scroll-${location.key}`,
+          window.scrollY.toString(),
+        );
+      }, 150);
     };
 
     // Save scroll periodically
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
+      clearTimeout(scrollTimer);
       window.removeEventListener("scroll", handleScroll);
       // Prune old entries when leaving a page
       pruneScrollEntries(location.key);

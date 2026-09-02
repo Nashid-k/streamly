@@ -486,7 +486,7 @@ const Top10Rail = React.memo(
                         marginLeft: "35px",
                       }}
                     >
-                      <MovieCard movie={movie} />
+                      <MovieCard movie={movie} compact />
                     </div>
                   </div>
                 </motion.div>
@@ -553,7 +553,11 @@ export default function Home({
           window.innerHeight + window.scrollY >=
           document.body.offsetHeight - 800
         ) {
-          setVisibleCatCount((prev) => prev + 3);
+          setVisibleCatCount((prev) => {
+            // Don't load more than what we have (#27 fix)
+            const maxCategories = (rawCategories?.length || 0) + 4; // +4 for dynamic rails
+            return Math.min(prev + 3, maxCategories);
+          });
         }
         inThrottle = true;
         setTimeout(() => (inThrottle = false), 200);
@@ -561,7 +565,7 @@ export default function Home({
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [rawCategories?.length]);
 
   const [isHeroHovered, setIsHeroHovered] = useState(false);
   const heroRef = useRef(null);
@@ -582,9 +586,10 @@ export default function Home({
   // Interval logic moved below totalFeatured
 
   useEffect(() => {
-    // Reset visible count when filter changes so we scroll from top again
+    // Reset visible count and featured index when filter changes (#7 fix)
     setVisibleCatCount(4);
     setActiveGenre("All");
+    setFeaturedIndex(0);
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [filter]);
 
@@ -777,10 +782,16 @@ export default function Home({
     }
 
     // Deterministic shuffle based on today's hash
+    // Use full ID string for better distribution (#10 fix)
+    const hashString = (str, seed) => {
+      let h = seed;
+      for (let i = 0; i < str.length; i++) {
+        h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+      }
+      return Math.abs(h);
+    };
     const shuffled = [...allMovies].sort((a, b) => {
-      const hashA = (a.id.toString().charCodeAt(0) * hash) % 100;
-      const hashB = (b.id.toString().charCodeAt(0) * hash) % 100;
-      return hashB - hashA;
+      return hashString(a.id.toString(), hash) - hashString(b.id.toString(), hash);
     });
 
     const isSeriesCheck = (m) => Boolean(m.isSeries || String(m.id).startsWith("tmdb-tv-") || m.type === "tv" || (m.seasonsCount && m.seasonsCount > 0));
@@ -806,12 +817,18 @@ export default function Home({
       ? continueWatching[0]
       : null;
 
+  // Use ref for continueWatching to avoid unnecessary recomputes (#11 fix)
+  const continueWatchingRef = useRef(continueWatching);
+  useEffect(() => {
+    continueWatchingRef.current = continueWatching;
+  }, [continueWatching]);
+
   const recommendations = useMemo(() => {
     if (!lastWatched) return [];
     const lastWatchedGenres = lastWatched.genres || [];
     if (lastWatchedGenres.length === 0) return [];
 
-    const cwIds = new Set((continueWatching || []).map((m) => m.id));
+    const cwIds = new Set((continueWatchingRef.current || []).map((m) => m.id));
     const allMovies = [];
     for (const cat of rawCategories) {
       for (const m of cat.movies) {
@@ -827,7 +844,7 @@ export default function Home({
     return recs
       .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0))
       .slice(0, 15);
-  }, [lastWatched, continueWatching, rawCategories]);
+  }, [lastWatched, rawCategories]); // Removed continueWatching from deps
 
   const finalPool = useMemo(() => {
     let globalPool = [];

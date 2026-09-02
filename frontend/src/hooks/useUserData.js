@@ -48,6 +48,11 @@ export function useAuth() {
 export function useMyList(user) {
   const [myList, setMyList] = useState([]);
 
+  // Fix C3: userRef ensures adapter is always resolved with the latest user at call-time,
+  // not the user captured when the useCallback was created
+  const userRef = useRef(user);
+  userRef.current = user;
+
   useEffect(() => {
     const adapter = getStorageAdapter(user);
 
@@ -68,6 +73,7 @@ export function useMyList(user) {
     }
   }, [user]);
 
+  // Use ref to avoid stale closures — only depends on user, not myList
   const myListRef = useRef(myList);
   myListRef.current = myList;
 
@@ -79,9 +85,11 @@ export function useMyList(user) {
         ? previousList.filter((m) => m.id !== movie.id)
         : [...previousList, movie];
 
+      // Optimistic update
       setMyList(newList);
 
-      const adapter = getStorageAdapter(user);
+      // Fix C3: Capture adapter at call-time using ref
+      const adapter = getStorageAdapter(userRef.current);
       try {
         if (exists) {
           await adapter.removeFromList(movie);
@@ -93,7 +101,7 @@ export function useMyList(user) {
         setMyList(previousList);
       }
     },
-    [myList, user],
+    [], // No dependencies — uses refs for everything
   );
 
   const isInList = useCallback(
@@ -108,6 +116,10 @@ export function useMyList(user) {
 
 export function useContinueWatching(user) {
   const [continueWatching, setContinueWatching] = useState([]);
+
+  // Fix C3-C5: userRef for fresh adapter at call-time
+  const userRef = useRef(user);
+  userRef.current = user;
 
   useEffect(() => {
     const adapter = getStorageAdapter(user);
@@ -127,6 +139,9 @@ export function useContinueWatching(user) {
 
   const updateProgress = useCallback(
     async (movie, season = null, episode = null, timestamp = null) => {
+      let updatedList;
+
+      // Compute new list outside setState (pure logic)
       setContinueWatching((prev) => {
         const existing = prev.find((m) => m.id === movie.id);
         const finalTimestamp =
@@ -139,35 +154,46 @@ export function useContinueWatching(user) {
           timestamp: finalTimestamp,
         };
         const filtered = prev.filter((m) => m.id !== movie.id);
-        const updated = [newItem, ...filtered].slice(0, 20);
-        getStorageAdapter(user)
-          .updateContinueWatching(updated)
-          .catch(() => {});
-        return updated;
+        updatedList = [newItem, ...filtered].slice(0, 20);
+        return updatedList;
       });
+
+      // Fix C3: Capture adapter at call-time using ref
+      if (updatedList) {
+        getStorageAdapter(userRef.current)
+          .updateContinueWatching(updatedList)
+          .catch(() => {});
+      }
     },
-    [user],
+    [], // No dependencies — uses refs
   );
 
   const removeFromContinueWatching = useCallback(
     async (movieId) => {
+      let updatedList;
+
       setContinueWatching((prev) => {
-        const updated = prev.filter((m) => m.id !== movieId);
-        getStorageAdapter(user)
-          .updateContinueWatching(updated)
-          .catch(() => {});
-        return updated;
+        updatedList = prev.filter((m) => m.id !== movieId);
+        return updatedList;
       });
+
+      // Fix C4: Capture adapter at call-time using ref
+      if (updatedList) {
+        getStorageAdapter(userRef.current)
+          .updateContinueWatching(updatedList)
+          .catch(() => {});
+      }
     },
-    [user],
+    [], // No dependencies — uses refs
   );
 
   const clearContinueWatching = useCallback(async () => {
     setContinueWatching([]);
-    getStorageAdapter(user)
+    // Fix C5: Capture adapter at call-time using ref
+    getStorageAdapter(userRef.current)
       .updateContinueWatching([])
       .catch(() => {});
-  }, [user]);
+  }, []); // No dependencies — uses refs
 
   return {
     continueWatching,
@@ -180,6 +206,10 @@ export function useContinueWatching(user) {
 // ─── useSearchHistory ────────────────────────────────────────────────────────
 export function useSearchHistory(user) {
   const [searchHistory, setSearchHistory] = useState([]);
+
+  // Fix C6: userRef for fresh adapter at call-time
+  const userRef = useRef(user);
+  userRef.current = user;
 
   useEffect(() => {
     const adapter = getStorageAdapter(user);
@@ -201,45 +231,61 @@ export function useSearchHistory(user) {
     async (query) => {
       const term = query.trim();
       if (!term) return;
+
+      let updatedList;
       setSearchHistory((prev) => {
         const filtered = prev.filter(
           (t) => t.toLowerCase() !== term.toLowerCase(),
         );
-        const updated = [term, ...filtered].slice(0, 10);
-        getStorageAdapter(user)
-          .updateSearchHistory(updated)
-          .catch(() => {});
-        return updated;
+        updatedList = [term, ...filtered].slice(0, 10);
+        return updatedList;
       });
+
+      // Fix C6: Capture adapter at call-time using ref
+      if (updatedList) {
+        getStorageAdapter(userRef.current)
+          .updateSearchHistory(updatedList)
+          .catch(() => {});
+      }
     },
-    [user],
+    [], // No dependencies — uses refs
   );
 
   const removeSearch = useCallback(
     async (query) => {
+      let updatedList;
       setSearchHistory((prev) => {
-        const updated = prev.filter((t) => t !== query);
-        getStorageAdapter(user)
-          .updateSearchHistory(updated)
-          .catch(() => {});
-        return updated;
+        updatedList = prev.filter((t) => t !== query);
+        return updatedList;
       });
+
+      // Fix C6: Capture adapter at call-time using ref
+      if (updatedList) {
+        getStorageAdapter(userRef.current)
+          .updateSearchHistory(updatedList)
+          .catch(() => {});
+      }
     },
-    [user],
+    [], // No dependencies — uses refs
   );
 
   const clearSearchHistory = useCallback(async () => {
     setSearchHistory([]);
-    getStorageAdapter(user)
+    // Fix C6: Capture adapter at call-time using ref
+    getStorageAdapter(userRef.current)
       .updateSearchHistory([])
       .catch(() => {});
-  }, [user]);
+  }, []); // No dependencies — uses refs
 
   return { searchHistory, addSearch, removeSearch, clearSearchHistory };
 }
 
 export function useNotifications(user) {
   const [notifications, setNotifications] = useState([]);
+
+  // Fix C7: userRef for fresh adapter at call-time
+  const userRef = useRef(user);
+  userRef.current = user;
 
   useEffect(() => {
     const adapter = getStorageAdapter(user);
@@ -306,34 +352,47 @@ export function useNotifications(user) {
         isRead: false,
         ...notif,
       };
+
+      let updatedList;
       setNotifications((prev) => {
-        const updated = [newNotif, ...prev].slice(0, 30);
-        getStorageAdapter(user)
-          .updateNotifications(updated)
-          .catch(() => {});
-        return updated;
+        updatedList = [newNotif, ...prev].slice(0, 30);
+        return updatedList;
       });
+
+      // Fix C7: Capture adapter at call-time using ref
+      if (updatedList) {
+        getStorageAdapter(userRef.current)
+          .updateNotifications(updatedList)
+          .catch(() => {});
+      }
     },
-    [user],
+    [], // No dependencies — uses refs
   );
 
   const markAllAsRead = useCallback(async () => {
-    if (notifications.every((n) => n.isRead)) return;
+    let updatedList;
     setNotifications((prev) => {
-      const updated = prev.map((n) => ({ ...n, isRead: true }));
-      getStorageAdapter(user)
-        .updateNotifications(updated)
-        .catch(() => {});
-      return updated;
+      // Check inside updater for consistency (uses prev, not stale state)
+      if (prev.every((n) => n.isRead)) return prev;
+      updatedList = prev.map((n) => ({ ...n, isRead: true }));
+      return updatedList;
     });
-  }, [notifications, user]);
+
+    // Fix C7: Capture adapter at call-time using ref
+    if (updatedList) {
+      getStorageAdapter(userRef.current)
+        .updateNotifications(updatedList)
+        .catch(() => {});
+    }
+  }, []); // No dependencies — uses refs
 
   const clearNotifications = useCallback(async () => {
     setNotifications([]);
-    getStorageAdapter(user)
+    // Fix C7: Capture adapter at call-time using ref
+    getStorageAdapter(userRef.current)
       .updateNotifications([])
       .catch(() => {});
-  }, [user]);
+  }, []); // No dependencies — uses refs
 
   return { notifications, addNotification, markAllAsRead, clearNotifications };
 }

@@ -13,7 +13,7 @@ export default function GenrePage() {
   const [sortBy, setSortBy] = useState("Popularity");
 
   const { data: rawResults, isLoading: loading, error: queryError } = useQuery({
-    queryKey: ["search", genre],
+    queryKey: ["genre-search", genre],
     queryFn: () => movieService.searchMovies(genre),
     enabled: !!genre,
   });
@@ -54,8 +54,8 @@ export default function GenrePage() {
       return false;
     });
 
-    // If strict is too small, fallback to search results
-    const finalResults = strict.length > 3 ? strict : mapped;
+    // If strict is too small, fallback to search results (#12 fix: lower threshold)
+    const finalResults = strict.length > 0 ? strict : mapped;
 
     // Deduplicate
     const seen = new Set();

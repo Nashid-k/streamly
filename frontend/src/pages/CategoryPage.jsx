@@ -48,7 +48,11 @@ export default function CategoryPage() {
 
   const { state } = useLocation();
 
-  const allMovies = state?.movies ? state.movies : (category ? category.movies : []);
+  const allMovies = useMemo(() => {
+    if (state?.movies && state.movies.length > 0) return state.movies;
+    if (category?.movies && category.movies.length > 0) return category.movies;
+    return [];
+  }, [state?.movies, category?.movies]);
 
   // Infinite scroll logic
   const [visibleCount, setVisibleCount] = useState(20);
@@ -82,6 +86,27 @@ export default function CategoryPage() {
         <Loader />
       </div>
     );
+
+  if (!category && allMovies.length === 0) {
+    return (
+      <div
+        className="main-content"
+        style={{ padding: "6rem 3rem 3rem 3rem", minHeight: "100vh" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>
+          <Link to="/" style={{ color: "white", display: "flex", alignItems: "center", textDecoration: "none", padding: "10px" }}>
+            <ChevronLeft size={24} /> Back
+          </Link>
+          <h1 style={{ fontSize: "2rem", fontWeight: 800, margin: 0, color: "#a1a1aa" }}>
+            Category not found
+          </h1>
+        </div>
+        <p style={{ color: "#71717a", textAlign: "center", padding: "4rem 0" }}>
+          No category matching "{categoryName}" was found.
+        </p>
+      </div>
+    );
+  }
 
   const visibleMovies = allMovies.slice(0, visibleCount);
 

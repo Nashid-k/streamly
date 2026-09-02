@@ -19,6 +19,11 @@ export default function HistoryPage() {
 
   const [visibleCount, setVisibleCount] = useState(20);
 
+  // Reset visible count when data changes (#15 fix)
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [continueWatching.length]);
+
   useEffect(() => {
     let inThrottle;
     const handleScroll = () => {
@@ -265,7 +270,7 @@ export default function HistoryPage() {
                             showProgress={true}
                             progressValue={
                               movie.lastWatched
-                                ? Math.max(10, ((movie.id.toString().charCodeAt(0) * 31 + movie.id.toString().charCodeAt(1) * 17) % 71) + 10)
+                                ? Math.min(95, Math.max(10, 100 - Math.floor((Date.now() - movie.lastWatched) / (1000 * 60 * 60 * 24))))
                                 : 0
                             }
                           />

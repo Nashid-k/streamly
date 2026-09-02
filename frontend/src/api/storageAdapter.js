@@ -59,6 +59,17 @@ export async function migrateLocalStorageToFirestore(uid) {
         createdAt: Date.now(),
       });
     }
+
+    // Clear localStorage after successful migration to prevent re-migration
+    // and stale data confusion
+    try {
+      localStorage.removeItem("aios_my_list");
+      localStorage.removeItem("aios_continue_watching");
+      localStorage.removeItem("aios_search_history");
+      localStorage.removeItem("aios_notifications");
+    } catch {
+      // Best-effort cleanup
+    }
   } catch {
     // Migration is best-effort — silently ignore failures
   }
@@ -78,6 +89,15 @@ export class CloudStorageAdapter {
    */
   subscribe(callback) {
     if (this._unsubscribe) this._unsubscribe();
+    let reconnectTimeout = null;
+    const reconnect = () => {
+      if (reconnectTimeout) return;
+      reconnectTimeout = setTimeout(() => {
+        reconnectTimeout = null;
+        this._unsubscribe = null;
+        this.subscribe(callback);
+      }, 3000);
+    };
     this._unsubscribe = onSnapshot(
       this.ref,
       (snap) => {
@@ -86,9 +106,17 @@ export class CloudStorageAdapter {
       },
       (err) => {
         console.warn("Firestore onSnapshot error:", err);
+        // Fix C15: automatically reconnect after transient errors
+        if (err.code !== "permission-denied" && err.code !== "not-found") {
+          reconnect();
+        }
       },
     );
     return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
       if (this._unsubscribe) {
         this._unsubscribe();
         this._unsubscribe = null;
@@ -115,8 +143,13 @@ export class CloudStorageAdapter {
   async addToList(movie) {
     try {
       await updateDoc(this.ref, { myList: arrayUnion(movie) });
-      if (this._cache)
-        this._cache.myList = [...(this._cache.myList || []), movie];
+      // Update cache safely — only add if not already present
+      if (this._cache) {
+        const existing = this._cache.myList || [];
+        if (!existing.some((m) => m.id === movie.id)) {
+          this._cache.myList = [...existing, movie];
+        }
+      }
     } catch (e) {
       // Doc might not exist yet
       await setDoc(this.ref, { myList: [movie] }, { merge: true });
@@ -125,6 +158,12 @@ export class CloudStorageAdapter {
   async removeFromList(movie) {
     try {
       await updateDoc(this.ref, { myList: arrayRemove(movie) });
+      // Keep cache in sync (#18 fix)
+      if (this._cache) {
+        this._cache.myList = (this._cache.myList || []).filter(
+          (m) => m.id !== movie.id,
+        );
+      }
     } catch {}
   }
 

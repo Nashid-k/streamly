@@ -47,6 +47,10 @@ function decrementInflight() {
       clearTimeout(wakeupTimer);
       wakeupTimer = null;
     }
+    // Only dispatch wakeup-done if wakeup was actually dispatched,
+    // and only if we haven't already dispatched it for this cycle.
+    // This prevents the race where a slow response arrives after
+    // the wakeup timer fires — we still need to clean up properly.
     if (wakeupFired) {
       wakeupFired = false;
       window.dispatchEvent(new Event("server-wakeup-done"));
