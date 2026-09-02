@@ -19,7 +19,7 @@
     <title>Streamly</title>
     <link rel="manifest" href="/manifest.json" />
     <script>
-      // Force-clear all caches and reload on new deploy
+      // Clear stale SW caches on new deploy (no reload — let ErrorBoundary handle it)
       (function() {
         var V = 'v11.0';
         var prev = null;
@@ -31,8 +31,7 @@
             if ('caches' in window) caches.keys().then(function(n) { n.forEach(function(k) { caches.delete(k); }); });
             // Unregister all service workers
             if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function(r) { r.forEach(function(x) { x.unregister(); }); });
-            // Force hard reload (skip cache)
-            window.location.reload();
+            // Do NOT reload — ErrorBoundary will handle chunk errors gracefully
           } catch(e) {}
         }
       })();

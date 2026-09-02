@@ -22,10 +22,19 @@ export default class ErrorBoundary extends React.Component {
     ) {
       const lastReload = sessionStorage.getItem("chunk_reload_time");
       const now = Date.now();
-      // Only reload if we haven't reloaded in the last 10 seconds to prevent infinite loops
-      if (!lastReload || now - Number(lastReload) > 10000) {
+      // Only reload if we haven't reloaded in the last 5 seconds to prevent infinite loops
+      if (!lastReload || now - Number(lastReload) > 5000) {
         sessionStorage.setItem("chunk_reload_time", now.toString());
-        window.location.reload();
+        // Clear all caches before reload to ensure fresh chunks
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            names.forEach(function(name) { caches.delete(name); });
+          }).then(function() {
+            window.location.reload();
+          });
+        } else {
+          window.location.reload();
+        }
       }
     }
   }
@@ -48,15 +57,28 @@ export default class ErrorBoundary extends React.Component {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
+              gap: "1.5rem",
             }}
           >
+            {/* Spinner */}
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                border: "3px solid rgba(244,63,94,0.2)",
+                borderTopColor: "#f43f5e",
+                borderRadius: "50%",
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             <h1
-              style={{ color: "#fff", marginBottom: "1rem", fontSize: "2rem" }}
+              style={{ color: "#fff", fontSize: "1.5rem", fontWeight: 700, margin: 0 }}
             >
-              Updating Application...
+              Updating Application
             </h1>
-            <p style={{ color: "#a1a1aa" }}>
-              We are fetching the latest version. Please wait a moment...
+            <p style={{ color: "#71717a", fontSize: "0.9rem", margin: 0 }}>
+              Fetching the latest version...
             </p>
           </div>
         );
