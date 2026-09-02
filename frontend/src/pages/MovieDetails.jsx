@@ -570,9 +570,17 @@ export default function MovieDetails() {
     queryFn: () => movieService.getSeasonEpisodes(id, selectedSeason, platform),
     enabled: isTvContent,
     retry: 2,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
-  const episodes = Array.isArray(episodesData) ? episodesData : [];
+  // Backend now returns { episodes, totalEpisodes, releasedEpisodes, isAiring } for running series
+  const episodes = Array.isArray(episodesData)
+    ? episodesData
+    : Array.isArray(episodesData?.episodes)
+      ? episodesData.episodes
+      : [];
+  const totalEpisodes = episodesData?.totalEpisodes || episodes.length;
+  const releasedEpisodes = episodesData?.releasedEpisodes || episodes.length;
+  const isAiring = episodesData?.isAiring || false;
   const hasSeriesEpisodes = isTvContent;
 
   useEffect(() => {
@@ -1682,7 +1690,9 @@ export default function MovieDetails() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              Episodes {episodes.length > 0 && <span style={{ fontSize: '0.7em', color: '#52525b', fontWeight: 400 }}>({episodes.length})</span>}
+              Episodes {isAiring && totalEpisodes > episodes.length
+                ? <span style={{ fontSize: '0.7em', color: '#52525b', fontWeight: 400 }}>({releasedEpisodes} of {totalEpisodes} released)</span>
+                : episodes.length > 0 && <span style={{ fontSize: '0.7em', color: '#52525b', fontWeight: 400 }}>({episodes.length})</span>}
             </motion.h2>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
