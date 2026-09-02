@@ -264,7 +264,7 @@ function Layout({ children }) {
               />
             </div>
             Streamly
-            <span style={{ fontSize: '0.5rem', background: 'linear-gradient(135deg, #f43f5e, #fb923c)', color: '#fff', padding: '2px 6px', borderRadius: '6px', fontWeight: 700, marginLeft: '6px', letterSpacing: '0.05em', verticalAlign: 'super' }}>v10.0</span>
+            <span style={{ fontSize: '0.5rem', background: 'linear-gradient(135deg, #f43f5e, #fb923c)', color: '#fff', padding: '2px 6px', borderRadius: '6px', fontWeight: 700, marginLeft: '6px', letterSpacing: '0.05em', verticalAlign: 'super' }}>v11.0</span>
           </Link>
 
           <div
