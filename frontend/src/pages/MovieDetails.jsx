@@ -569,10 +569,13 @@ export default function MovieDetails() {
     queryKey: ["episodes", id, selectedSeason, platform],
     queryFn: () => movieService.getSeasonEpisodes(id, selectedSeason, platform),
     enabled: isTvContent,
-    retry: 2,
-    staleTime: 1000 * 60 * 2,
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 1000 * 60,
+    refetchOnWindowFocus: true,
   });
-  // Backend now returns { episodes, totalEpisodes, releasedEpisodes, isAiring } for running series
+  // Backend returns { episodes, totalEpisodes, releasedEpisodes, isAiring } for running series
+  // But also handle plain array format for backward compatibility
   const episodes = Array.isArray(episodesData)
     ? episodesData
     : Array.isArray(episodesData?.episodes)
