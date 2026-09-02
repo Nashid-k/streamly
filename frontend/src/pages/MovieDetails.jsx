@@ -6,7 +6,7 @@ import { movieService } from "../api/movieService";
 import Loader from "../components/Loader";
 import { TelemetryAdapter } from "../api/telemetryAdapter";
 import { createPortal } from "react-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Play,
@@ -523,8 +523,8 @@ export default function MovieDetails() {
     refetchOnWindowFocus: true,
   });
 
-  // Resolve the actual platform from movie's availablePlatforms
-  const effectivePlatform = (() => {
+  // Resolve the actual platform from movie's availablePlatforms (fully dynamic)
+  const effectivePlatform = useMemo(() => {
     if (!movie?.availablePlatforms?.length) return 'netflix';
     const ap = movie.availablePlatforms[0].toLowerCase();
     if (ap.includes('prime')) return 'prime';
@@ -534,7 +534,7 @@ export default function MovieDetails() {
     if (ap.includes('sony')) return 'sonyliv';
     if (ap.includes('jio')) return 'jio';
     return 'netflix';
-  })();
+  }, [movie?.availablePlatforms]);
 
   const { data: similarData } = useQuery({
     queryKey: ["similar", id],
