@@ -1302,13 +1302,14 @@ const CustomVideoPlayer = ({
           ref={iframeRef}
           key={`iframe-${activeServerIndex}-${useNativeControls}`}
           src={iframeUrl}
+          sandbox="allow-scripts allow-same-origin allow-presentation"
           style={{
             width: "100%",
             height: "100%",
             border: "none",
             background: "#050505",
             pointerEvents: isCineSrc ? "auto" : (showCustomUI ? "none" : "auto"),
-            opacity: isLoading && showCustomUI && !hasInitiallyLoaded ? 0 : 1,
+            opacity: isLoading && !hasInitiallyLoaded ? 0 : 1,
             transition:
               "opacity 0.3s ease, transform 0.5s cubic-bezier(0.4,0,0.2,1)",
             filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
@@ -1329,11 +1330,20 @@ const CustomVideoPlayer = ({
         />
       )}
 
-      {/* ── CINESRC MOUSE OVERLAY — captures hover to show controls ── */}
+      {/* ── CINESRC MOUSE OVERLAY — captures hover to show controls, blocks ad clicks ── */}
       {showCustomUI && isCineSrc && (
         <div
           onMouseMove={handleMouseMove}
-          onClick={(e) => { togglePlay(); }}
+          onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            const rect = containerRef.current.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const pct = x / rect.width;
+            if (pct < 0.3) { seekRelative(-10); setDoubleTapRipple({ side: 'left', id: Date.now() }); setTimeout(() => setDoubleTapRipple(null), 600); }
+            else if (pct > 0.7) { seekRelative(10); setDoubleTapRipple({ side: 'right', id: Date.now() }); setTimeout(() => setDoubleTapRipple(null), 600); }
+            else { toggleFullscreen(); }
+          }}
           style={{ position: "absolute", inset: 0, zIndex: 9, cursor: showControls ? 'default' : 'none' }}
         />
       )}
@@ -3007,7 +3017,7 @@ const CustomVideoPlayer = ({
                   </div>
                 </div>
 
-                {/* Progress Bar */}
+                {/* Progress Bar — z-index 20 ensures it covers any CineSrc native bar */}
                 <div
                   ref={progressBarRef}
                   onMouseDown={onProgressMouseDown}
@@ -3016,6 +3026,7 @@ const CustomVideoPlayer = ({
                   className="group/bar"
                   style={{
                     position: "relative",
+                    zIndex: 20,
                     height: "22px",
                     display: "flex",
                     alignItems: "center",
