@@ -519,6 +519,8 @@ export default function MovieDetails() {
   const { data: movie, isLoading: loading } = useQuery({
     queryKey: ["movie", id],
     queryFn: () => movieService.getMovieDetails(id),
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: true,
   });
 
   // Resolve the actual platform from movie's availablePlatforms
@@ -596,7 +598,7 @@ export default function MovieDetails() {
 
   const totalEpisodes = episodesData?.totalEpisodes || episodes.length;
   const releasedEpisodes = episodesData?.releasedEpisodes || episodes.length;
-  const isAiring = episodesData?.isAiring || false;
+  const isAiring = episodesData?.isAiring || !!movie?.nextEpisode?.releaseDate;
   const hasSeriesEpisodes = isTvContent;
 
   useEffect(() => {
