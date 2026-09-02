@@ -883,59 +883,86 @@ a {
 }
 
 /* Skeleton Loaders (Pure GPU Accelerated) */
+/* ── Skeleton Base ─────────────────────────────────────────── */
 .skeleton {
-  background-color: #1a1a1f;
+  background: linear-gradient(135deg, #16161a 0%, #1a1a1f 50%, #16161a 100%);
+  background-size: 200% 200%;
   border-radius: var(--radius-lg);
   position: relative;
   overflow: hidden;
-  /* Hardware accelerate the container to isolate layer */
   will-change: transform;
   transform: translateZ(0);
+  animation: skeleton-breathe 3s ease-in-out infinite;
 }
 
+/* Shimmer wave overlay */
 .skeleton::after {
   content: "";
   position: absolute;
   inset: 0;
-  /* Instead of animating background-position, animate a wide gradient overlay with transform */
   background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.08),
-    transparent
+    105deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.06) 45%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 55%,
+    transparent 60%,
+    transparent 100%
   );
   transform: translateX(-100%);
-  animation: shimmer-wave 1.5s infinite linear;
+  animation: shimmer-wave 2s ease-in-out infinite;
   will-change: transform;
 }
 
 @keyframes shimmer-wave {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-/* Skeleton stagger — makes loading feel intentional */
-.skeleton-card:nth-child(1) {
-  animation-delay: 0s;
+@keyframes skeleton-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }
-.skeleton-card:nth-child(2) {
-  animation-delay: 0.06s;
+
+/* Skeleton with rounded variant */
+.skeleton-circle {
+  border-radius: 50% !important;
 }
-.skeleton-card:nth-child(3) {
-  animation-delay: 0.12s;
+
+/* Skeleton with accent glow */
+.skeleton-glow {
+  background: linear-gradient(135deg, #1a1020 0%, #1a1a1f 50%, #1a1020 100%);
 }
-.skeleton-card:nth-child(4) {
-  animation-delay: 0.18s;
+.skeleton-glow::after {
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(244, 63, 94, 0.08) 45%,
+    rgba(244, 63, 94, 0.15) 50%,
+    rgba(244, 63, 94, 0.08) 55%,
+    transparent 60%,
+    transparent 100%
+  );
 }
-.skeleton-card:nth-child(5) {
-  animation-delay: 0.24s;
+
+/* Skeleton stagger — wave effect across cards */
+.skeleton-card {
+  animation: skeleton-wave-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.skeleton-card:nth-child(6) {
-  animation-delay: 0.3s;
+.skeleton-card:nth-child(1) { animation-delay: 0s; }
+.skeleton-card:nth-child(2) { animation-delay: 0.05s; }
+.skeleton-card:nth-child(3) { animation-delay: 0.1s; }
+.skeleton-card:nth-child(4) { animation-delay: 0.15s; }
+.skeleton-card:nth-child(5) { animation-delay: 0.2s; }
+.skeleton-card:nth-child(6) { animation-delay: 0.25s; }
+.skeleton-card:nth-child(7) { animation-delay: 0.3s; }
+.skeleton-card:nth-child(8) { animation-delay: 0.35s; }
+
+@keyframes skeleton-wave-in {
+  0% { opacity: 0; transform: translateY(12px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .skeleton-hero {

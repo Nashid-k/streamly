@@ -2,32 +2,27 @@ import React, { useEffect, useState } from "react";
 import { useIsFetching, useIsMutating } from "@tanstack/react-query";
 
 /**
- * Universal 100x GPU-Accelerated Loader Adapter
- * Replaces all disparate loaders (progress bars, lucide icons, etc.) with a single,
- * mathematically perfect CSS spinner that scales dynamically to any context.
+ * Universal Loader — redesigned with smoother dual-ring spinner,
+ * context-aware colors, and better visual feedback.
  *
  * Variants:
- * - 'page': Massive centered spinner for page-blocking loads (Suspense, Initial Data)
- * - 'inline': Container-bound spinner for sections
- * - 'button': Tiny 16px spinner for buttons (AuthModal)
- * - 'global': Smart, non-blocking spinner fixed in the bottom-right corner that
- *             automatically tracks all background data fetches without UI locking.
+ * - 'page': Full-page centered spinner for Suspense/loading states
+ * - 'inline': Section-bound spinner
+ * - 'button': Tiny 16px spinner for buttons
+ * - 'global': Non-blocking spinner fixed bottom-right for background fetches
  */
-export default function Loader({ variant = "page", size }) {
-  // Global background tracking logic
+export default function Loader({ variant = "page", size, color }) {
   const isFetching = useIsFetching();
   const isMutating = useIsMutating();
   const isGlobalLoading = isFetching > 0 || isMutating > 0;
 
   const [showGlobal, setShowGlobal] = useState(false);
 
-  // Debounce global loader to prevent flickering on 50ms fast requests
   useEffect(() => {
     if (variant !== "global") return;
-
     let timer;
     if (isGlobalLoading) {
-      timer = setTimeout(() => setShowGlobal(true), 300); // 300ms grace period
+      timer = setTimeout(() => setShowGlobal(true), 400);
     } else {
       setShowGlobal(false);
     }
@@ -36,76 +31,105 @@ export default function Loader({ variant = "page", size }) {
 
   if (variant === "global" && !showGlobal) return null;
 
-  // Compute CSS sizing dynamically
-  let dimensions = "60px";
+  // Sizing
+  let dimensions = "56px";
   if (size) dimensions = size;
   else if (variant === "button") dimensions = "18px";
-  else if (variant === "global") dimensions = "32px";
+  else if (variant === "global") dimensions = "28px";
+
+  const primaryColor = color || "#f43f5e";
+  const secondaryColor = "#fb923c";
 
   const spinnerCore = (
-    <div
-      style={{ position: "relative", width: dimensions, height: dimensions }}
-    >
-      <style>
-        {`
-          .spinner-outer, .spinner-inner {
-            position: absolute;
-            border-radius: 50%;
-            will-change: transform;
-          }
-          .spinner-outer {
-            inset: 0;
-            border: calc(${dimensions} * 0.05) solid rgba(229, 9, 20, 0.15);
-            border-top-color: #e50914;
-            border-right-color: #e50914;
-            animation: spin-right 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-          }
-          .spinner-inner {
-            inset: calc(${dimensions} * 0.15);
-            border: calc(${dimensions} * 0.05) solid rgba(251, 146, 60, 0.15);
-            border-bottom-color: #fb923c;
-            border-left-color: #fb923c;
-            animation: spin-left 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-          }
-          .spinner-dot {
-            position: absolute;
-            inset: calc(${dimensions} * 0.35);
-            background-color: #e50914;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(229, 9, 20, 0.8);
-            animation: pulse-dot 1.2s ease-in-out infinite;
-            will-change: transform, opacity;
-          }
-
-          @keyframes spin-right { to { transform: rotate(360deg); } }
-          @keyframes spin-left { to { transform: rotate(-360deg); } }
-          @keyframes pulse-dot {
-            0%, 100% { transform: scale(0.8); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 1; }
-          }
-        `}
-      </style>
-      <div className="spinner-outer" />
-      <div className="spinner-inner" />
-      <div className="spinner-dot" />
+    <div style={{ position: "relative", width: dimensions, height: dimensions }}>
+      <style>{`
+        @keyframes loader-spin-cw { to { transform: rotate(360deg); } }
+        @keyframes loader-spin-ccw { to { transform: rotate(-360deg); } }
+        @keyframes loader-pulse-center {
+          0%, 100% { transform: scale(0.7); opacity: 0.4; }
+          50% { transform: scale(1.1); opacity: 1; }
+        }
+        @keyframes loader-dash {
+          0% { stroke-dashoffset: 180; }
+          50% { stroke-dashoffset: 45; }
+          100% { stroke-dashoffset: 180; }
+        }
+      `}</style>
+      <svg
+        viewBox="0 0 44 44"
+        style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}
+      >
+        {/* Outer ring */}
+        <circle
+          cx="22" cy="22" r="18"
+          fill="none"
+          stroke={primaryColor}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray="113"
+          strokeDashoffset="75"
+          opacity="0.2"
+        />
+        <circle
+          cx="22" cy="22" r="18"
+          fill="none"
+          stroke={primaryColor}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray="113"
+          strokeDashoffset="75"
+          style={{ animation: "loader-dash 1.4s ease-in-out infinite" }}
+        />
+        {/* Inner ring (counter-rotate) */}
+        <circle
+          cx="22" cy="22" r="11"
+          fill="none"
+          stroke={secondaryColor}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray="69"
+          strokeDashoffset="40"
+          opacity="0.2"
+          style={{ animation: "loader-spin-ccw 1.8s linear infinite", transformOrigin: "center" }}
+        />
+        <circle
+          cx="22" cy="22" r="11"
+          fill="none"
+          stroke={secondaryColor}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray="69"
+          strokeDashoffset="40"
+          style={{ animation: "loader-dash 2s ease-in-out infinite 0.3s" }}
+        />
+      </svg>
+      {/* Center dot */}
+      <div
+        style={{
+          position: "absolute",
+          top: "50%", left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "20%",
+          height: "20%",
+          borderRadius: "50%",
+          background: primaryColor,
+          boxShadow: `0 0 8px ${primaryColor}80`,
+          animation: "loader-pulse-center 1.2s ease-in-out infinite",
+        }}
+      />
     </div>
   );
 
-  // Render context
+  // ── Button variant ──
   if (variant === "button") {
     return (
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
         {spinnerCore}
       </div>
     );
   }
 
+  // ── Global variant ──
   if (variant === "global") {
     return (
       <div
@@ -114,35 +138,56 @@ export default function Loader({ variant = "page", size }) {
           bottom: "24px",
           right: "24px",
           zIndex: 999999,
-          background: "rgba(0, 0, 0, 0.7)",
-          backdropFilter: "blur(10px)",
-          padding: "12px",
+          background: "rgba(10, 10, 13, 0.85)",
+          backdropFilter: "blur(16px)",
+          padding: "10px",
           borderRadius: "50%",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)",
           pointerEvents: "none",
-          animation: "fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+          animation: "loader-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
-        <style>{`@keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+        <style>{`
+          @keyframes loader-fade-in {
+            from { opacity: 0; transform: translateY(12px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+        `}</style>
         {spinnerCore}
       </div>
     );
   }
 
+  // ── Page / Inline variant ──
   return (
     <div
       style={{
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        minHeight: variant === "page" ? "70vh" : "auto",
+        minHeight: variant === "page" ? "60vh" : "auto",
         width: "100%",
         padding: variant === "inline" ? "2rem" : "0",
-        background: "transparent",
+        gap: "1.25rem",
       }}
     >
       {spinnerCore}
+      {variant === "page" && (
+        <div
+          style={{
+            color: "#52525b",
+            fontSize: "0.8rem",
+            fontWeight: 500,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            animation: "loader-pulse-center 2s ease-in-out infinite",
+          }}
+        >
+          Loading
+        </div>
+      )}
     </div>
   );
 }
