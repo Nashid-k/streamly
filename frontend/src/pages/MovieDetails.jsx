@@ -1147,23 +1147,43 @@ export default function MovieDetails() {
                   }}
                 />
               ) : (
-                <motion.h1
-                  style={{
-                    fontSize: "clamp(2.5rem, 4vw, 4.5rem)",
-                    fontWeight: 800,
-                    letterSpacing: "-0.04em",
-                    margin: 0,
-                  }}
-                  initial={{ opacity: 0, y: 24, letterSpacing: "0.02em" }}
-                  animate={{ opacity: 1, y: 0, letterSpacing: "-0.04em" }}
-                  transition={{
-                    delay: 0.2,
-                    duration: 0.65,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
+                <motion.div
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ position: 'relative', maxWidth: '500px' }}
                 >
-                  {movie.title}
-                </motion.h1>
+                  <h1
+                    style={{
+                      fontSize: 'clamp(2.2rem, 3.5vw, 3.8rem)',
+                      fontWeight: 800,
+                      letterSpacing: '-0.03em',
+                      margin: 0,
+                      lineHeight: 1.1,
+                      background: 'linear-gradient(135deg, #fff 0%, #a1a1aa 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      textShadow: 'none',
+                    }}
+                  >
+                    {movie.title}
+                  </h1>
+                  {movie.releaseYear && (
+                    <span style={{
+                      display: 'inline-block',
+                      marginTop: '0.5rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: '#52525b',
+                      padding: '3px 10px',
+                      background: 'rgba(255,255,255,0.04)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}>{movie.releaseYear} · {movie.isSeries ? 'Series' : 'Movie'}</span>
+                  )}
+                </motion.div>
               )}
             </motion.div>
 
