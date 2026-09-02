@@ -366,6 +366,10 @@ a {
   object-fit: cover;
   object-position: center 20%;
   animation: kenBurns 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.hero-bg.paused {
+  animation-play-state: paused;
 }
 @keyframes kenBurns {
   0% {
@@ -1960,4 +1964,21 @@ html {
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+}
+
+/* Loader component keyframes (moved from inline <style> tags) */
+@keyframes loader-spin-cw { to { transform: rotate(360deg); } }
+@keyframes loader-spin-ccw { to { transform: rotate(-360deg); } }
+@keyframes loader-pulse-center {
+  0%, 100% { transform: scale(0.7); opacity: 0.4; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+@keyframes loader-dash {
+  0% { stroke-dashoffset: 180; }
+  50% { stroke-dashoffset: 45; }
+  100% { stroke-dashoffset: 180; }
+}
+@keyframes loader-fade-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }

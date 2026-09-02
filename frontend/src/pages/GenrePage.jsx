@@ -1,89 +1,70 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { movieService } from "../api/movieService";
+import { PlatformAdapter } from "../api/platformAdapter";
 import MovieCard from "../components/MovieCard";
 
 export default function GenrePage() {
   const { genre } = useParams();
 
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
   const [filterType, setFilterType] = useState("All");
   const [sortBy, setSortBy] = useState("Popularity");
 
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
-    fetch(`${API_URL}/movies/search?q=${encodeURIComponent(genre)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        const mapSource = (m) => {
-          let source = "netflix";
-          let sourceName = "Netflix";
-          if (m.availablePlatforms && m.availablePlatforms.length > 0) {
-            if (m.availablePlatforms.includes("Prime Video")) {
-              source = "prime";
-              sourceName = "Prime Video";
-            } else if (m.availablePlatforms.includes("Netflix")) {
-              source = "netflix";
-              sourceName = "Netflix";
-            } else if (m.availablePlatforms.includes("Hotstar")) {
-              source = "hotstar";
-              sourceName = "Hotstar";
-            } else if (m.availablePlatforms.includes("Apple TV+")) {
-              source = "appletv";
-              sourceName = "Apple TV+";
-            } else if (m.availablePlatforms.includes("Zee5")) {
-              source = "zee5";
-              sourceName = "Zee5";
-            } else if (m.availablePlatforms.includes("Sony LIV")) {
-              source = "sonyliv";
-              sourceName = "Sony LIV";
-            } else if (m.availablePlatforms.includes("JioCinema")) {
-              source = "jio";
-              sourceName = "JioCinema";
-            }
+  const { data: rawResults, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ["search", genre],
+    queryFn: () => movieService.searchMovies(genre),
+    enabled: !!genre,
+  });
+
+  const error = queryError ? "Failed to load genre results." : null;
+
+  const results = useMemo(() => {
+    if (!rawResults || !rawResults.movies) return [];
+
+    const mapSource = (m) => {
+      let resolved = { id: "netflix", name: "Netflix" };
+      if (m.availablePlatforms && m.availablePlatforms.length > 0) {
+        for (const p of m.availablePlatforms) {
+          const match = PlatformAdapter.resolveFromRawName(p);
+          if (match.id !== "netflix" || p.toLowerCase().includes("netflix")) {
+            resolved = match;
+            break;
           }
-          return { ...m, source, sourceName };
-        };
-        const mapped = (data?.movies || []).map(mapSource);
+        }
+      }
+      return { ...m, source: resolved.id, sourceName: resolved.name };
+    };
 
-        // Filter to ensure the genre matches to prevent dirty search results
-        const strict = mapped.filter((m) => {
-          if (
-            m.genres &&
-            m.genres.some((g) => g.toLowerCase() === genre.toLowerCase())
-          )
-            return true;
-          if (
-            m.tags &&
-            m.tags.some((t) => t.toLowerCase() === genre.toLowerCase())
-          )
-            return true;
-          return false;
-        });
+    const mapped = rawResults.movies.map(mapSource);
 
-        // If strict is too small, fallback to search results
-        const finalResults = strict.length > 3 ? strict : mapped;
+    // Filter to ensure the genre matches to prevent dirty search results
+    const strict = mapped.filter((m) => {
+      if (
+        m.genres &&
+        m.genres.some((g) => g.toLowerCase() === genre.toLowerCase())
+      )
+        return true;
+      if (
+        m.tags &&
+        m.tags.some((t) => t.toLowerCase() === genre.toLowerCase())
+      )
+        return true;
+      return false;
+    });
 
-        // Deduplicate
-        const seen = new Set();
-        const unique = finalResults.filter((m) => {
-          if (seen.has(m.id)) return false;
-          seen.add(m.id);
-          return true;
-        });
-        setResults(unique);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load genre results.");
-        setLoading(false);
-      });
-  }, [genre]);
+    // If strict is too small, fallback to search results
+    const finalResults = strict.length > 3 ? strict : mapped;
+
+    // Deduplicate
+    const seen = new Set();
+    return finalResults.filter((m) => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
+  }, [rawResults, genre]);
 
   const filteredAndSortedList = useMemo(() => {
     let list = [...results];
@@ -116,6 +97,7 @@ export default function GenrePage() {
 
   useEffect(() => {
     setVisibleCount(20);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [genre, filterType, sortBy]);
 
   useEffect(() => {

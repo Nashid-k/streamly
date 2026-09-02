@@ -274,7 +274,7 @@ export default function MovieCard({
                     }}
                   >
                     <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#fff', flexShrink: 0 }} />
-                    NEW {getTMDBWeekdayShort(movie.nextEpisode.releaseDate).toUpperCase()}
+                    NEW {getTMDBWeekdayShort(movie.nextEpisode.releaseDate, undefined, movie.source || movie.platform).toUpperCase()}
                   </div>
                 )}
               </div>
@@ -429,7 +429,7 @@ export default function MovieCard({
                       letterSpacing: "0.04em",
                     }}
                   >
-                    {getTMDBWeekdayShort(movie.nextEpisode.releaseDate)}s
+                    {getTMDBWeekdayShort(movie.nextEpisode.releaseDate, undefined, movie.source || movie.platform)}s
                   </span>
                 )}
                 {/* Genre dots */}

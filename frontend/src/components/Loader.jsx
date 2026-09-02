@@ -42,19 +42,6 @@ export default function Loader({ variant = "page", size, color }) {
 
   const spinnerCore = (
     <div style={{ position: "relative", width: dimensions, height: dimensions }}>
-      <style>{`
-        @keyframes loader-spin-cw { to { transform: rotate(360deg); } }
-        @keyframes loader-spin-ccw { to { transform: rotate(-360deg); } }
-        @keyframes loader-pulse-center {
-          0%, 100% { transform: scale(0.7); opacity: 0.4; }
-          50% { transform: scale(1.1); opacity: 1; }
-        }
-        @keyframes loader-dash {
-          0% { stroke-dashoffset: 180; }
-          50% { stroke-dashoffset: 45; }
-          100% { stroke-dashoffset: 180; }
-        }
-      `}</style>
       <svg
         viewBox="0 0 44 44"
         style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}
@@ -148,12 +135,6 @@ export default function Loader({ variant = "page", size, color }) {
           animation: "loader-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
-        <style>{`
-          @keyframes loader-fade-in {
-            from { opacity: 0; transform: translateY(12px) scale(0.9); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-          }
-        `}</style>
         {spinnerCore}
       </div>
     );

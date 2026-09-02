@@ -1,29 +1,35 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Keyboard, X, Search, ArrowLeft, Play, Bookmark } from "lucide-react";
 
 export default function GlobalShortcuts() {
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Skip if the video player is active (it handles its own shortcuts)
+      const playerActive = !!document.querySelector('iframe[src*="cinesrc"], iframe[src*="vidlink"], iframe[src*="vidsrc"]');
+
       // Shortcuts modal (Shift + ?)
       if (e.shiftKey && e.key === "?") {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
+        // Don't open global shortcuts if player is active — player has its own
+        if (!playerActive) {
+          e.preventDefault();
+          setIsOpen((prev) => !prev);
+        }
       }
 
       // Close modal on escape
-      if (e.key === "Escape" && isOpen) {
+      if (e.key === "Escape" && isOpenRef.current) {
         setIsOpen(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navigate, isOpen]);
+  }, []);
 
   const shortcuts = [
     { key: "Cmd + K", desc: "Global Search", icon: <Search size={16} /> },

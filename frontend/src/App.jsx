@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense, lazy } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -25,10 +25,12 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import slugify from "slugify";
 import { movieService } from "./api/movieService";
+import { PlatformAdapter } from "./api/platformAdapter";
+import { CdnImageAdapter } from "./api/cdnImageAdapter";
 import { useDebounce } from "./hooks/useDebounce";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAppAuth } from "./context/AuthContext";
-import { Suspense, lazy } from "react";
+
 import ErrorBoundary from "./components/ErrorBoundary";
 
 import Loader from "./components/Loader";
@@ -87,11 +89,13 @@ function Layout({ children }) {
     searchHistory,
     addSearch,
     removeSearch,
-    clearHistory,
+    clearHistory: clearSearchHistory,
     notifications,
     markAllAsRead,
     clearNotifications,
   } = useAppAuth();
+
+  const unreadCount = useMemo(() => notifications.filter((n) => !n.isRead).length, [notifications]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -114,33 +118,17 @@ function Layout({ children }) {
     if (!rawResults || !rawResults.movies) return [];
 
     const mapSource = (m) => {
-      let source = "netflix";
-      let sourceName = "Netflix";
+      let resolved = { id: "netflix", name: "Netflix" };
       if (m.availablePlatforms && m.availablePlatforms.length > 0) {
-        if (m.availablePlatforms.includes("Prime Video")) {
-          source = "prime";
-          sourceName = "Prime Video";
-        } else if (m.availablePlatforms.includes("Netflix")) {
-          source = "netflix";
-          sourceName = "Netflix";
-        } else if (m.availablePlatforms.includes("Hotstar")) {
-          source = "hotstar";
-          sourceName = "Hotstar";
-        } else if (m.availablePlatforms.includes("Apple TV+")) {
-          source = "appletv";
-          sourceName = "Apple TV+";
-        } else if (m.availablePlatforms.includes("Zee5")) {
-          source = "zee5";
-          sourceName = "Zee5";
-        } else if (m.availablePlatforms.includes("Sony LIV")) {
-          source = "sonyliv";
-          sourceName = "Sony LIV";
-        } else if (m.availablePlatforms.includes("JioCinema")) {
-          source = "jio";
-          sourceName = "JioCinema";
+        for (const p of m.availablePlatforms) {
+          const match = PlatformAdapter.resolveFromRawName(p);
+          if (match.id !== "netflix" || p.toLowerCase().includes("netflix")) {
+            resolved = match;
+            break;
+          }
         }
       }
-      return { ...m, source, sourceName };
+      return { ...m, source: resolved.id, sourceName: resolved.name };
     };
 
     const mapped = rawResults.movies.map(mapSource);
@@ -465,7 +453,7 @@ function Layout({ children }) {
                               <img
                                 loading="lazy"
                                 decoding="async"
-                                src={r.posterUrl || r.backdropUrl}
+                                src={CdnImageAdapter.getSmallUrl(r.posterUrl || r.backdropUrl)}
                                 alt={r.title}
                                 style={{
                                   width: "50px",
@@ -785,7 +773,7 @@ function Layout({ children }) {
                             Recent Searches
                           </span>
                           <button
-                            onClick={() => clearHistory()}
+                            onClick={() => clearSearchHistory()}
                             style={{
                               fontSize: "0.75rem",
                               color: "#71717a",
@@ -967,7 +955,7 @@ function Layout({ children }) {
                             <img
                               loading="lazy"
                               decoding="async"
-                              src={r.posterUrl || r.backdropUrl}
+                              src={CdnImageAdapter.getSmallUrl(r.posterUrl || r.backdropUrl)}
                               alt={r.title}
                               style={{
                                 width: "50px",
@@ -1171,7 +1159,7 @@ function Layout({ children }) {
               }}
             >
               <Bell size={20} aria-label="Notifications" color="#e4e4e7" />
-              {notifications.filter((n) => !n.isRead).length > 0 && (
+              {unreadCount > 0 && (
                 <div
                   style={{
                     position: "absolute",
@@ -1189,7 +1177,7 @@ function Layout({ children }) {
                     color: "#fff",
                   }}
                 >
-                  {notifications.filter((n) => !n.isRead).length}
+                  {unreadCount}
                 </div>
               )}
             </div>

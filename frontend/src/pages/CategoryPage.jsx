@@ -55,6 +55,7 @@ export default function CategoryPage() {
 
   useEffect(() => {
     setVisibleCount(20);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [categoryName]);
 
   useEffect(() => {

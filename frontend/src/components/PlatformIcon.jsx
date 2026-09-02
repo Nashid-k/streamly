@@ -32,7 +32,7 @@ const platforms = {
     url: "https://upload.wikimedia.org/wikipedia/commons/f/f7/SonyLIV_2020.png",
     height: "22px",
   },
-  jiocinema: {
+  jio: {
     name: "JioCinema",
     url: "https://upload.wikimedia.org/wikipedia/en/a/a4/JioCinema_Horizontal_%282024%29.svg",
     height: "22px",

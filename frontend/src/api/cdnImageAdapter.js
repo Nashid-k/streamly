@@ -35,4 +35,18 @@ export class CdnImageAdapter {
   static getTinyUrl(path) {
     return this.getUrl(path, "w92");
   }
+
+  /**
+   * Generates a small thumbnail URL for search dropdowns and small cards.
+   */
+  static getSmallUrl(path) {
+    return this.getUrl(path, "w154");
+  }
+
+  /**
+   * Generates a medium URL for card posters (default w500 is fine for cards).
+   */
+  static getMediumUrl(path) {
+    return this.getUrl(path, "w342");
+  }
 }

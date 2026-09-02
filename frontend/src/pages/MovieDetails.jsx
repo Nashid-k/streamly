@@ -1089,7 +1089,7 @@ export default function MovieDetails() {
                     }}
                   >
                     New Episode Airs on{" "}
-                    {formatTMDBDate(movie.nextEpisode.releaseDate, { weekday: 'long', month: 'short', day: 'numeric' })}
+                    {formatTMDBDate(movie.nextEpisode.releaseDate, { weekday: 'long', month: 'short', day: 'numeric' }, undefined, effectivePlatform)}
                   </span>
                 </motion.div>
               )}
@@ -1196,7 +1196,7 @@ export default function MovieDetails() {
                     </div>
                     {movie.expectedOttDate ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(96,165,250,0.08)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(96,165,250,0.15)' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#93c5fd' }}>Expected on OTT: {formatTMDBDateFull(movie.expectedOttDate)}</span>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#93c5fd' }}>Expected on OTT: {formatTMDBDateFull(movie.expectedOttDate, undefined, effectivePlatform)}</span>
                       </div>
                     ) : movie.availablePlatforms?.length > 0 ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1257,7 +1257,7 @@ export default function MovieDetails() {
                     icon: <Calendar size={15} />,
                     label:
                       movie.isUpcoming && movie.releaseDate
-                        ? formatTMDBDateFull(movie.releaseDate)
+                        ? formatTMDBDateFull(movie.releaseDate, undefined, effectivePlatform)
                         : movie.releaseYear,
                     bg: "rgba(255,255,255,0.06)",
                   },
@@ -1727,7 +1727,7 @@ export default function MovieDetails() {
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginLeft: '10px', fontSize: '0.65rem', fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg, #ef4444, #dc2626)', padding: '3px 12px', borderRadius: '100px', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#fff', animation: 'pulse 2s infinite' }} />
                   {movie?.nextEpisode?.releaseDate
-                    ? `New episode ${getTMDBWeekday(movie.nextEpisode.releaseDate)}`
+                    ? `New episode ${getTMDBWeekday(movie.nextEpisode.releaseDate, undefined, effectivePlatform)}`
                     : 'Airing now'}
                 </span>
               )}

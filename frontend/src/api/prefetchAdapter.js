@@ -13,14 +13,14 @@ export class PrefetchAdapter {
     queryClient.prefetchQuery({
       queryKey: ["movie", movieId, platform],
       queryFn: () => movieService.getMovieDetails(movieId, platform),
-      staleTime: 1000 * 60 * 60, // Cache for 1 hour
+      staleTime: 10 * 60 * 1000, // 10 minutes — longer than default 5min but not excessive
     });
 
-    // 2. Prefetch recommendations to make the bottom of the page feel instant
+    // 2. Prefetch similar movies to make the bottom of the page feel instant
     queryClient.prefetchQuery({
-      queryKey: ["recommendations", movieId, platform],
-      queryFn: () => movieService.getRecommendations(movieId, platform),
-      staleTime: 1000 * 60 * 60,
+      queryKey: ["similar", movieId, platform],
+      queryFn: () => movieService.getSimilarMovies(movieId, platform),
+      staleTime: 10 * 60 * 1000,
     });
   }
 
@@ -31,7 +31,7 @@ export class PrefetchAdapter {
     queryClient.prefetchQuery({
       queryKey: ["categories", platform],
       queryFn: () => movieService.getCategories(platform),
-      staleTime: 1000 * 60 * 60,
+      staleTime: 10 * 60 * 1000,
     });
   }
 }

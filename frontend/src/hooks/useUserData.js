@@ -68,12 +68,16 @@ export function useMyList(user) {
     }
   }, [user]);
 
+  const myListRef = useRef(myList);
+  myListRef.current = myList;
+
   const toggleMyList = useCallback(
     async (movie) => {
-      const exists = myList.some((m) => m.id === movie.id);
+      const previousList = myListRef.current;
+      const exists = previousList.some((m) => m.id === movie.id);
       const newList = exists
-        ? myList.filter((m) => m.id !== movie.id)
-        : [...myList, movie];
+        ? previousList.filter((m) => m.id !== movie.id)
+        : [...previousList, movie];
 
       setMyList(newList);
 
@@ -85,7 +89,8 @@ export function useMyList(user) {
           await adapter.addToList(movie);
         }
       } catch {
-        setMyList(myList);
+        // Revert to the snapshot taken before the optimistic update
+        setMyList(previousList);
       }
     },
     [myList, user],

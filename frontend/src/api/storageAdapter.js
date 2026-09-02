@@ -219,6 +219,17 @@ class LocalStorageAdapter {
   }
 }
 
+// Cache adapter instances by uid to avoid creating new ones on every call
+const adapterCache = new Map();
+let localAdapter = null;
+
 export function getStorageAdapter(user) {
-  return user ? new CloudStorageAdapter(user.uid) : new LocalStorageAdapter();
+  if (!user) {
+    if (!localAdapter) localAdapter = new LocalStorageAdapter();
+    return localAdapter;
+  }
+  if (!adapterCache.has(user.uid)) {
+    adapterCache.set(user.uid, new CloudStorageAdapter(user.uid));
+  }
+  return adapterCache.get(user.uid);
 }

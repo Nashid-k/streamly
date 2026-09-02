@@ -2,30 +2,24 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { movieService } from "../api/movieService";
 import MovieCard from "../components/MovieCard";
 
 export default function PersonDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [person, setPerson] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [bioExpanded, setBioExpanded] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setLoading(true);
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
-    fetch(`${API_URL}/movies/person/${id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setPerson(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
   }, [id]);
+
+  const { data: person, isLoading: loading } = useQuery({
+    queryKey: ["person", id],
+    queryFn: () => movieService.getPersonDetails(id),
+    enabled: !!id,
+  });
 
   if (loading) {
     return (

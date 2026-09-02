@@ -34,16 +34,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      // Step 1: Unregister ALL existing service workers immediately
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for (const reg of regs) {
-        await reg.unregister();
-      }
-      // Step 2: Register fresh SW with build timestamp (forces re-fetch on every deploy)
+      // Register SW with build timestamp for cache busting on deploys
       const buildTime = typeof __BUILD_TIME !== 'undefined' ? __BUILD_TIME : Date.now();
-      const newReg = await navigator.serviceWorker.register(`/sw.js?v=${buildTime}`);
-      // Step 3: Check for updates every 30s
-      setInterval(() => newReg.update().catch(() => {}), 30000);
+      const reg = await navigator.serviceWorker.register(`/sw.js?v=${buildTime}`);
+      // Check for updates periodically (SW will activate when new version found)
+      setInterval(() => reg.update().catch(() => {}), 60000);
     } catch {}
   });
 }

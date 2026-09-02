@@ -95,6 +95,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     setVisibleCount(20);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [query, filterType, sortBy]);
 
   useEffect(() => {

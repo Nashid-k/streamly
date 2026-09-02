@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 
@@ -11,6 +11,17 @@ import { AlertTriangle } from "lucide-react";
  */
 export function useConfirmDialog() {
   const [dialog, setDialog] = useState(null); // { title, message, confirmLabel, cancelLabel, resolve }
+  const dialogRef = useRef(dialog);
+  dialogRef.current = dialog;
+
+  // Cleanup: resolve any pending dialog as false on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (dialogRef.current?.resolve) {
+        dialogRef.current.resolve(false);
+      }
+    };
+  }, []);
 
   const confirmDialog = (opts) =>
     new Promise((resolve) => {

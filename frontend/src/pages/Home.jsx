@@ -564,6 +564,20 @@ export default function Home({
   }, []);
 
   const [isHeroHovered, setIsHeroHovered] = useState(false);
+  const heroRef = useRef(null);
+  const [heroVisible, setHeroVisible] = useState(true);
+
+  // Pause kenBurns animation when hero scrolls off-screen to save GPU
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroVisible(entry.isIntersecting),
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Interval logic moved below totalFeatured
 
@@ -965,6 +979,7 @@ export default function Home({
         ) : activeFeaturedMovie ? (
           <motion.div
             key={activeFeaturedMovie.id}
+            ref={heroRef}
             className="hero-container"
             initial={{ opacity: 0, filter: "blur(12px)", scale: 1.02 }}
             animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
@@ -981,7 +996,7 @@ export default function Home({
                 activeFeaturedMovie.poster
               }
               alt={activeFeaturedMovie.title}
-              className="hero-bg desktop-bg"
+              className={`hero-bg desktop-bg${!heroVisible ? ' paused' : ''}`}
               initial={{ scale: 1 }}
               animate={{ scale: 1.03 }}
               transition={{ duration: 8, ease: "linear" }}
@@ -998,7 +1013,7 @@ export default function Home({
                 activeFeaturedMovie.backdropUrl
               }
               alt={activeFeaturedMovie.title}
-              className="hero-bg mobile-bg"
+              className={`hero-bg mobile-bg${!heroVisible ? ' paused' : ''}`}
               initial={{ scale: 1 }}
               animate={{ scale: 1.03 }}
               transition={{ duration: 8, ease: "linear" }}

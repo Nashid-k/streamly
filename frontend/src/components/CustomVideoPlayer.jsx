@@ -147,6 +147,7 @@ const CustomVideoPlayer = ({
   const [backendIntroTimings, setBackendIntroTimings] = useState(null);
   const [contextMenu, setContextMenu] = useState({ show: false, x: 0, y: 0 });
   const [isLooping, setIsLooping] = useState(false);
+  const [brightness, setBrightness] = useState(1);
   const [qualities, setQualities] = useState([]);
   const [currentQuality, setCurrentQuality] = useState(null);
   const [audioTracks, setAudioTracks] = useState([]);
@@ -1287,6 +1288,7 @@ const CustomVideoPlayer = ({
             opacity: isLoading && showCustomUI && !hasInitiallyLoaded ? 0 : 1,
             transition:
               "opacity 0.3s ease, transform 0.5s cubic-bezier(0.4,0,0.2,1)",
+            filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
             ...ASPECT_RATIOS[aspectRatioIndex].style,
           }}
           allow="autoplay; fullscreen; picture-in-picture"

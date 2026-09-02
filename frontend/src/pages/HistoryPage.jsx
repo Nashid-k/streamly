@@ -265,7 +265,7 @@ export default function HistoryPage() {
                             showProgress={true}
                             progressValue={
                               movie.lastWatched
-                                ? Math.max(10, Math.random() * 80 + 10)
+                                ? Math.max(10, ((movie.id.toString().charCodeAt(0) * 31 + movie.id.toString().charCodeAt(1) * 17) % 71) + 10)
                                 : 0
                             }
                           />
