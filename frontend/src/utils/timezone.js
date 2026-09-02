@@ -49,8 +49,9 @@ export function tmdbDateToLocalDate(tmdbDateString, userTimezone) {
   if (!tmdbDateString) return null;
   const tz = userTimezone || getUserTimezone();
   try {
-    // Parse as US Eastern broadcast date (approximate: use noon UTC to avoid day boundary issues)
-    const usDate = new Date(tmdbDateString + 'T12:00:00-04:00'); // EDT approx
+    // Parse as US Eastern broadcast date — US shows air at ~8PM ET
+    // This ensures Indian users (IST = EDT+9:30) see the next day's date
+    const usDate = new Date(tmdbDateString + 'T20:00:00-04:00'); // 8PM EDT
     // Get the user's local date components
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: tz,

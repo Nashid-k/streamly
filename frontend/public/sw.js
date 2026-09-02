@@ -1,4 +1,4 @@
-const CACHE_NAME = 'streamly-v4';
+const CACHE_NAME = 'streamly-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -22,20 +22,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-while-revalidate for JS/CSS assets (serve cached fast, fetch new in background)
+  // Network-first for JS/CSS assets (always fetch latest, fall back to cache)
   if (event.request.url.match(/\.(js|css)$/)) {
     event.respondWith(
-      caches.open(CACHE_NAME).then((cache) => {
-        return cache.match(event.request).then((cached) => {
-          const fetchPromise = fetch(event.request).then((response) => {
-            if (response && response.status === 200) {
-              cache.put(event.request, response.clone());
-            }
-            return response;
-          }).catch(() => cached);
-          return cached || fetchPromise;
-        });
-      })
+      fetch(event.request).then((response) => {
+        // Update cache with fresh version
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
