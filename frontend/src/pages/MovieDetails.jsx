@@ -1180,10 +1180,32 @@ export default function MovieDetails() {
                 transition={{ delay: 0.18, duration: 0.4, ease: "easeOut" }}
                 style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <PlatformIcon platform={resolvedPlatform} />
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d4d4d8' }}>Streaming on {sourceName}</span>
-                </div>
+                {movie.isInTheaters ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(251,191,36,0.04))', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.2)' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fbbf24' }}>🎬 In Theaters</span>
+                    </div>
+                    {movie.expectedOttDate ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(96,165,250,0.08)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(96,165,250,0.15)' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#93c5fd' }}>Expected on OTT: {new Date(movie.expectedOttDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
+                    ) : movie.availablePlatforms?.length > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <PlatformIcon platform={resolvedPlatform} />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d4d4d8' }}>Coming to {sourceName}</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a1a1aa' }}>Not yet streaming</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <PlatformIcon platform={resolvedPlatform} />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d4d4d8' }}>Streaming on {sourceName}</span>
+                  </div>
+                )}
               </motion.div>
 
               {/* IMDb prominent badge + Meta pills */}
@@ -1454,7 +1476,7 @@ export default function MovieDetails() {
               animate="show"
             >
               {[
-                ...(movie.isUpcoming || SERVERS.length === 0
+                ...(movie.isUpcoming || movie.isInTheaters || SERVERS.length === 0
                   ? []
                   : [
                       {
@@ -1540,7 +1562,7 @@ export default function MovieDetails() {
                           ]
                         : []),
                     ]),
-                ...(movie.isUpcoming && movie.trailerUrl
+                ...((movie.isUpcoming || movie.isInTheaters) && movie.trailerUrl
                   ? [
                       {
                         cls: "btn btn-primary",
