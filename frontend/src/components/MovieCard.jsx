@@ -216,18 +216,15 @@ export default function MovieCard({
             )}
 
             {/* Platform Badge */}
-            {movie.source && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "8px",
-                  right: "8px",
-                  zIndex: 10,
-                }}
-              >
-                <PlatformIcon platform={movie.source} small={true} />
-              </div>
-            )}
+            {(() => {
+              const platformKey = movie.source || (movie.availablePlatforms?.[0]?.toLowerCase().includes('hotstar') ? 'hotstar' : movie.availablePlatforms?.[0]?.toLowerCase().includes('prime') ? 'prime' : movie.availablePlatforms?.[0]?.toLowerCase().includes('apple') ? 'appletv' : movie.availablePlatforms?.[0]?.toLowerCase().includes('zee') ? 'zee5' : movie.availablePlatforms?.[0]?.toLowerCase().includes('sony') ? 'sonyliv' : movie.availablePlatforms?.[0]?.toLowerCase().includes('jio') ? 'jio' : 'netflix');
+              if (!platformKey) return null;
+              return (
+                <div style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 10 }}>
+                  <PlatformIcon platform={platformKey} small={true} />
+                </div>
+              );
+            })()}
 
             {/* Bottom-left badges: SERIES + airing day */}
             {isTvContent && !isHovered && (
