@@ -89,7 +89,7 @@ export class MoviesService implements OnModuleInit {
   );
   private readonly genres = new Map<number, string>();
   private lastCatalogError: string | undefined;
-  private readonly seasonEpisodesCache = new Map<string, { episodes: Episode[]; expiresAt: number; totalEpisodes?: number; releasedEpisodes?: number; isAiring?: boolean }>();
+  private readonly seasonEpisodesCache = new Map<string, { episodes: Episode[]; expiresAt: number }>();
   private readonly SEASON_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
   private readonly state: Record<PlatformKey, PlatformState> =
@@ -1603,15 +1603,6 @@ export class MoviesService implements OnModuleInit {
       const cacheKey = `${id}_${seasonNumber}_${platform}`;
       const cached = this.seasonEpisodesCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
-        // Return consistent object format from cache
-        if (Array.isArray(cached.episodes)) {
-          return {
-            episodes: cached.episodes,
-            totalEpisodes: cached.totalEpisodes ?? cached.episodes.length,
-            releasedEpisodes: cached.releasedEpisodes ?? cached.episodes.length,
-            isAiring: cached.isAiring ?? false,
-          } as any;
-        }
         return cached.episodes;
       }
       // Expired entry — remove it and re-fetch
@@ -1675,10 +1666,8 @@ export class MoviesService implements OnModuleInit {
       }
 
       const rawEpisodes = seasonData.episodes || [];
-      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
-      // Map all raw episodes
-      const allEpisodes: Episode[] = rawEpisodes.map((ep: any) => {
+      const episodes: Episode[] = rawEpisodes.map((ep: any) => {
         const s = seasonNumber;
         const e = ep.episode_number;
 
@@ -1694,45 +1683,14 @@ export class MoviesService implements OnModuleInit {
         };
       });
 
-      // Filter: only return episodes that have already aired (air_date <= today)
-      // Episodes without an air_date are included (assumed available)
-      const releasedEpisodes = allEpisodes.filter(
-        (ep) => !ep.airDate || ep.airDate <= today,
-      );
-
-      const totalEpisodes = allEpisodes.length;
-      let releasedCount = releasedEpisodes.length;
-      // A season is "airing" if it has unreleased episodes (not all have aired yet)
-      let isAiring = releasedCount < totalEpisodes;
-
-      // DEFENSIVE: If date filter removed ALL episodes but TMDB says there are episodes,
-      // include them all with isAiring=true. This handles edge cases where TMDB air_date
-      // is wrong or in a different timezone than our server.
-      let finalEpisodes = releasedEpisodes;
-      if (releasedCount === 0 && totalEpisodes > 0) {
-        this.logger.warn(`[Episodes] Date filter removed all ${totalEpisodes} episodes for ${id} s${seasonNumber} — returning all with isAiring flag`);
-        finalEpisodes = allEpisodes;
-        releasedCount = 0;
-        isAiring = true;
-      }
-
       // Cache results (1h for episodes, 5min for empty to avoid hammering)
       this.seasonEpisodesCache.set(cacheKey, {
-        episodes: finalEpisodes,
-        totalEpisodes,
-        releasedEpisodes: releasedCount,
-        isAiring,
-        expiresAt: Date.now() + (finalEpisodes.length > 0 ? this.SEASON_CACHE_TTL_MS : 5 * 60 * 1000),
+        episodes,
+        expiresAt: Date.now() + (episodes.length > 0 ? this.SEASON_CACHE_TTL_MS : 5 * 60 * 1000),
       });
 
-      this.logger.log(`[Episodes] Loaded ${releasedCount}/${totalEpisodes} released episodes for ${id} season ${seasonNumber}${isAiring ? " (airing)" : ""}`);
-
-      return {
-        episodes: finalEpisodes,
-        totalEpisodes,
-        releasedEpisodes: releasedCount,
-        isAiring,
-      } as any;
+      this.logger.log(`[Episodes] Loaded ${episodes.length} episodes for ${id} season ${seasonNumber}`);
+      return episodes;
     } catch (err) {
       this.logger.warn(
         `[Episodes] Failed to load season ${seasonNumber} for ${id}: ${err}`,

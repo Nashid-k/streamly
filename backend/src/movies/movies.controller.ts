@@ -24,6 +24,7 @@ function setCache(
 }
 
 @Controller("api/movies")
+@UseInterceptors(CacheInterceptor)
 export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {}
 
@@ -220,7 +221,7 @@ export class MoviesController {
       | "sonyliv"
       | "jio" = "netflix",
   ) {
-    setCache(res, 60, 30); // 1-min browser cache with 30s stale-while-revalidate for episodes
+    setCache(res, 3600, 300); // 1-hour cache with 5-min stale-while-revalidate for episodes
     // Clamp season number to a sane range to prevent abuse
     const season = Math.min(
       Math.max(Number.parseInt(seasonNumber, 10) || 1, 1),
