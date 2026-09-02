@@ -1242,8 +1242,8 @@ export default function Home({
                         margin: "10px 2px",
                       }}
                     >
-                      {isActive && !isHeroHovered && (
-                        <div className="dot-filler" />
+                      {isActive && (
+                        <div className="dot-filler" style={{ animationPlayState: isHeroHovered ? 'paused' : 'running' }} />
                       )}
                     </motion.button>
                   );
