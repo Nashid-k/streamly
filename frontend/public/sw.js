@@ -1,16 +1,24 @@
-const CACHE_NAME = 'streamly-v5';
+const CACHE_NAME = 'streamly-v6';
 
 self.addEventListener('install', (event) => {
+  // Skip waiting — activate immediately
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  // Delete ALL old caches, then claim all clients
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+      Promise.all(keys.map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
+});
+
+// Listen for version check messages from the page
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {

@@ -39,8 +39,9 @@ if ('serviceWorker' in navigator) {
       for (const reg of regs) {
         await reg.unregister();
       }
-      // Step 2: Register fresh SW
-      const newReg = await navigator.serviceWorker.register('/sw.js');
+      // Step 2: Register fresh SW with build timestamp (forces re-fetch on every deploy)
+      const buildTime = typeof __BUILD_TIME !== 'undefined' ? __BUILD_TIME : Date.now();
+      const newReg = await navigator.serviceWorker.register(`/sw.js?v=${buildTime}`);
       // Step 3: Check for updates every 30s
       setInterval(() => newReg.update().catch(() => {}), 30000);
     } catch {}
