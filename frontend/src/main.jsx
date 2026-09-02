@@ -33,6 +33,21 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(console.warn);
+    navigator.serviceWorker.register("/sw.js").then((reg) => {
+      // Check for SW updates every 30 seconds
+      const checkUpdate = () => reg.update().catch(() => {});
+      setInterval(checkUpdate, 30000);
+      // When new SW takes over, reload the page
+      reg.addEventListener("updatefound", () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "activated" && navigator.serviceWorker.controller) {
+              window.location.reload();
+            }
+          });
+        }
+      });
+    }).catch(console.warn);
   });
 }
