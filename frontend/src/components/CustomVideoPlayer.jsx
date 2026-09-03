@@ -1382,6 +1382,80 @@ const CustomVideoPlayer = ({
         />
       )}
 
+      {/* ── CINEMA INFO BAR (title + episode + live progress) ── */}
+      {showCustomUI && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+          style={{
+            position: "absolute",
+            top: 18,
+            left: 20,
+            right: 20,
+            zIndex: 14,
+            pointerEvents: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            transition: "opacity 0.4s",
+            opacity: showControls || !isPlaying ? 1 : 0,
+          }}
+        >
+          <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              style={{
+                fontWeight: 900,
+                fontSize: "clamp(0.95rem, 1.8vw, 1.25rem)",
+                color: "#fff",
+                textShadow: "0 2px 14px rgba(0,0,0,0.85)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: "60vw",
+              }}
+            >
+              {movie?.title || movie?.name}
+            </div>
+            {movie?.isSeries && season && (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  background: "rgba(255,107,0,0.18)",
+                  color: "#FF6B00",
+                  border: "1px solid rgba(255,107,0,0.3)",
+                  borderRadius: "6px",
+                  padding: "2px 8px",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  flexShrink: 0,
+                  textShadow: "0 1px 6px rgba(0,0,0,0.6)",
+                }}
+              >
+                {`S${season}${episode ? ` • E${episode}` : ""}`}
+              </div>
+            )}
+          </div>
+          {duration > 0 && (
+            <div
+              style={{
+                fontSize: "12px",
+                color: "rgba(255,255,255,0.75)",
+                fontWeight: 700,
+                fontFamily: "monospace",
+                textShadow: "0 1px 8px rgba(0,0,0,0.8)",
+                flexShrink: 0,
+              }}
+            >
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </div>
+          )}
+        </motion.div>
+      )}
+
       {/* ── INITIAL LOAD BACKGROUND ───────────────────── */}
       <AnimatePresence>
         {isLoading && !hasInitiallyLoaded && thumbnailUrl && (
@@ -1882,49 +1956,113 @@ const CustomVideoPlayer = ({
             </AnimatePresence>
           </div>
 
-          {/* ── PAUSED INFO (title + short synopsis) ─────────── */}
+          {/* ── PAUSED INFO (title image + short synopsis) ─── */}
           {showPausedInfo && showCustomUI && (
-            <div
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: "absolute",
-                bottom: "96px",
                 left: "24px",
+                bottom: "96px",
                 zIndex: 15,
-                maxWidth: "min(460px, 72%)",
+                display: "flex",
+                gap: "16px",
+                alignItems: "center",
+                maxWidth: "min(540px, 88%)",
                 pointerEvents: "none",
                 textAlign: "left",
-                animation: "paused-info-fade 0.4s ease both",
               }}
             >
-              <div
-                style={{
-                  color: "#fff",
-                  fontWeight: 800,
-                  fontSize: "clamp(1.05rem, 2.4vw, 1.55rem)",
-                  lineHeight: 1.15,
-                  textShadow: "0 2px 14px rgba(0,0,0,0.85)",
-                  marginBottom: "5px",
-                }}
-              >
-                {movie?.title || movie?.name}
-              </div>
-              {movie?.overview && (
+              {/* Poster / title image */}
+              {(movie?.posterUrl || movie?.backdropUrl || thumbnailUrl) && (
                 <div
                   style={{
-                    color: "rgba(255,255,255,0.82)",
-                    fontSize: "clamp(0.75rem, 1.4vw, 0.95rem)",
-                    lineHeight: 1.45,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: "vertical",
+                    width: "clamp(76px, 12vw, 124px)",
+                    aspectRatio: "2 / 3",
+                    borderRadius: "12px",
                     overflow: "hidden",
-                    textShadow: "0 1px 8px rgba(0,0,0,0.85)",
+                    flexShrink: 0,
+                    boxShadow: "0 18px 50px rgba(0,0,0,0.65)",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    background: "rgba(255,255,255,0.06)",
                   }}
                 >
-                  {movie?.overview}
+                  <img
+                    src={movie?.posterUrl || movie?.backdropUrl || thumbnailUrl}
+                    alt={movie?.title || movie?.name}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
                 </div>
               )}
-            </div>
+
+              {/* Text block */}
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    color: "#FF6B00",
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    letterSpacing: "1.5px",
+                    textTransform: "uppercase",
+                    marginBottom: "7px",
+                    textShadow: "0 2px 10px rgba(0,0,0,0.8)",
+                  }}
+                >
+                  <Pause size={13} fill="#FF6B00" color="#FF6B00" />
+                  Paused
+                  {movie?.isSeries && season && (
+                    <span style={{ color: "rgba(255,255,255,0.6)" }}>
+                      {`S${season}${episode ? ` E${episode}` : ""}`}
+                    </span>
+                  )}
+                </div>
+                <div
+                  style={{
+                    color: "#fff",
+                    fontWeight: 900,
+                    fontSize: "clamp(1.15rem, 2.6vw, 1.7rem)",
+                    lineHeight: 1.12,
+                    textShadow: "0 3px 18px rgba(0,0,0,0.85)",
+                    marginBottom: "7px",
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {movie?.title || movie?.name}
+                </div>
+                {movie?.overview && (
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,0.85)",
+                      fontSize: "clamp(0.78rem, 1.4vw, 0.98rem)",
+                      lineHeight: 1.5,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      textShadow: "0 1px 10px rgba(0,0,0,0.9)",
+                    }}
+                  >
+                    {movie.overview}
+                  </div>
+                )}
+              </div>
+            </motion.div>
           )}
 
           {/* ── DOUBLE TAP RIPPLE ───────────────────────────── */}
