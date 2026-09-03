@@ -5,6 +5,7 @@ import RailArrow from "../components/RailArrow";
 import { useQuery } from "@tanstack/react-query";
 import { movieService } from "../api/movieService";
 import Loader from "../components/Loader";
+import { CdnImageAdapter } from "../api/cdnImageAdapter";
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -769,6 +770,19 @@ export default function TitleDetails() {
   const progressItem = continueWatching?.find((m) => m.id === movie?.id);
   const savedTimestamp = progressItem?.timestamp || 0;
   const backdropSrc = movie.backdropUrl || movie.posterUrl;
+  const backdropTiny = backdropSrc ? CdnImageAdapter.getTinyUrl(backdropSrc) : null;
+  const backdropFull = backdropSrc ? CdnImageAdapter.getBackdropUrl(backdropSrc) : null;
+
+  // Blur-up: start with tiny placeholder, swap to full after preload
+  const [backdropReady, setBackdropReady] = useState(false);
+  useEffect(() => {
+    if (!backdropFull) return;
+    setBackdropReady(false);
+    const img = new Image();
+    img.src = backdropFull;
+    img.onload = () => setBackdropReady(true);
+    img.onerror = () => setBackdropReady(true);
+  }, [backdropFull]);
 
   return (
     <div
@@ -798,9 +812,10 @@ export default function TitleDetails() {
           width: "100vw",
           marginLeft: "-50vw",
           marginTop: 0,
-          backgroundImage: backdropSrc ? `url(${backdropSrc})` : "none",
+          backgroundImage: backdropSrc ? `url(${backdropReady ? backdropFull : backdropTiny || backdropSrc})` : "none",
           backgroundSize: "cover",
           backgroundPosition: "center top",
+          transition: "background-image 0.6s ease",
         }}
       >
 

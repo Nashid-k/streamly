@@ -96,7 +96,7 @@ function Layout({ children }) {
     searchHistory,
     addSearch,
     removeSearch,
-    clearHistory: clearSearchHistory,
+    clearSearchHistory,
     notifications,
     markAllAsRead,
     clearNotifications,
