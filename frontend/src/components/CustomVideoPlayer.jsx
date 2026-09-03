@@ -186,6 +186,9 @@ const CustomVideoPlayer = ({
     isLoopingRef.current = isLooping;
   }, [isLooping]);
 
+  const isCineSrc = iframeUrl.includes("cinesrc.st");
+  const showCustomUI = isCineSrc && !useNativeControls;
+
   // Show title + short description overlay after the player has been paused a few seconds
   useEffect(() => {
     if (pausedInfoTimerRef.current) clearTimeout(pausedInfoTimerRef.current);
@@ -418,9 +421,6 @@ const CustomVideoPlayer = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeServerIndex, movie, season, episode, useNativeControls]);
-
-  const isCineSrc = iframeUrl.includes("cinesrc.st");
-  const showCustomUI = isCineSrc && !useNativeControls;
 
   const sendCommand = useCallback((command, args = []) => {
     if (iframeRef.current && iframeRef.current.contentWindow) {
