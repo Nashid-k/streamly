@@ -143,6 +143,7 @@ const MovieRail = React.memo(
           {!isDynamicRail && (
             <Link
               to={`/category/${encodeURIComponent(category.name)}`}
+              state={{ movies: category.movies, name: category.name }}
               style={{
                 fontSize: "0.72rem",
                 color: "rgba(255,255,255,0.35)",
@@ -1238,14 +1239,36 @@ export default function Home({
                   />
                 </FadeInSection>
               )}
-            {/* 2. Continue Watching */}
+            {/* 2. Trending This Week */}
+            {trendingThisWeek.length > 0 && activeGenre === "All" && (
+              <FadeInSection>
+                <ErrorBoundary>
+                  <MovieRail
+                    railIndex={1}
+                    category={{ name: "Trending This Week", movies: trendingThisWeek }}
+                  />
+                </ErrorBoundary>
+              </FadeInSection>
+            )}
+            {/* 3. Airing This Week */}
+            {filter !== "movies" && filter !== "anime" && airingThisWeek.length > 0 && activeGenre === "All" && (
+              <FadeInSection>
+                <ErrorBoundary>
+                  <MovieRail
+                    railIndex={2}
+                    category={{ name: 'Airing This Week', movies: airingThisWeek }}
+                  />
+                </ErrorBoundary>
+              </FadeInSection>
+            )}
+            {/* 4. Continue Watching */}
             {continueWatching &&
               continueWatching.length > 0 &&
               filter === "all" && (
                 <FadeInSection>
                   <ErrorBoundary>
                     <MovieRail
-                      railIndex={1}
+                      railIndex={3}
                       category={{
                         name: "Continue Watching",
                         movies: continueWatching,
@@ -1254,12 +1277,12 @@ export default function Home({
                   </ErrorBoundary>
                 </FadeInSection>
               )}
-            {/* 3. Because you watched */}
+            {/* 5. Because you watched */}
             {filter === "all" && lastWatched && recommendations?.length > 0 && (
               <FadeInSection>
                 <ErrorBoundary>
                   <MovieRail
-                    railIndex={2}
+                    railIndex={4}
                     category={{
                       name: `Because you watched ${lastWatched.title}`,
                       movies: recommendations,
@@ -1268,35 +1291,13 @@ export default function Home({
                 </ErrorBoundary>
               </FadeInSection>
             )}
-            {/* 4. My List */}
+            {/* 6. My List */}
             {myList && myList.length > 0 && filter === "all" && (
               <FadeInSection>
                 <ErrorBoundary>
                   <MovieRail
-                    railIndex={3}
-                    category={{ name: "My List", movies: myList }}
-                  />
-                </ErrorBoundary>
-              </FadeInSection>
-            )}
-            {/* 5. Trending This Week */}
-            {trendingThisWeek.length > 0 && activeGenre === "All" && (
-              <FadeInSection>
-                <ErrorBoundary>
-                  <MovieRail
-                    railIndex={4}
-                    category={{ name: "Trending This Week", movies: trendingThisWeek }}
-                  />
-                </ErrorBoundary>
-              </FadeInSection>
-            )}
-            {/* 6. Airing This Week */}
-            {filter !== "movies" && filter !== "anime" && airingThisWeek.length > 0 && activeGenre === "All" && (
-              <FadeInSection>
-                <ErrorBoundary>
-                  <MovieRail
                     railIndex={5}
-                    category={{ name: 'Airing This Week', movies: airingThisWeek }}
+                    category={{ name: "My List", movies: myList }}
                   />
                 </ErrorBoundary>
               </FadeInSection>
