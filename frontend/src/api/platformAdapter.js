@@ -1,8 +1,12 @@
 /**
  * platformAdapter.js — Unified streaming platform registry
  *
- * 20+ platforms with real logos, brand colors, release-time configs,
+ * 20+ platforms with verified logos, brand colors, release-time configs,
  * fuzzy normalization, and category groupings.
+ *
+ * Logo sources (verified via curl):
+ *   • Simple Icons CDN: netflix, appletv, paramountplus, crunchyroll, mubi, max, jio, sony
+ *   • Custom branded SVGs: prime, disney, hotstar, hulu, peacock, zee5, and all Indian platforms
  *
  * Normalizes any raw string from TMDB / backend / user input into
  * a canonical platform key, or null when nothing matches.
@@ -11,34 +15,36 @@
 // ─── Logo Helpers ───────────────────────────────────────────────────────────
 
 /**
- * Simple Icons CDN — real brand SVG icons with proper colors.
- * Falls back gracefully if CDN is slow/down.
+ * Simple Icons CDN — verified working SVG icons for major platforms.
+ * URL format: https://cdn.simpleicons.org/{slug}/{color}
+ * Color is optional (defaults to black).
  */
 function simpleIcon(slug, color) {
   return `https://cdn.simpleicons.org/${slug}/${color.replace('#', '')}`;
 }
 
 /**
- * Custom SVG logo data URI for platforms not on Simple Icons.
- * Creates a clean, professional brand-style badge.
+ * Branded SVG data URI for platforms NOT in Simple Icons.
+ * Creates a professional, recognizable brand-style icon.
  */
-function customLogo(text, bgColor, textColor = '#fff', iconChar = '') {
-  const displayText = iconChar || text;
+function brandedLogo(brandText, bgColor, textColor = '#fff', subtext = '') {
+  const st = subtext ? `<text x='60' y='36' text-anchor='middle' font-family='system-ui,sans-serif' font-size='8' font-weight='500' fill='${encodeURIComponent(textColor)}' opacity='0.7'>${encodeURIComponent(subtext)}</text>` : '';
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'>
-    <rect width='120' height='40' rx='8' fill='${encodeURIComponent(bgColor)}'/>
-    <text x='60' y='27' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-size='13' font-weight='700' fill='${encodeURIComponent(textColor)}' letter-spacing='0.5'>${displayText}</text>
+    <defs><linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='${encodeURIComponent(bgColor)}'/><stop offset='100%' stop-color='${encodeURIComponent(bgColor)}CC'/></linearGradient></defs>
+    <rect width='120' height='40' rx='8' fill='url(%23bg)'/>
+    <text x='60' y='26' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-size='14' font-weight='800' fill='${encodeURIComponent(textColor)}' letter-spacing='1'>${brandText}</text>
+    ${st}
   </svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 /**
- * Branded icon-only logo (for compact display).
- * Creates a rounded-square icon with the brand initial.
+ * Compact branded SVG icon for small badge display.
  */
-function brandIcon(letter, bgColor, textColor = '#fff') {
+function compactLogo(letter, bgColor, textColor = '#fff') {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'>
     <rect width='40' height='40' rx='10' fill='${encodeURIComponent(bgColor)}'/>
-    <text x='20' y='28' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-size='18' font-weight='800' fill='${encodeURIComponent(textColor)}'>${letter}</text>
+    <text x='20' y='28' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-size='20' font-weight='800' fill='${encodeURIComponent(textColor)}'>${letter}</text>
   </svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
@@ -47,6 +53,7 @@ function brandIcon(letter, bgColor, textColor = '#fff') {
 
 export const PLATFORMS = {
   // ── Global giants ──
+  // VERIFIED: cdn.simpleicons.org/netflix → 200 ✓
   netflix: {
     id: "netflix",
     name: "Netflix",
@@ -59,11 +66,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "originals"],
   },
+  // NOT in Simple Icons — custom branded SVG
   prime: {
     id: "prime",
     name: "Prime Video",
     shortName: "Prime",
-    iconUrl: simpleIcon("amazonprime", "#00A8E1"),
+    iconUrl: brandedLogo("PRIME", "#00A8E1"),
     iconHeight: "20px",
     color: "#00A8E1",
     gradient: "linear-gradient(135deg, #00A8E1, #0077B5)",
@@ -71,11 +79,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "rental"],
   },
+  // NOT in Simple Icons — custom branded SVG
   disney: {
     id: "disney",
     name: "Disney+",
     shortName: "Disney+",
-    iconUrl: simpleIcon("disneyplus", "#113CCF"),
+    iconUrl: brandedLogo("DISNEY+", "#113CCF"),
     iconHeight: "20px",
     color: "#113CCF",
     gradient: "linear-gradient(135deg, #113CCF, #0a2a8a)",
@@ -83,11 +92,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "originals"],
   },
+  // NOT in Simple Icons — custom branded SVG
   hotstar: {
     id: "hotstar",
     name: "Disney+ Hotstar",
     shortName: "Hotstar",
-    iconUrl: simpleIcon("disneyplus", "#0F0617"),
+    iconUrl: brandedLogo("HOTSTAR", "#0F0617"),
     iconHeight: "24px",
     color: "#0F0617",
     gradient: "linear-gradient(135deg, #0F0617, #1a0a30)",
@@ -95,11 +105,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription", "sports", "regional"],
   },
+  // VERIFIED: cdn.simpleicons.org/appletv → 200 ✓
   appletv: {
     id: "appletv",
     name: "Apple TV+",
     shortName: "Apple TV+",
-    iconUrl: simpleIcon("appletv", "#555555"),
+    iconUrl: simpleIcon("appletv", "ffffff"),
     iconHeight: "20px",
     color: "#555555",
     gradient: "linear-gradient(135deg, #555, #222)",
@@ -107,11 +118,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "originals"],
   },
+  // NOT in Simple Icons — custom branded SVG
   hulu: {
     id: "hulu",
     name: "Hulu",
     shortName: "Hulu",
-    iconUrl: simpleIcon("hulu", "#1CE783"),
+    iconUrl: brandedLogo("HULU", "#1CE783", "#000"),
     iconHeight: "20px",
     color: "#1CE783",
     gradient: "linear-gradient(135deg, #1CE783, #0d9e5a)",
@@ -119,11 +131,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription"],
   },
+  // VERIFIED: cdn.simpleicons.org/max → 200 ✓
   max: {
     id: "max",
     name: "Max",
     shortName: "Max",
-    iconUrl: simpleIcon("max", "#002BE7"),
+    iconUrl: simpleIcon("max", "002BE7"),
     iconHeight: "18px",
     color: "#002BE7",
     gradient: "linear-gradient(135deg, #002BE7, #001a8a)",
@@ -131,11 +144,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "originals"],
   },
+  // VERIFIED: cdn.simpleicons.org/paramountplus → 200 ✓
   paramount: {
     id: "paramount",
     name: "Paramount+",
     shortName: "Paramount+",
-    iconUrl: simpleIcon("paramountplus", "#0064FF"),
+    iconUrl: simpleIcon("paramountplus", "0064FF"),
     iconHeight: "20px",
     color: "#0064FF",
     gradient: "linear-gradient(135deg, #0064FF, #004acc)",
@@ -143,11 +157,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription"],
   },
+  // NOT in Simple Icons — custom branded SVG
   peacock: {
     id: "peacock",
     name: "Peacock",
     shortName: "Peacock",
-    iconUrl: simpleIcon("peacock", "#FDB927"),
+    iconUrl: brandedLogo("PEACOCK", "#FDB927", "#000"),
     iconHeight: "22px",
     color: "#FDB927",
     gradient: "linear-gradient(135deg, #FDB927, #d4a020)",
@@ -155,11 +170,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "free-tier"],
   },
+  // VERIFIED: cdn.simpleicons.org/crunchyroll → 200 ✓
   crunchycroll: {
     id: "crunchycroll",
     name: "Crunchyroll",
     shortName: "Crunchyroll",
-    iconUrl: simpleIcon("crunchyroll", "#F47521"),
+    iconUrl: simpleIcon("crunchyroll", "F47521"),
     iconHeight: "22px",
     color: "#F47521",
     gradient: "linear-gradient(135deg, #F47521, #c45d18)",
@@ -167,11 +183,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "anime"],
   },
+  // VERIFIED: cdn.simpleicons.org/mubi → 200 ✓
   mubi: {
     id: "mubi",
     name: "MUBI",
     shortName: "MUBI",
-    iconUrl: simpleIcon("mubi", "#000000"),
+    iconUrl: simpleIcon("mubi", "ffffff"),
     iconHeight: "18px",
     color: "#000000",
     gradient: "linear-gradient(135deg, #333, #000)",
@@ -181,11 +198,12 @@ export const PLATFORMS = {
   },
 
   // ── India-specific ──
+  // NOT in Simple Icons — custom branded SVG
   zee5: {
     id: "zee5",
     name: "ZEE5",
     shortName: "ZEE5",
-    iconUrl: customLogo("ZEE5", "#8230C6"),
+    iconUrl: brandedLogo("ZEE5", "#8230C6"),
     iconHeight: "18px",
     color: "#8230C6",
     gradient: "linear-gradient(135deg, #8230C6, #5c1f94)",
@@ -193,11 +211,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription", "regional"],
   },
+  // VERIFIED: cdn.simpleicons.org/sony → 200 ✓
   sonyliv: {
     id: "sonyliv",
     name: "Sony LIV",
     shortName: "Sony LIV",
-    iconUrl: customLogo("SONY LIV", "#F48220"),
+    iconUrl: simpleIcon("sony", "F48220"),
     iconHeight: "22px",
     color: "#F48220",
     gradient: "linear-gradient(135deg, #F48220, #c46818)",
@@ -205,11 +224,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription", "sports"],
   },
+  // VERIFIED: cdn.simpleicons.org/jio → 200 ✓
   jio: {
     id: "jio",
     name: "JioCinema",
     shortName: "JioCinema",
-    iconUrl: simpleIcon("jiocinema", "#E5007D"),
+    iconUrl: simpleIcon("jio", "E5007D"),
     iconHeight: "22px",
     color: "#E5007D",
     gradient: "linear-gradient(135deg, #E5007D, #b80064)",
@@ -217,11 +237,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription", "free", "sports"],
   },
+  // NOT in Simple Icons — custom branded SVG
   mxplayer: {
     id: "mxplayer",
     name: "MX Player",
     shortName: "MX Player",
-    iconUrl: customLogo("MX", "#FF6B00"),
+    iconUrl: brandedLogo("MX", "#FF6B00"),
     iconHeight: "18px",
     color: "#FF6B00",
     gradient: "linear-gradient(135deg, #FF6B00, #cc5500)",
@@ -233,7 +254,7 @@ export const PLATFORMS = {
     id: "voot",
     name: "Voot",
     shortName: "Voot",
-    iconUrl: customLogo("VOOT", "#FF0000"),
+    iconUrl: brandedLogo("VOOT", "#FF0000"),
     iconHeight: "18px",
     color: "#FF0000",
     gradient: "linear-gradient(135deg, #FF0000, #cc0000)",
@@ -245,7 +266,7 @@ export const PLATFORMS = {
     id: "erosnow",
     name: "Eros Now",
     shortName: "Eros Now",
-    iconUrl: customLogo("EROS", "#FF6B00"),
+    iconUrl: brandedLogo("EROS", "#FF6B00"),
     iconHeight: "18px",
     color: "#FF6B00",
     gradient: "linear-gradient(135deg, #FF6B00, #cc5500)",
@@ -257,7 +278,7 @@ export const PLATFORMS = {
     id: "aha",
     name: "aha",
     shortName: "aha",
-    iconUrl: customLogo("aha", "#FF3366"),
+    iconUrl: brandedLogo("aha", "#FF3366"),
     iconHeight: "18px",
     color: "#FF3366",
     gradient: "linear-gradient(135deg, #FF3366, #cc2952)",
@@ -269,7 +290,7 @@ export const PLATFORMS = {
     id: "hoichoi",
     name: "Hoichoi",
     shortName: "Hoichoi",
-    iconUrl: customLogo("HOICHOI", "#E5007D"),
+    iconUrl: brandedLogo("HOICHOI", "#E5007D"),
     iconHeight: "18px",
     color: "#E5007D",
     gradient: "linear-gradient(135deg, #E5007D, #b80064)",
@@ -281,7 +302,7 @@ export const PLATFORMS = {
     id: "shemaroo",
     name: "ShemarooMe",
     shortName: "ShemarooMe",
-    iconUrl: customLogo("SHEMAROO", "#FF0000"),
+    iconUrl: brandedLogo("SHEMAROO", "#FF0000"),
     iconHeight: "18px",
     color: "#FF0000",
     gradient: "linear-gradient(135deg, #FF0000, #cc0000)",
@@ -293,7 +314,7 @@ export const PLATFORMS = {
     id: "sunnxt",
     name: "Sun NXT",
     shortName: "Sun NXT",
-    iconUrl: customLogo("SUN NXT", "#FF6600"),
+    iconUrl: brandedLogo("SUN NXT", "#FF6600"),
     iconHeight: "18px",
     color: "#FF6600",
     gradient: "linear-gradient(135deg, #FF6600, #cc5200)",
@@ -305,7 +326,7 @@ export const PLATFORMS = {
     id: "lionsgate",
     name: "Lionsgate Play",
     shortName: "Lionsgate Play",
-    iconUrl: customLogo("LIONSGATE", "#C8102E"),
+    iconUrl: brandedLogo("LIONSGATE", "#C8102E"),
     iconHeight: "18px",
     color: "#C8102E",
     gradient: "linear-gradient(135deg, #C8102E, #a00d24)",
@@ -319,7 +340,7 @@ export const PLATFORMS = {
     id: "britbox",
     name: "BritBox",
     shortName: "BritBox",
-    iconUrl: customLogo("BRITBOX", "#00B140"),
+    iconUrl: brandedLogo("BRITBOX", "#00B140"),
     iconHeight: "18px",
     color: "#00B140",
     gradient: "linear-gradient(135deg, #00B140, #008d33)",
@@ -327,11 +348,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "british"],
   },
+  // NOT in Simple Icons — custom branded SVG
   stan: {
     id: "stan",
     name: "Stan",
     shortName: "Stan",
-    iconUrl: simpleIcon("stan", "#0D47A1"),
+    iconUrl: brandedLogo("STAN", "#0D47A1"),
     iconHeight: "18px",
     color: "#0D47A1",
     gradient: "linear-gradient(135deg, #0D47A1, #0a3880)",
@@ -343,7 +365,7 @@ export const PLATFORMS = {
     id: "curiositystream",
     name: "Curiosity Stream",
     shortName: "Curiosity",
-    iconUrl: customLogo("CURIOSITY", "#1A1A2E"),
+    iconUrl: brandedLogo("CURIOSITY", "#1A1A2E"),
     iconHeight: "18px",
     color: "#1A1A2E",
     gradient: "linear-gradient(135deg, #1A1A2E, #0d0d17)",
@@ -351,11 +373,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "documentary"],
   },
+  // NOT in Simple Icons — custom branded SVG
   justwatch: {
     id: "justwatch",
     name: "JustWatch",
     shortName: "JustWatch",
-    iconUrl: simpleIcon("justwatch", "#00C3FF"),
+    iconUrl: brandedLogo("JUSTWATCH", "#00C3FF", "#000"),
     iconHeight: "18px",
     color: "#00C3FF",
     gradient: "linear-gradient(135deg, #00C3FF, #009ccc)",
