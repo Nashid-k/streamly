@@ -256,6 +256,8 @@ const CustomVideoPlayer = ({
         if (useNativeControls) url = url.replace("&controls=false", "");
       }
       setIframeUrl(url);
+      // CineSrc needs more time to initialize — use 20s watchdog
+      const watchdogDelay = activeServerIndex === 0 ? 20000 : 12000;
       watchdogTimer = setTimeout(() => {
         setIsLoading((prev) => {
           if (prev) {
@@ -280,7 +282,7 @@ const CustomVideoPlayer = ({
           }
           return prev;
         });
-      }, 12000);
+      }, watchdogDelay);
     };
     gen();
     return () => { if (watchdogTimer) clearTimeout(watchdogTimer); };
@@ -771,7 +773,15 @@ const CustomVideoPlayer = ({
             ...ASPECT_RATIOS[aspectRatioIndex].style,
           }}
           allow="autoplay; fullscreen; picture-in-picture"
-          onLoad={() => { if (!isCineSrc) setIsLoading(false); }}
+          onLoad={() => {
+            // For CineSrc: keep loading visible for a bit after iframe loads
+            // because the player inside still needs to initialize
+            if (isCineSrc) {
+              setTimeout(() => setIsLoading(false), 3000);
+            } else {
+              setIsLoading(false);
+            }
+          }}
         />
       )}
 
@@ -953,15 +963,16 @@ const CustomVideoPlayer = ({
                   {movie?.genres?.slice(0, 3).map((g, i) => (
                     <span key={i} style={{ color: V.faint, fontSize: 10, fontWeight: 600, background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 4 }}>{g}</span>
                   ))}
+                  {movie?.contentRating && <span style={{ color: V.dim, fontSize: 10, fontWeight: 700, border: `1px solid ${V.faint}`, padding: "1px 5px", borderRadius: 3 }}>{movie.contentRating}</span>}
                 </div>
-                {movie?.overview && (
+                {(movie?.longDescription || movie?.description || movie?.overview) && (
                   <div style={{
                     color: "rgba(255,255,255,0.65)",
                     fontSize: "clamp(0.75rem, 1.3vw, 0.9rem)", lineHeight: 1.6,
                     display: "-webkit-box", WebkitLineClamp: 4,
                     WebkitBoxOrient: "vertical", overflow: "hidden",
                   }}>
-                    {movie.overview}
+                    {movie?.longDescription || movie?.description || movie?.overview}
                   </div>
                 )}
               </div>
@@ -1472,7 +1483,8 @@ const CustomVideoPlayer = ({
                   borderRadius: 3,
                   boxShadow: `0 0 10px ${V.accentGlow}`,
                 }} />
-                {/* Scrubber dot — always visible, grows on hover */}
+                {/* Scrubber dot — hidden when at 0 and not playing, grows on hover */}
+                {!(currentTime === 0 && !isPlaying && !isScrubbing) && (
                 <div className="void-scrubber" style={{
                   position: "absolute", left: `${pp}%`, top: "50%",
                   transform: "translate(-50%,-50%)",
@@ -1486,10 +1498,50 @@ const CustomVideoPlayer = ({
                   transition: "width 0.2s, height 0.2s, box-shadow 0.2s, left 0.1s",
                   cursor: "grab",
                 }} />
+                )}
               </div>
             </div>
 
-            {/* SHOW TITLE + SEASON/EPISODE — centered below progress */}
+            {/* TIME DISPLAY + SHOW TITLE + SEASON/EPISODE — below progress */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "2px 16px 6px", pointerEvents: "none",
+            }}>
+              {/* Left: current time / duration */}
+              <span style={{
+                color: V.dim, fontSize: 11, fontWeight: 600,
+                fontFamily: "monospace", letterSpacing: "0.5px",
+              }}>
+                {fmt(currentTime)} / {fmt(duration)}
+              </span>
+              {/* Center: title */}
+              <span style={{
+                color: "rgba(255,255,255,0.85)", fontSize: "clamp(12px, 1.4vw, 14px)",
+                fontWeight: 700, letterSpacing: "-0.01em",
+                textShadow: "0 1px 8px rgba(0,0,0,0.8)",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                maxWidth: "min(320px, 50vw)",
+              }}>
+                {movie?.title || movie?.name}
+              </span>
+              {/* Right: season/episode + year */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isTvContent && season && (
+                  <span style={{
+                    color: V.accent, fontSize: "clamp(10px, 1.2vw, 12px)",
+                    fontWeight: 700, letterSpacing: "0.5px",
+                    background: V.accentDim, padding: "2px 8px", borderRadius: 4,
+                    border: `1px solid ${V.accentBorder}`,
+                    whiteSpace: "nowrap",
+                  }}>
+                    S{season} E{episode}
+                  </span>
+                )}
+                {movie?.releaseYear && (
+                  <span style={{ color: V.dim, fontSize: 11, fontWeight: 600 }}>{movie.releaseYear}</span>
+                )}
+              </div>
+            </div>
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "center",
               padding: "4px 16px 6px", pointerEvents: "none",
