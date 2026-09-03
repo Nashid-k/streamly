@@ -26,20 +26,25 @@ export function buildWeeklyCalendar(items = []) {
     Friday: [], Saturday: [], Sunday: [],
   };
 
+  if (!items || !Array.isArray(items)) return calendar;
+
   const today = new Date();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+  const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  // Compute start of week (Monday) in local time, then compare using UTC dates
+  const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const startOfWeekUTC = todayUTC - ((dayOfWeek + 6) % 7) * 86400000; // Monday 00:00 UTC
+  const endOfWeekUTC = startOfWeekUTC + 6 * 86400000 + 86399999; // Sunday 23:59:59 UTC
 
   for (const item of items) {
     const releaseDate = item.releaseDate || item.nextEpisode?.releaseDate;
     if (!releaseDate) continue;
 
     const date = new Date(releaseDate + "T12:00:00Z");
-    if (date < startOfWeek || date > endOfWeek) continue;
+    const dateUTC = date.getTime();
+    if (dateUTC < startOfWeekUTC || dateUTC > endOfWeekUTC) continue;
 
-    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+    // Use UTC date for day name to match our UTC-based week boundaries
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long", timeZone: 'UTC' });
     if (!calendar[dayName]) continue;
 
     const platformKey = normalizePlatformKey(item.source || item.availablePlatforms?.[0]);
@@ -155,14 +160,13 @@ export function getCountdownUrgency(days) {
  * @returns {Array} New releases this week
  */
 export function detectNewReleasesThisWeek(items = []) {
-  const today = new Date();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay() + 1);
-  startOfWeek.setHours(0, 0, 0, 0);
+  if (!items || !Array.isArray(items)) return [];
 
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
+  const today = new Date();
+  const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  const dayOfWeek = today.getDay();
+  const startOfWeekUTC = todayUTC - ((dayOfWeek + 6) % 7) * 86400000;
+  const endOfWeekUTC = startOfWeekUTC + 6 * 86400000 + 86399999;
 
   const newReleases = [];
 
@@ -170,7 +174,7 @@ export function detectNewReleasesThisWeek(items = []) {
     // Check movie release date
     if (item.releaseDate) {
       const date = new Date(item.releaseDate + "T12:00:00Z");
-      if (date >= startOfWeek && date <= endOfWeek) {
+      if (date.getTime() >= startOfWeekUTC && date.getTime() <= endOfWeekUTC) {
         newReleases.push({
           ...item,
           releaseType: "movie",
@@ -182,7 +186,7 @@ export function detectNewReleasesThisWeek(items = []) {
     // Check new episode releases
     if (item.nextEpisode?.releaseDate) {
       const date = new Date(item.nextEpisode.releaseDate + "T12:00:00Z");
-      if (date >= startOfWeek && date <= endOfWeek) {
+      if (date.getTime() >= startOfWeekUTC && date.getTime() <= endOfWeekUTC) {
         newReleases.push({
           ...item,
           releaseType: "episode",
@@ -207,6 +211,8 @@ export function detectNewReleasesThisWeek(items = []) {
  * @returns {Array} Content leaving soon, sorted by urgency
  */
 export function detectLeavingSoon(items = [], thresholdDays = 14) {
+  if (!items || !Array.isArray(items)) return [];
+
   const now = new Date();
   const threshold = new Date(now);
   threshold.setDate(now.getDate() + thresholdDays);
@@ -248,7 +254,7 @@ export function buildLeavingSoonNotification(item) {
   const daysLeft = item.daysLeft || 0;
 
   return {
-    id: `leaving-${item.id}-${Date.now()}`,
+    id: `leaving-${item.id}-${item.leavingDate}`,
     type: "leaving_soon",
     title: `⏰ Leaving Soon`,
     message: daysLeft <= 1

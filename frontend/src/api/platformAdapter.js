@@ -156,15 +156,15 @@ export const PLATFORMS = {
     tags: ["subscription", "free-tier"],
   },
   // VERIFIED: cdn.simpleicons.org/crunchyroll → 200 ✓
-  crunchycroll: {
-    id: "crunchycroll",
+  crunchyroll: {
+    id: "crunchyroll",
     name: "Crunchyroll",
     shortName: "Crunchyroll",
     iconUrl: simpleIcon("crunchyroll", "F47521"),
     iconHeight: "22px",
     color: "#F47521",
     gradient: "linear-gradient(135deg, #F47521, #c45d18)",
-    rapidApiName: "crunchycroll",
+    rapidApiName: "crunchyroll",
     category: "global",
     tags: ["subscription", "anime"],
   },
@@ -388,7 +388,7 @@ export const PLATFORM_CATEGORIES = {
   global: {
     name: "Global",
     description: "International streaming platforms",
-    ids: ["netflix", "prime", "disney", "appletv", "hulu", "max", "paramount", "peacock", "crunchycroll", "mubi"],
+    ids: ["netflix", "prime", "disney", "appletv", "hulu", "max", "paramount", "peacock", "crunchyroll", "mubi"],
   },
   india: {
     name: "India",
@@ -403,7 +403,7 @@ export const PLATFORM_CATEGORIES = {
   anime: {
     name: "Anime",
     description: "Anime-focused platforms",
-    ids: ["crunchycroll"],
+    ids: ["crunchyroll"],
   },
   arthouse: {
     name: "Arthouse & Docs",
@@ -461,7 +461,7 @@ const NORMALIZATION_RULES = [
   { pattern: /hbo/i, key: "max" },
   { pattern: /paramount/i, key: "paramount" },
   { pattern: /peacock/i, key: "peacock" },
-  { pattern: /crunchy\s*roll|crunchycroll/i, key: "crunchycroll" },
+  { pattern: /crunchy\s*roll|crunchyroll/i, key: "crunchyroll" },
   { pattern: /\bmubi\b/i, key: "mubi" },
   { pattern: /brit\s*box|britbox/i, key: "britbox" },
   { pattern: /\bstan\b/i, key: "stan" },

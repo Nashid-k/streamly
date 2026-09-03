@@ -16,12 +16,21 @@ export class PrefetchAdapter {
     if (inFlightPrefetches.has(key)) return; // Already prefetching
     inFlightPrefetches.add(key);
 
+    // Safety: remove from in-flight set after 30s even if promise never resolves
+    const safetyTimer = setTimeout(() => inFlightPrefetches.delete(key), 30000);
+
     // 1. Prefetch core movie details
-    queryClient.prefetchQuery({
+    const p1 = queryClient.prefetchQuery({
       queryKey: ["movie", movieId, platform],
       queryFn: () => movieService.getMovieDetails(movieId, platform),
       staleTime: 10 * 60 * 1000,
-    }).finally(() => inFlightPrefetches.delete(key));
+    });
+    if (p1 && typeof p1.finally === 'function') {
+      p1.finally(() => { clearTimeout(safetyTimer); inFlightPrefetches.delete(key); });
+    } else {
+      clearTimeout(safetyTimer);
+      inFlightPrefetches.delete(key);
+    }
 
     // 2. Prefetch similar movies to make the bottom of the page feel instant
     queryClient.prefetchQuery({

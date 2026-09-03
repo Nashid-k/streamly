@@ -931,7 +931,9 @@ export default function Home({
             exit={{ opacity: 0 }}
             className="skeleton skeleton-hero"
           />
-        ) : activeFeaturedMovie ? (          <motion.div
+        ) : activeFeaturedMovie ? (
+          <ErrorBoundary>
+          <motion.div
             key={activeFeaturedMovie.id}
             ref={heroRef}
             className="hero-container"
@@ -1184,6 +1186,7 @@ export default function Home({
               </div>
             )}
           </motion.div>
+          </ErrorBoundary>
         ) : (
           <motion.div
             key="empty-hero"

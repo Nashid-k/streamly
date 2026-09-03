@@ -37,6 +37,32 @@ describe('getSearchRelevance', () => {
     expect(getSearchRelevance({ ...baseMovie, title: '' }, 'matrix')).toBe(0);
   });
 
+  it('handles special characters in query', () => {
+    expect(getSearchRelevance(baseMovie, 'the matrix!')).toBeGreaterThan(0);
+  });
+
+  it('handles very long query strings', () => {
+    const longQuery = 'a'.repeat(1000);
+    const score = getSearchRelevance(baseMovie, longQuery);
+    expect(typeof score).toBe('number');
+    expect(score).toBeGreaterThanOrEqual(0);
+  });
+
+  it('handles movie with no title', () => {
+    expect(getSearchRelevance({ ...baseMovie, title: '' }, 'matrix')).toBe(0);
+    expect(getSearchRelevance({ ...baseMovie, title: undefined }, 'matrix')).toBe(0);
+  });
+
+  it('handles movie with no genres', () => {
+    const score = getSearchRelevance({ ...baseMovie, genres: undefined }, 'matrix');
+    expect(score).toBeGreaterThan(0);
+  });
+
+  it('handles movie with no cast', () => {
+    const score = getSearchRelevance({ ...baseMovie, cast: undefined }, 'matrix');
+    expect(score).toBeGreaterThan(0);
+  });
+
   it('boosts score for genre match', () => {
     // 'action' matches title substring (score=65) + genre bonus (+8) = 73
     const withGenre = getSearchRelevance({ ...baseMovie, genres: ['Action'] }, 'action');
