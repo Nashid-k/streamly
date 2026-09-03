@@ -89,20 +89,69 @@ describe('Notification Builders', () => {
     });
   });
 
-  describe('buildWelcomeNotification', () => {
-    it('generates deterministic ID based on sign-in state', () => {
-      const n1 = buildWelcomeNotification({ isSignedIn: true });
-      const n2 = buildWelcomeNotification({ isSignedIn: true });
-      expect(n1.id).toBe(n2.id);
-      expect(n1.id).toBe('welcome-in');
-    });
+describe('buildWelcomeNotification', () => {
+  it('generates deterministic ID based on sign-in state', () => {
+    const n1 = buildWelcomeNotification({ isSignedIn: true });
+    const n2 = buildWelcomeNotification({ isSignedIn: true });
+    expect(n1.id).toBe(n2.id);
+    expect(n1.id).toBe('welcome-in');
+  });
 
-    it('different sign-in states produce different IDs', () => {
-      const signedIn = buildWelcomeNotification({ isSignedIn: true });
-      const signedOut = buildWelcomeNotification({ isSignedIn: false });
-      expect(signedIn.id).not.toBe(signedOut.id);
+  it('different sign-in states produce different IDs', () => {
+    const signedIn = buildWelcomeNotification({ isSignedIn: true });
+    const signedOut = buildWelcomeNotification({ isSignedIn: false });
+    expect(signedIn.id).not.toBe(signedOut.id);
+  });
+
+  it('includes correct link based on sign-in state', () => {
+    const signedIn = buildWelcomeNotification({ isSignedIn: true });
+    const signedOut = buildWelcomeNotification({ isSignedIn: false });
+    expect(signedIn.link).toBe('/');
+    expect(signedOut.link).toBeNull();
+  });
+});
+
+describe('Notification edge cases', () => {
+  it('buildEpisodeReleasedNotification handles missing optional fields', () => {
+    const n = buildEpisodeReleasedNotification({
+      title: 'Test', season: 1, episode: 1, movieId: '1',
+    });
+    expect(n.platform).toBeTruthy();
+    expect(n.message).toContain('Test');
+  });
+
+  it('buildMovieAddedNotification handles null platform', () => {
+    const n = buildMovieAddedNotification({ title: 'Test', movieId: '1' });
+    expect(n.type).toBe(NOTIF_TYPES.MOVIE_ADDED);
+  });
+
+  it('buildRecommendationNotification handles null platform', () => {
+    const n = buildRecommendationNotification({ title: 'Test', reason: 'X', movieId: '1' });
+    expect(n.type).toBe(NOTIF_TYPES.RECOMMENDATION);
+  });
+
+  it('all builders produce objects with required fields', () => {
+    const builders = [
+      () => buildEpisodeReleasedNotification({ title: 'T', season: 1, episode: 1, movieId: '1' }),
+      () => buildEpisodeAiringNotification({ title: 'T', season: 1, episode: 1, movieId: '1', releaseDate: '2026-09-10' }),
+      () => buildMovieAddedNotification({ title: 'T', movieId: '1' }),
+      () => buildRecommendationNotification({ title: 'T', reason: 'R', movieId: '1' }),
+      () => buildMilestoneNotification({ type: 'test', count: 5 }),
+      () => buildWelcomeNotification({ isSignedIn: true }),
+    ];
+
+    builders.forEach(builder => {
+      const n = builder();
+      expect(n).toHaveProperty('id');
+      expect(n).toHaveProperty('type');
+      expect(n).toHaveProperty('title');
+      expect(n).toHaveProperty('message');
+      expect(n).toHaveProperty('createdAt');
+      expect(n).toHaveProperty('isRead');
+      expect(n.isRead).toBe(false);
     });
   });
+});
 });
 
 describe('isNotificationTypeEnabled', () => {
@@ -115,5 +164,12 @@ describe('isNotificationTypeEnabled', () => {
     expect(isNotificationTypeEnabled(NOTIF_TYPES.EPISODE_RELEASED)).toBe(true);
     expect(isNotificationTypeEnabled(NOTIF_TYPES.MOVIE_ADDED)).toBe(false);
     expect(isNotificationTypeEnabled(NOTIF_TYPES.SERIES_ADDED)).toBe(false);
+  });
+
+  it('handles all notification types', () => {
+    Object.values(NOTIF_TYPES).forEach(type => {
+      const result = isNotificationTypeEnabled(type);
+      expect(typeof result).toBe('boolean');
+    });
   });
 });

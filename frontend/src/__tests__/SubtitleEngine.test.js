@@ -157,6 +157,34 @@ Long subtitle`;
       expect(cue.text).toBe('Second');
     });
 
+    it('returns null between cues (gap)', () => {
+      expect(engine.getActiveCue(9)).toBeNull(); // Between Second (5-8) and Third (10-15)
+    });
+
+    it('handles time exactly at 0', () => {
+      expect(engine.getActiveCue(0)).toBeNull();
+    });
+
+    it('handles negative time', () => {
+      expect(engine.getActiveCue(-1)).toBeNull();
+    });
+
+    it('handles very large time', () => {
+      expect(engine.getActiveCue(999999)).toBeNull();
+    });
+
+    it('handles floating point time', () => {
+      const cue = engine.getActiveCue(2.5);
+      expect(cue.text).toBe('First');
+    });
+
+    it('handles cues with zero duration', () => {
+      engine.setCues([{ start: 5, end: 5, text: 'Zero' }]);
+      // start=5, end=5: time=5 satisfies 5>=5 && 5<=5, so cue is active
+      const cue = engine.getActiveCue(5);
+      expect(cue).not.toBeNull();
+    });
+
     it('uses binary search for cue lookup', () => {
       // With many cues, binary search should still work
       const manyCues = Array.from({ length: 100 }, (_, i) => ({
