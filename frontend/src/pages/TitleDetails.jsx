@@ -1231,19 +1231,13 @@ export default function TitleDetails() {
                         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#93c5fd' }}>Expected on OTT: {formatTMDBDateFull(movie.expectedOttDate, undefined, effectivePlatform)}</span>
                       </div>
                     ) : movie.availablePlatforms?.length > 0 ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <PlatformIcon platform={resolvedPlatform} pill />
-                      </div>
+                      <PlatformIcon platform={resolvedPlatform} pill />
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a1a1aa' }}>Not yet streaming</span>
-                      </div>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a1a1aa', padding: '5px 12px', borderRadius: '100px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.06)' }}>Not yet streaming</span>
                     )}
                   </>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <PlatformIcon platform={resolvedPlatform} pill />
-                  </div>
+                  <PlatformIcon platform={resolvedPlatform} pill />
                 )}
               </motion.div>
 
