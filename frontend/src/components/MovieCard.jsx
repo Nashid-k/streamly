@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { movieService } from "../api/movieService";
 import { normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
 import { buildMovieAddedNotification } from "../utils/notificationEngine";
+import CountdownBadge from "./CountdownBadge";
 import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "./Toast";
 
@@ -273,6 +274,39 @@ export default function MovieCard({
                 </div>
               );
             })()}
+
+            {/* Bottom-left badges: countdown + SERIES + airing day */}
+            {!isHovered && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "8px",
+                  left: "8px",
+                  zIndex: 10,
+                  display: "flex",
+                  gap: "4px",
+                  alignItems: "center",
+                  pointerEvents: "none",
+                }}
+              >
+                {/* Countdown badge for upcoming releases */}
+                {movie.releaseDate && !isTvContent && (
+                  <CountdownBadge
+                    releaseDate={movie.releaseDate}
+                    platform={movie.source || movie.platform}
+                    compact
+                  />
+                )}
+                {/* Countdown badge for next episode */}
+                {isTvContent && movie.nextEpisode?.releaseDate && (
+                  <CountdownBadge
+                    releaseDate={movie.nextEpisode.releaseDate}
+                    platform={movie.source || movie.platform}
+                    compact
+                  />
+                )}
+              </div>
+            )}
 
             {/* Bottom-left badges: SERIES + airing day */}
             {isTvContent && !isHovered && (

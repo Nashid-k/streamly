@@ -17,6 +17,9 @@ import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import RailArrow from "../components/RailArrow";
 import { PLATFORMS, normalizePlatformKey, PlatformAdapter, normalizeMovieSource } from "../api/platformAdapter";
+import WeeklyCalendar from "../components/WeeklyCalendar";
+import LeavingSoonBanner from "../components/LeavingSoonBanner";
+import { detectLeavingSoon, detectNewReleasesThisWeek } from "../utils/releaseCalendar";
 
 const GENRE_OPTIONS = [
   "All",
@@ -1295,6 +1298,22 @@ export default function Home({
             </motion.button>
           ))}
         </div>
+      )}
+
+      {/* Weekly Calendar + Leaving Soon — only on home page */}
+      {!loading && filter === 'all' && activeGenre === 'All' && (
+        <>
+          {/* Leaving Soon Alerts */}
+          <LeavingSoonBanner items={detectLeavingSoon(
+            categories.flatMap(c => c.movies || []), 14
+          )} />
+
+          {/* Weekly Release Calendar */}
+          <WeeklyCalendar
+            items={airingThisWeek.length > 0 ? airingThisWeek : categories.flatMap(c => c.movies || [])}
+            title="Releases This Week"
+          />
+        </>
       )}
 
       {/* Categories Section */}

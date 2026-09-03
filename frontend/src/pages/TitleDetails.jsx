@@ -47,6 +47,9 @@ import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import { normalizePlatformKey, PlatformAdapter, normalizeMovieSource, PLATFORMS } from "../api/platformAdapter";
 import { buildMovieAddedNotification } from "../utils/notificationEngine";
+import ContentWarnings from "../components/ContentWarnings";
+import RegionalAvailability from "../components/RegionalAvailability";
+import SpoilerEpisodeGuide from "../components/SpoilerEpisodeGuide";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
 import CustomVideoPlayer from "../components/CustomVideoPlayer";
@@ -1427,18 +1430,19 @@ export default function TitleDetails() {
                 </div>
               )}
 
-              {/* Content warnings */}
-              {movie.contentWarnings && movie.contentWarnings.length > 0 && (
+              {/* Content warnings — expanded with categories and sensitivity settings */}
+              {(movie.contentWarnings?.length > 0 || movie.contentRating || movie.maturityRating) && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
-                  style={{ marginBottom: '1.25rem', padding: '10px 14px', background: 'rgba(251,191,36,0.06)', borderRadius: '10px', border: '1px solid rgba(251,191,36,0.12)', display: 'flex', alignItems: 'flex-start', gap: '8px' }}
+                  style={{ marginBottom: '1.25rem' }}
                 >
-                  <Info size={14} color="#fbbf24" style={{ marginTop: '2px', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.78rem', color: '#a1a1aa', lineHeight: 1.5 }}>
-                    <strong style={{ color: '#fbbf24' }}>Content advisory:</strong> {movie.contentWarnings.join(' · ')}
-                  </span>
+                  <ContentWarnings
+                    warnings={movie.contentWarnings || []}
+                    contentRating={movie.contentRating}
+                    maturityRating={movie.maturityRating}
+                  />
                 </motion.div>
               )}
 
@@ -1492,6 +1496,21 @@ export default function TitleDetails() {
                   </div>
                 )}
               </motion.div>
+
+              {/* Regional Availability Map */}
+              {movie.availablePlatforms && movie.availablePlatforms.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.55, duration: 0.5 }}
+                  style={{ marginBottom: '1.25rem' }}
+                >
+                  <RegionalAvailability
+                    availablePlatforms={movie.availablePlatforms}
+                    movie={movie}
+                  />
+                </motion.div>
+              )}
             </motion.div>
 
             {/* CTA Buttons */}
@@ -2059,6 +2078,23 @@ export default function TitleDetails() {
             }
           </motion.div>
           </AnimatePresence>
+
+          {/* Spoiler-Safe Episode Guide */}
+          {episodes.length > 0 && (
+            <div style={{ marginTop: '1.5rem' }}>
+              <SpoilerEpisodeGuide
+                episodes={episodes}
+                season={selectedSeason}
+                onPlayEpisode={(epNum) => {
+                  if (SERVERS.length > 0) {
+                    setIsPlaying(true);
+                    setPlayingEpisode(epNum);
+                    updateProgress({ ...movie, source: resolvedPlatform, sourceName }, selectedSeason, epNum);
+                  }
+                }}
+              />
+            </div>
+          )}
         </motion.section>
       )}
 
