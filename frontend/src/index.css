@@ -2038,28 +2038,27 @@ html {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Video Player ────────────────────────────────────────── */
-.group\/bar:hover .progress-scrubber {
-  transform: translate(-50%, -50%) scale(1.35);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.7), 0 0 0 4px rgba(255,107,0,0.6), 0 0 24px rgba(255,107,0,0.4);
+/* ── Aurora Player ──────────────────────────────────────── */
+.aurora-progress:hover .aurora-scrubber {
+  transform: translate(-50%, -50%) scale(1.4);
+  box-shadow: 0 1px 10px rgba(0,0,0,0.6), 0 0 0 3px #FF6B00, 0 0 20px rgba(255,107,0,0.4);
 }
-.group\/bar:hover .progress-scrubber:active {
-  transform: translate(-50%, -50%) scale(1.1);
+.aurora-progress:hover .aurora-scrubber:active {
+  transform: translate(-50%, -50%) scale(1.15);
   cursor: grabbing;
 }
 
-/* Volume slider */
-.player-volume-slider {
+.aurora-volume {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
 }
-.player-volume-slider::-webkit-slider-runnable-track {
+.aurora-volume::-webkit-slider-runnable-track {
   height: 3px;
   background: rgba(255,255,255,0.2);
   border-radius: 3px;
 }
-.player-volume-slider::-webkit-slider-thumb {
+.aurora-volume::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 12px;
@@ -2070,17 +2069,17 @@ html {
   box-shadow: 0 1px 4px rgba(0,0,0,0.5);
   transition: transform 0.15s, box-shadow 0.15s;
 }
-.player-volume-slider:hover::-webkit-slider-thumb {
+.aurora-volume:hover::-webkit-slider-thumb {
   transform: scale(1.3);
-  box-shadow: 0 1px 6px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,107,0,0.4);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,107,0,0.5);
 }
-.player-volume-slider::-moz-range-track {
+.aurora-volume::-moz-range-track {
   height: 3px;
   background: rgba(255,255,255,0.2);
   border-radius: 3px;
   border: none;
 }
-.player-volume-slider::-moz-range-thumb {
+.aurora-volume::-moz-range-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -2089,9 +2088,9 @@ html {
   box-shadow: 0 1px 4px rgba(0,0,0,0.5);
   transition: transform 0.15s, box-shadow 0.15s;
 }
-.player-volume-slider:hover::-moz-range-thumb {
+.aurora-volume:hover::-moz-range-thumb {
   transform: scale(1.3);
-  box-shadow: 0 1px 6px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,107,0,0.4);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,107,0,0.5);
 }
 
 /* Context menu hover */
