@@ -128,16 +128,6 @@ export function useContinueWatching(user) {
     }
   }, [user]);
 
-  // Cleanup debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (cwWriteTimerRef.current) {
-        clearTimeout(cwWriteTimerRef.current);
-        flushCW(); // Flush any pending writes
-      }
-    };
-  }, [flushCW]);
-
   // Debounced Firestore write — prevents race conditions from rapid updates
   const cwWriteTimerRef = useRef(null);
   const cwPendingRef = useRef(null);
@@ -151,6 +141,16 @@ export function useContinueWatching(user) {
         .catch(() => {});
     }
   }, []);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (cwWriteTimerRef.current) {
+        clearTimeout(cwWriteTimerRef.current);
+        flushCW(); // Flush any pending writes
+      }
+    };
+  }, [flushCW]);
 
   const updateProgress = useCallback(
     async (movie, season = null, episode = null, timestamp = null) => {
