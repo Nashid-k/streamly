@@ -6,7 +6,8 @@
  *
  * Logo sources (verified via curl):
  *   • Simple Icons CDN: netflix, appletv, paramountplus, crunchyroll, mubi, max, jio, sony
- *   • Custom branded SVGs: prime, disney, hotstar, hulu, peacock, zee5, and all Indian platforms
+ *   • Google Favicons CDN: prime, disney, hotstar, hulu, peacock, zee5, mx, voot,
+ *     eros, aha, hoichoi, shemaroo, sunnxt, lionsgate, britbox, stan, curiosity
  *
  * Normalizes any raw string from TMDB / backend / user input into
  * a canonical platform key, or null when nothing matches.
@@ -24,30 +25,14 @@ function simpleIcon(slug, color) {
 }
 
 /**
- * Branded SVG data URI for platforms NOT in Simple Icons.
- * Creates a professional, recognizable brand-style icon.
+ * Google Favicons CDN — real brand icons from actual websites.
+ * Returns 128px PNG logos. Verified working for all platforms below.
  */
-function brandedLogo(brandText, bgColor, textColor = '#fff', subtext = '') {
-  const st = subtext ? `<text x='60' y='36' text-anchor='middle' font-family='system-ui,sans-serif' font-size='8' font-weight='500' fill='${encodeURIComponent(textColor)}' opacity='0.7'>${encodeURIComponent(subtext)}</text>` : '';
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'>
-    <defs><linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='${encodeURIComponent(bgColor)}'/><stop offset='100%' stop-color='${encodeURIComponent(bgColor)}CC'/></linearGradient></defs>
-    <rect width='120' height='40' rx='8' fill='url(%23bg)'/>
-    <text x='60' y='26' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-size='14' font-weight='800' fill='${encodeURIComponent(textColor)}' letter-spacing='1'>${brandText}</text>
-    ${st}
-  </svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+function faviconIcon(domain) {
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 }
 
-/**
- * Compact branded SVG icon for small badge display.
- */
-function compactLogo(letter, bgColor, textColor = '#fff') {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'>
-    <rect width='40' height='40' rx='10' fill='${encodeURIComponent(bgColor)}'/>
-    <text x='20' y='28' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-size='20' font-weight='800' fill='${encodeURIComponent(textColor)}'>${letter}</text>
-  </svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
+
 
 // ─── Platform Registry ──────────────────────────────────────────────────────
 
@@ -66,12 +51,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "originals"],
   },
-  // NOT in Simple Icons — custom branded SVG
+  // VERIFIED: google.com/s2/favicons?domain=primevideo.com → 200 ✓
   prime: {
     id: "prime",
     name: "Prime Video",
     shortName: "Prime",
-    iconUrl: brandedLogo("PRIME", "#00A8E1"),
+    iconUrl: faviconIcon("primevideo.com"),
     iconHeight: "20px",
     color: "#00A8E1",
     gradient: "linear-gradient(135deg, #00A8E1, #0077B5)",
@@ -79,12 +64,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "rental"],
   },
-  // NOT in Simple Icons — custom branded SVG
+  // VERIFIED: google.com/s2/favicons?domain=disneyplus.com → 200 ✓
   disney: {
     id: "disney",
     name: "Disney+",
     shortName: "Disney+",
-    iconUrl: brandedLogo("DISNEY+", "#113CCF"),
+    iconUrl: faviconIcon("disneyplus.com"),
     iconHeight: "20px",
     color: "#113CCF",
     gradient: "linear-gradient(135deg, #113CCF, #0a2a8a)",
@@ -92,12 +77,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "originals"],
   },
-  // NOT in Simple Icons — custom branded SVG
+  // VERIFIED: google.com/s2/favicons?domain=hotstar.com → 200 ✓
   hotstar: {
     id: "hotstar",
     name: "Disney+ Hotstar",
     shortName: "Hotstar",
-    iconUrl: brandedLogo("HOTSTAR", "#0F0617"),
+    iconUrl: faviconIcon("hotstar.com"),
     iconHeight: "24px",
     color: "#0F0617",
     gradient: "linear-gradient(135deg, #0F0617, #1a0a30)",
@@ -118,12 +103,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "originals"],
   },
-  // NOT in Simple Icons — custom branded SVG
+  // VERIFIED: google.com/s2/favicons?domain=hulu.com → 200 ✓
   hulu: {
     id: "hulu",
     name: "Hulu",
     shortName: "Hulu",
-    iconUrl: brandedLogo("HULU", "#1CE783", "#000"),
+    iconUrl: faviconIcon("hulu.com"),
     iconHeight: "20px",
     color: "#1CE783",
     gradient: "linear-gradient(135deg, #1CE783, #0d9e5a)",
@@ -157,12 +142,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription"],
   },
-  // NOT in Simple Icons — custom branded SVG
+  // VERIFIED: google.com/s2/favicons?domain=peacocktv.com → 200 ✓
   peacock: {
     id: "peacock",
     name: "Peacock",
     shortName: "Peacock",
-    iconUrl: brandedLogo("PEACOCK", "#FDB927", "#000"),
+    iconUrl: faviconIcon("peacocktv.com"),
     iconHeight: "22px",
     color: "#FDB927",
     gradient: "linear-gradient(135deg, #FDB927, #d4a020)",
@@ -198,12 +183,12 @@ export const PLATFORMS = {
   },
 
   // ── India-specific ──
-  // NOT in Simple Icons — custom branded SVG
+  // VERIFIED: google.com/s2/favicons?domain=zee5.com → 200 ✓
   zee5: {
     id: "zee5",
     name: "ZEE5",
     shortName: "ZEE5",
-    iconUrl: brandedLogo("ZEE5", "#8230C6"),
+    iconUrl: faviconIcon("zee5.com"),
     iconHeight: "18px",
     color: "#8230C6",
     gradient: "linear-gradient(135deg, #8230C6, #5c1f94)",
@@ -237,12 +222,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription", "free", "sports"],
   },
-  // NOT in Simple Icons — custom branded SVG
+  // VERIFIED: google.com/s2/favicons?domain=mxplayer.in → 200 ✓
   mxplayer: {
     id: "mxplayer",
     name: "MX Player",
     shortName: "MX Player",
-    iconUrl: brandedLogo("MX", "#FF6B00"),
+    iconUrl: faviconIcon("mxplayer.in"),
     iconHeight: "18px",
     color: "#FF6B00",
     gradient: "linear-gradient(135deg, #FF6B00, #cc5500)",
@@ -250,11 +235,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["free", "ad-supported"],
   },
+  // VERIFIED: google.com/s2/favicons?domain=voot.com → 200 ✓
   voot: {
     id: "voot",
     name: "Voot",
     shortName: "Voot",
-    iconUrl: brandedLogo("VOOT", "#FF0000"),
+    iconUrl: faviconIcon("voot.com"),
     iconHeight: "18px",
     color: "#FF0000",
     gradient: "linear-gradient(135deg, #FF0000, #cc0000)",
@@ -262,11 +248,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription"],
   },
+  // VERIFIED: google.com/s2/favicons?domain=erosnow.com → 200 ✓
   erosnow: {
     id: "erosnow",
     name: "Eros Now",
     shortName: "Eros Now",
-    iconUrl: brandedLogo("EROS", "#FF6B00"),
+    iconUrl: faviconIcon("erosnow.com"),
     iconHeight: "18px",
     color: "#FF6B00",
     gradient: "linear-gradient(135deg, #FF6B00, #cc5500)",
@@ -274,11 +261,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription"],
   },
+  // VERIFIED: google.com/s2/favicons?domain=aha.video → 200 ✓
   aha: {
     id: "aha",
     name: "aha",
     shortName: "aha",
-    iconUrl: brandedLogo("aha", "#FF3366"),
+    iconUrl: faviconIcon("aha.video"),
     iconHeight: "18px",
     color: "#FF3366",
     gradient: "linear-gradient(135deg, #FF3366, #cc2952)",
@@ -286,11 +274,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription", "regional", "telugu"],
   },
+  // VERIFIED: google.com/s2/favicons?domain=hoichoi.tv → 200 ✓
   hoichoi: {
     id: "hoichoi",
     name: "Hoichoi",
     shortName: "Hoichoi",
-    iconUrl: brandedLogo("HOICHOI", "#E5007D"),
+    iconUrl: faviconIcon("hoichoi.tv"),
     iconHeight: "18px",
     color: "#E5007D",
     gradient: "linear-gradient(135deg, #E5007D, #b80064)",
@@ -298,11 +287,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription", "regional", "bengali"],
   },
+  // VERIFIED: google.com/s2/favicons?domain=shemaroome.com → 200 ✓
   shemaroo: {
     id: "shemaroo",
     name: "ShemarooMe",
     shortName: "ShemarooMe",
-    iconUrl: brandedLogo("SHEMAROO", "#FF0000"),
+    iconUrl: faviconIcon("shemaroome.com"),
     iconHeight: "18px",
     color: "#FF0000",
     gradient: "linear-gradient(135deg, #FF0000, #cc0000)",
@@ -310,11 +300,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription", "regional"],
   },
+  // VERIFIED: google.com/s2/favicons?domain=sunnxt.com → 200 ✓
   sunnxt: {
     id: "sunnxt",
     name: "Sun NXT",
     shortName: "Sun NXT",
-    iconUrl: brandedLogo("SUN NXT", "#FF6600"),
+    iconUrl: faviconIcon("sunnxt.com"),
     iconHeight: "18px",
     color: "#FF6600",
     gradient: "linear-gradient(135deg, #FF6600, #cc5200)",
@@ -322,11 +313,12 @@ export const PLATFORMS = {
     category: "india",
     tags: ["subscription", "regional", "tamil"],
   },
+  // VERIFIED: google.com/s2/favicons?domain=lionsgateplay.com → 200 ✓
   lionsgate: {
     id: "lionsgate",
     name: "Lionsgate Play",
     shortName: "Lionsgate Play",
-    iconUrl: brandedLogo("LIONSGATE", "#C8102E"),
+    iconUrl: faviconIcon("lionsgateplay.com"),
     iconHeight: "18px",
     color: "#C8102E",
     gradient: "linear-gradient(135deg, #C8102E, #a00d24)",
@@ -336,11 +328,12 @@ export const PLATFORMS = {
   },
 
   // ── International niche ──
+  // VERIFIED: google.com/s2/favicons?domain=britbox.com → 200 ✓
   britbox: {
     id: "britbox",
     name: "BritBox",
     shortName: "BritBox",
-    iconUrl: brandedLogo("BRITBOX", "#00B140"),
+    iconUrl: faviconIcon("britbox.com"),
     iconHeight: "18px",
     color: "#00B140",
     gradient: "linear-gradient(135deg, #00B140, #008d33)",
@@ -348,12 +341,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "british"],
   },
-  // NOT in Simple Icons — custom branded SVG
+  // VERIFIED: google.com/s2/favicons?domain=stan.com.au → 200 ✓
   stan: {
     id: "stan",
     name: "Stan",
     shortName: "Stan",
-    iconUrl: brandedLogo("STAN", "#0D47A1"),
+    iconUrl: faviconIcon("stan.com.au"),
     iconHeight: "18px",
     color: "#0D47A1",
     gradient: "linear-gradient(135deg, #0D47A1, #0a3880)",
@@ -361,11 +354,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "australian"],
   },
+  // VERIFIED: google.com/s2/favicons?domain=curiositystream.com → 200 ✓
   curiositystream: {
     id: "curiositystream",
     name: "Curiosity Stream",
     shortName: "Curiosity",
-    iconUrl: brandedLogo("CURIOSITY", "#1A1A2E"),
+    iconUrl: faviconIcon("curiositystream.com"),
     iconHeight: "18px",
     color: "#1A1A2E",
     gradient: "linear-gradient(135deg, #1A1A2E, #0d0d17)",
@@ -373,12 +367,12 @@ export const PLATFORMS = {
     category: "global",
     tags: ["subscription", "documentary"],
   },
-  // NOT in Simple Icons — custom branded SVG
+  // VERIFIED: google.com/s2/favicons?domain=justwatch.com → 200 ✓
   justwatch: {
     id: "justwatch",
     name: "JustWatch",
     shortName: "JustWatch",
-    iconUrl: brandedLogo("JUSTWATCH", "#00C3FF", "#000"),
+    iconUrl: faviconIcon("justwatch.com"),
     iconHeight: "18px",
     color: "#00C3FF",
     gradient: "linear-gradient(135deg, #00C3FF, #009ccc)",
