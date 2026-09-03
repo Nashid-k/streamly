@@ -39,6 +39,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Loader from "./components/Loader";
 import BackToTop from "./components/BackToTop";
 import AuthModal from "./components/AuthModal";
+import PlatformIcon from "./components/PlatformIcon";
 import { useScrollRestoration } from "./hooks/useScrollRestoration";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 
