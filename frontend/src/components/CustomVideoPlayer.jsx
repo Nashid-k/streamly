@@ -148,7 +148,6 @@ const CustomVideoPlayer = ({
   const [, setLastServer] = useState(
     () => localStorage.getItem("streamly_lastserver") || "",
   );
-  const [backendIntroTimings, setBackendIntroTimings] = useState(null);
   const [contextMenu, setContextMenu] = useState({ show: false, x: 0, y: 0 });
   const [isLooping, setIsLooping] = useState(false);
   const [brightness, setBrightness] = useState(1);
@@ -176,20 +175,8 @@ const CustomVideoPlayer = ({
   const toastTimeoutRef = useRef(null);
 
   // Sync refs for stale closures in message listener
-  const backendIntroTimingsRef = useRef(null);
-  const autoSkipIntroRef = useRef(autoSkipIntro);
-  const showSkipIntroRef = useRef(showSkipIntro);
   const isLoopingRef = useRef(isLooping);
 
-  useEffect(() => {
-    backendIntroTimingsRef.current = backendIntroTimings;
-  }, [backendIntroTimings]);
-  useEffect(() => {
-    autoSkipIntroRef.current = autoSkipIntro;
-  }, [autoSkipIntro]);
-  useEffect(() => {
-    showSkipIntroRef.current = showSkipIntro;
-  }, [showSkipIntro]);
   useEffect(() => {
     isLoopingRef.current = isLooping;
   }, [isLooping]);
@@ -225,26 +212,6 @@ const CustomVideoPlayer = ({
     setShowSkipIntro(false);
     setUpNextCountdown(15);
   }, [movie?.id, season, episode]);
-
-  useEffect(() => {
-    // Fetch precise intro timings from backend
-    if (movie?.id) {
-      import("../api/movieService").then(({ movieService }) => {
-        movieService
-          .getIntroTimings(
-            movie.id,
-            season,
-            episode,
-            movie.platform || "netflix",
-          )
-          .then((timings) => {
-            if (timings?.hasIntro) setBackendIntroTimings(timings);
-            else setBackendIntroTimings(null);
-          })
-          .catch((err) => console.error("Failed to fetch intro timings", err));
-      });
-    }
-  }, [movie?.id, season, episode, movie?.platform]);
 
   // Sync parent server changes to local state
   useEffect(() => {
@@ -619,29 +586,6 @@ const CustomVideoPlayer = ({
           if (data.duration) setDuration(data.duration);
           if (data.buffered !== undefined) setBuffered(data.buffered);
           if (!isScrubbing) setIsLoading(false);
-
-          // Backend Intro Sync
-          if (backendIntroTimingsRef.current?.hasIntro) {
-            const { startSeconds, endSeconds } = backendIntroTimingsRef.current;
-            // Buffer of 1 second to handle iframe drift
-            if (
-              data.currentTime >= startSeconds &&
-              data.currentTime < endSeconds - 1
-            ) {
-              if (autoSkipIntroRef.current) {
-                sendCommand("seek", [endSeconds]);
-                showToast("Intro Skipped Automatically");
-              } else if (!showSkipIntroRef.current) {
-                setSkipIntroTime(endSeconds);
-                setShowSkipIntro(true);
-              }
-            } else if (
-              showSkipIntroRef.current &&
-              data.currentTime >= endSeconds
-            ) {
-              setShowSkipIntro(false);
-            }
-          }
 
           // Up Next countdown trigger (within last 30s)
           if (

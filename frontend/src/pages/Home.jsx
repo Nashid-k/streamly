@@ -465,6 +465,14 @@ export default function Home({
     refetchOnWindowFocus: false,
   });
 
+  const { data: top10Data } = useQuery({
+    queryKey: ["top10"],
+    queryFn: () => movieService.getTop10("all"),
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
   const rawCategories = categoriesData || EMPTY_ARRAY;
   const featuredMovies = useMemo(
     () =>
@@ -696,59 +704,7 @@ export default function Home({
     return finalCategories;
   }, [rawCategories, filter, activeGenre]);
 
-  const top10Movies = useMemo(() => {
-    const allMovies = [];
-    for (const cat of rawCategories) {
-      for (const m of cat.movies) {
-        if (!allMovies.find((x) => x.id === m.id)) allMovies.push(m);
-      }
-    }
-
-    // Authentic "Top 10 Today" logic:
-    // Real platforms (Netflix) base this on daily trending data.
-    // We can simulate this by seeding a shuffle with today's date string,
-    // ensuring the Top 10 changes every single day at midnight!
-    const todaySeed = new Date().toDateString();
-
-    // Simple string hash for the seed
-    let hash = 0;
-    for (let i = 0; i < todaySeed.length; i++) {
-      hash = (hash << 5) - hash + todaySeed.charCodeAt(i);
-      hash |= 0;
-    }
-
-    // Deterministic shuffle based on today's hash
-    // Use full ID string for better distribution (#10 fix)
-    const hashString = (str, seed) => {
-      let h = seed;
-      for (let i = 0; i < str.length; i++) {
-        h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-      }
-      return Math.abs(h);
-    };
-    const shuffled = [...allMovies].sort((a, b) => {
-      return hashString(a.id.toString(), hash) - hashString(b.id.toString(), hash);
-    });
-
-    const isSeriesCheck = (m) => Boolean(m.isSeries || String(m.id).startsWith("tmdb-tv-") || m.type === "tv" || (m.seasonsCount && m.seasonsCount > 0));
-
-    const finalTop10 =
-      filter === "series" || filter === "tv shows"
-        ? shuffled.filter(isSeriesCheck)
-        : filter === "movies"
-          ? shuffled.filter((m) => !isSeriesCheck(m))
-          : filter === "anime"
-            ? shuffled.filter(
-                (m) =>
-                  m.genres?.includes("Animation") ||
-                  (m.tags && m.tags.some((t) => t.toLowerCase().includes("anime"))),
-              )
-            : shuffled;
-
-    return finalTop10.slice(0, 10);
-  }, [rawCategories, filter]);
-
-  // Shared predicates for the Trending/Airing rails that mirror the Top 10 filter
+  // Shared predicates for the Top 10 / Trending / Airing rails
   const isSeriesMovie = (m) =>
     Boolean(
       m.isSeries ||
@@ -768,6 +724,13 @@ export default function Home({
     return list || [];
   };
 
+  // Real cross-platform Top 10 from the backend (ranked, not a client-side shuffle)
+  const top10Movies = useMemo(
+    () => applyPageFilter(top10Data || EMPTY_ARRAY).slice(0, 10),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [top10Data, filter],
+  );
+
   const trendingThisWeek = useMemo(
     () => applyPageFilter(trendingData || EMPTY_ARRAY).slice(0, 20),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -785,34 +748,15 @@ export default function Home({
       ? continueWatching[0]
       : null;
 
-  // Use ref for continueWatching to avoid unnecessary recomputes (#11 fix)
-  const continueWatchingRef = useRef(continueWatching);
-  useEffect(() => {
-    continueWatchingRef.current = continueWatching;
-  }, [continueWatching]);
-
-  const recommendations = useMemo(() => {
-    if (!lastWatched) return [];
-    const lastWatchedGenres = lastWatched.genres || [];
-    if (lastWatchedGenres.length === 0) return [];
-
-    const cwIds = new Set((continueWatchingRef.current || []).map((m) => m.id));
-    const allMovies = [];
-    for (const cat of rawCategories) {
-      for (const m of cat.movies) {
-        if (!cwIds.has(m.id) && !allMovies.find((x) => x.id === m.id)) {
-          allMovies.push(m);
-        }
-      }
-    }
-
-    const recs = allMovies.filter((m) =>
-      (m.genres || []).some((g) => lastWatchedGenres.includes(g)),
-    );
-    return recs
-      .sort((a, b) => (b.imdbRating || 0) - (a.imdbRating || 0))
-      .slice(0, 15);
-  }, [lastWatched, rawCategories]); // Removed continueWatching from deps
+  // Real "Because you watched X" recommendations from the backend
+  const { data: recommendations } = useQuery({
+    queryKey: ["recommendations", lastWatched?.id],
+    queryFn: () => movieService.getRecommendations(lastWatched.id),
+    enabled: Boolean(lastWatched && lastWatched.id),
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   const finalPool = useMemo(() => {
     let globalPool = [];
@@ -1357,7 +1301,7 @@ export default function Home({
                 </FadeInSection>
               )}
             {/* 3. Because you watched */}
-            {filter === "all" && lastWatched && recommendations.length > 0 && (
+            {filter === "all" && lastWatched && recommendations?.length > 0 && (
               <FadeInSection>
                 <ErrorBoundary>
                   <MovieRail

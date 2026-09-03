@@ -23,6 +23,22 @@ export const movieService = {
     return res.data;
   },
 
+  getTop10: async (platform = "all") => {
+    const res = await apiClient.get("/movies/top10", {
+      params: { platform, _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
+    });
+    return res.data;
+  },
+
+  getRecommendations: async (id, platform) => {
+    const res = await apiClient.get(`/movies/${id}/recommendations`, {
+      params: { platform, _t: Date.now() },
+      headers: { 'Cache-Control': 'no-store' },
+    });
+    return res.data;
+  },
+
   getMovieDetails: async (id, platform) => {
     const res = await apiClient.get(`/movies/${id}`, {
       params: { platform, _cb: "v2" },
@@ -52,13 +68,6 @@ export const movieService = {
   getExternalIds: async (id, platform) => {
     const res = await apiClient.get(`/movies/${id}/external_ids`, {
       params: { platform, _cb: "v2" },
-    });
-    return res.data;
-  },
-
-  getIntroTimings: async (id, season, episode, platform) => {
-    const res = await apiClient.get(`/movies/${id}/intro`, {
-      params: { season, episode, platform, _cb: "v2" },
     });
     return res.data;
   },
