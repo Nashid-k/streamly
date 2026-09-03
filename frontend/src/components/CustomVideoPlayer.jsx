@@ -5,7 +5,7 @@ import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Settings, AlertCircle, Check, RotateCcw, RotateCw,
   SkipForward, FastForward, Rewind,
-  Keyboard, X, Upload, Captions, Film, Link, Repeat, RefreshCw,
+  Keyboard, X, Upload, Captions, Film, Link, Repeat,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SubtitleEngine } from "../utils/SubtitleEngine";
@@ -44,26 +44,83 @@ const LOADING_TIPS = [
   { text: "Right-click for more options", icon: Settings },
 ];
 
-/* ═══ Apple-inspired Design Tokens ══════════════════════════════ */
-const V = {
-  bg: "#000",
-  accent: "#0A84FF",
-  accentDim: "rgba(10,132,255,0.15)",
-  accentBorder: "rgba(10,132,255,0.35)",
-  accentGlow: "rgba(10,132,255,0.5)",
-  text: "#fff",
-  dim: "rgba(255,255,255,0.55)",
-  faint: "rgba(255,255,255,0.2)",
-  glass: "rgba(30,30,30,0.72)",
-  glassBorder: "rgba(255,255,255,0.08)",
-  surface: "#1c1c1e",
+/* ═══ Apple Design Language ═══════════════════════════════════════
+   Inspired by Apple TV+ player — circular arcs, frosted glass,
+   SF Pro typography, spring-physics animations, minimal chrome.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Spring presets (Apple-style physics) */
+const SPRING = { type: "spring", stiffness: 400, damping: 30, mass: 0.8 };
+const SPRING_FAST = { type: "spring", stiffness: 600, damping: 35 };
+const SPRING_SNAPPY = { type: "spring", stiffness: 500, damping: 28 };
+
+/* Circular Arc Component — the core Apple TV+ motif
+   Used for: volume HUD, seek indicators, loading, up-next countdown */
+const ArcRing = ({ progress = 0, size = 48, strokeWidth = 3, color = "#fff", bgColor = "rgba(255,255,255,0.08)", glowColor, children, className }) => {
+  const r = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - Math.max(0, Math.min(progress, 1)));
+  return (
+    <div style={{ position: "relative", width: size, height: size }} className={className}>
+      <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={bgColor} strokeWidth={strokeWidth} />
+        <circle
+          cx={size/2} cy={size/2} r={r} fill="none"
+          stroke={color} strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 0.25s cubic-bezier(0.4, 0, 0.2, 1)" }}
+        />
+      </svg>
+      {glowColor && (
+        <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", filter: `blur(4px)`, opacity: 0.5 }}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="transparent" strokeWidth={strokeWidth} />
+          <circle
+            cx={size/2} cy={size/2} r={r} fill="none"
+            stroke={glowColor} strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
+            style={{ transition: "stroke-dashoffset 0.25s cubic-bezier(0.4, 0, 0.2, 1)" }}
+          />
+        </svg>
+      )}
+      {children && (
+        <div style={{
+          position: "absolute", inset: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
 };
 
+/* Spinning Arc — for loading states (like subtitle download) */
+const SpinningArc = ({ size = 48, strokeWidth = 2.5, color = "#fff" }) => (
+  <motion.svg
+    width={size} height={size}
+    animate={{ rotate: 360 }}
+    transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+    style={{ display: "block" }}
+  >
+    <circle cx={size/2} cy={size/2} r={(size - strokeWidth) / 2} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeWidth} />
+    <circle
+      cx={size/2} cy={size/2} r={(size - strokeWidth) / 2}
+      fill="none" stroke={color} strokeWidth={strokeWidth}
+      strokeLinecap="round" strokeDasharray={`${size * 0.4} ${size * 2.4}`}
+    />
+  </motion.svg>
+);
+
+/* ═══ Main Player ═══════════════════════════════════════════════ */
 const CustomVideoPlayer = ({
   movie, season, episode, preferredServerIndex = 0, onServerChange,
   hasNextEpisode, onNextEpisode, thumbnailUrl, startTime = 0, onProgressUpdate,
 }) => {
-  /* ═══ State ══════════════════════════════════════════════════════ */
+  /* State */
   const [activeServerIndex, setActiveServerIndex] = useState(preferredServerIndex);
   const activeServerIndexRef = useRef(activeServerIndex);
   useEffect(() => { activeServerIndexRef.current = activeServerIndex; }, [activeServerIndex]);
@@ -79,8 +136,8 @@ const CustomVideoPlayer = ({
   const [volume, setVolume] = useState(1);
   const [isVolumeHovered, setIsVolumeHovered] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [showVolumePopup, setShowVolumePopup] = useState(false);
-  const [showAspectRatioPopup, setShowAspectRatioPopup] = useState(false);
+  const [showVolumeArc, setShowVolumeArc] = useState(false);
+  const [showAspectRatioArc, setShowAspectRatioArc] = useState(false);
   const [autoSkipIntro, setAutoSkipIntro] = useState(() => localStorage.getItem("streamly_autoSkip") === "true");
   const [autoPlayNext, setAutoPlayNext] = useState(() => localStorage.getItem("streamly_autoNext") !== "false");
   const [doubleTapRipple, setDoubleTapRipple] = useState(null);
@@ -117,7 +174,7 @@ const CustomVideoPlayer = ({
   const [showPausedInfo, setShowPausedInfo] = useState(false);
   const pausedInfoTimerRef = useRef(null);
 
-  /* ═══ Refs ════════════════════════════════════════════════════════ */
+  /* Refs */
   const iframeRef = useRef(null);
   const containerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
@@ -135,8 +192,8 @@ const CustomVideoPlayer = ({
   const centerIconKeyRef = useRef(0);
   const subtitleInputRef = useRef(null);
   const toastTimeoutRef = useRef(null);
-  const volumePopupRef = useRef(null);
-  const aspectRatioPopupRef = useRef(null);
+  const volumeArcTimerRef = useRef(null);
+  const aspectRatioArcTimerRef = useRef(null);
   const volumeBarRef = useRef(null);
   const isDraggingVolumeRef = useRef(false);
   const isLoopingRef = useRef(isLooping);
@@ -229,16 +286,15 @@ const CustomVideoPlayer = ({
     }
   }, [hasInitiallyLoaded, dynamicTips.length]);
 
-  /* ═══ Block popup ads from CineSrc iframe ═════════════════════════ */
+  /* Block popup ads from CineSrc iframe */
   useEffect(() => {
     if (!isCineSrc) return;
-    // Override window.open to block popup ads (without sandbox)
     const origOpen = window.open;
     window.open = () => null;
     return () => { window.open = origOpen; };
   }, [isCineSrc]);
 
-  /* ═══ URL Generation ════════════════════════════════════════════════ */
+  /* URL Generation */
   useEffect(() => {
     let watchdogTimer;
     const gen = async () => {
@@ -262,10 +318,8 @@ const CustomVideoPlayer = ({
       if (activeServerIndex === 0) {
         if (!isNew && currentTime > 0 && !targetSeekTimeRef.current) url += `&t=${Math.floor(currentTime)}&continueprompt=false`;
         else if (isNew && startTime > 0) url += `&t=${Math.floor(startTime)}&continueprompt=false`;
-
       }
       setIframeUrl(url);
-      // CineSrc needs more time to initialize — use 20s watchdog
       const watchdogDelay = activeServerIndex === 0 ? 20000 : 12000;
       watchdogTimer = setTimeout(() => {
         setIsLoading((prev) => {
@@ -302,12 +356,10 @@ const CustomVideoPlayer = ({
       if (iframeRef.current?.contentWindow) {
         iframeRef.current.contentWindow.postMessage({ type: "cinesrc:command", command: c, args: a }, "https://cinesrc.st");
       }
-    } catch {
-      // Silently ignore postMessage errors (iframe may be cross-origin or not ready)
-    }
+    } catch { /* iframe cross-origin */ }
   }, []);
 
-  /* ═══ Up Next ═══════════════════════════════════════════════════════ */
+  /* Up Next */
   const startUpNextCountdown = useCallback(() => {
     if (upNextShownRef.current || !hasNextEpisode) return;
     upNextShownRef.current = true;
@@ -339,148 +391,139 @@ const CustomVideoPlayer = ({
 
   useEffect(() => () => clearInterval(upNextIntervalRef.current), []);
 
-  /* ═══ PostMessage Listener ═════════════════════════════════════════ */
+  /* PostMessage Listener */
   useEffect(() => {
     if (!isCineSrc) return;
     const h = (ev) => {
       try {
-      if (ev.origin !== "https://cinesrc.st" || !ev.data || typeof ev.data !== "object") return;
-      let t, d;
-      try { ({ type: t, ...d } = ev.data); } catch { return; }
-      switch (t) {
-        case "cinesrc:ready":
-          // Per CineSrc docs: autoplay=true in URL handles playback.
-          // Do NOT call sendCommand('play') here — it interrupts HLS loading
-          // and causes 'play() interrupted by new load request' errors.
-          sendCommand("setVolume", [isMuted ? 0 : volume]);
-          sendCommand("setPlaybackRate", [playbackRate]);
-          sendCommand("getCurrentTime");
-          sendCommand("getDuration");
-          sendCommand("getVolume");
-          sendCommand("getPaused");
-          sendCommand("getPlaybackRate");
-          break;
-        case "cinesrc:response":
-          switch (d.command) {
-            case "getCurrentTime": if (d.result != null && !targetSeekTimeRef.current) setCurrentTime(d.result); break;
-            case "getDuration": if (d.result) setDuration(d.result); break;
-            case "getVolume": if (d.result != null) setVolume(d.result); break;
-            case "getPaused": if (d.result != null) setIsPlaying(!d.result); break;
-            case "getPlaybackRate": if (d.result != null) setPlaybackRate(d.result); break;
-            case "getAudioTracks": case "getTracks": case "getAudio": if (d.result) setAudioTracks(d.result); break;
-            case "getQualities": case "getLevels": case "getResolutions": if (d.result) setQualities(d.result); break;
-            case "getCurrentQuality": case "getCurrentLevel": case "getCurrentResolution": case "getQuality": if (d.result != null) setCurrentQuality(d.result); break;
-            case "getCurrentAudioTrack": case "getCurrentTrack": if (d.result != null) setCurrentAudioTrack(d.result); break;
-            default: break;
-          }
-          break;
-        case "cinesrc:loadedmetadata": if (d.duration) setDuration(d.duration); break;
-        case "cinesrc:waiting": setIsLoading(true); break;
-        case "cinesrc:seeking": setIsLoading(true); break;
-        case "cinesrc:seeked": targetSeekTimeRef.current = null; setIsLoading(false); break;
-        case "cinesrc:playing": setIsLoading(false); setIsPlaying(true); break;
-        case "cinesrc:progress": if (d.buffered !== undefined) setBuffered(d.buffered); break;
-        case "cinesrc:timeupdate":
-          if (isLoading) setIsLoading(false);
-          if (!isScrubbing && !targetSeekTimeRef.current) {
-            setCurrentTime(d.currentTime);
-            onProgressUpdate?.(d.currentTime, d.duration);
-            if (hasSubtitlesRef.current) {
-              const cue = subtitleEngineRef.current.getActiveCue(d.currentTime);
-              setActiveSubtitleCue((p) => p?.start === cue?.start && p?.end === cue?.end ? p : cue);
+        if (ev.origin !== "https://cinesrc.st" || !ev.data || typeof ev.data !== "object") return;
+        let t, d;
+        try { ({ type: t, ...d } = ev.data); } catch { return; }
+        switch (t) {
+          case "cinesrc:ready":
+            sendCommand("setVolume", [isMuted ? 0 : volume]);
+            sendCommand("setPlaybackRate", [playbackRate]);
+            sendCommand("getCurrentTime");
+            sendCommand("getDuration");
+            sendCommand("getVolume");
+            sendCommand("getPaused");
+            sendCommand("getPlaybackRate");
+            break;
+          case "cinesrc:response":
+            switch (d.command) {
+              case "getCurrentTime": if (d.result != null && !targetSeekTimeRef.current) setCurrentTime(d.result); break;
+              case "getDuration": if (d.result) setDuration(d.result); break;
+              case "getVolume": if (d.result != null) setVolume(d.result); break;
+              case "getPaused": if (d.result != null) setIsPlaying(!d.result); break;
+              case "getPlaybackRate": if (d.result != null) setPlaybackRate(d.result); break;
+              case "getAudioTracks": case "getTracks": case "getAudio": if (d.result) setAudioTracks(d.result); break;
+              case "getQualities": case "getLevels": case "getResolutions": if (d.result) setQualities(d.result); break;
+              case "getCurrentQuality": case "getCurrentLevel": case "getCurrentResolution": case "getQuality": if (d.result != null) setCurrentQuality(d.result); break;
+              case "getCurrentAudioTrack": case "getCurrentTrack": if (d.result != null) setCurrentAudioTrack(d.result); break;
+              default: break;
             }
-          }
-          if (d.duration) setDuration(d.duration);
-          if (d.buffered !== undefined) setBuffered(d.buffered);
-          if (!isScrubbing) setIsLoading(false);
-          if (d.duration > 0 && d.currentTime >= d.duration - 30 && hasNextEpisode && !upNextShownRef.current && !isLoopingRef.current) startUpNextCountdown();
-          if (d.duration > 0 && d.currentTime >= d.duration - 1 && hasNextEpisode && onNextEpisode && !hasTriggeredNextRef.current && !isLoopingRef.current) {
-            hasTriggeredNextRef.current = true;
-            clearInterval(upNextIntervalRef.current);
-            setShowUpNext(false);
-            onNextEpisode();
-          }
-          break;
-        case "cinesrc:ended":
-          if (isLoopingRef.current) { sendCommand("seek", [0]); sendCommand("play"); return; }
-          if (hasNextEpisode && !hasTriggeredNextRef.current) {
-            hasTriggeredNextRef.current = true;
-            clearInterval(upNextIntervalRef.current);
-            setShowUpNext(false);
-            onNextEpisode();
-          }
-          break;
-        case "cinesrc:nextepisode":
-          if (!d.internalNavigation && onNextEpisode && !hasTriggeredNextRef.current) {
-            hasTriggeredNextRef.current = true;
-            onNextEpisode();
-          }
-          break;
-        case "cinesrc:skipintro":
-          if (d.time != null) {
-            if (autoSkipIntro) {
-              sendCommand("seek", [d.time]);
-              showToast("Intro skipped");
-            } else {
-              setSkipIntroTime(d.time);
-              setShowSkipIntro(true);
-              clearTimeout(skipIntroTimeoutRef.current);
-              skipIntroTimeoutRef.current = setTimeout(() => setShowSkipIntro(false), 12000);
+            break;
+          case "cinesrc:loadedmetadata": if (d.duration) setDuration(d.duration); break;
+          case "cinesrc:waiting": setIsLoading(true); break;
+          case "cinesrc:seeking": setIsLoading(true); break;
+          case "cinesrc:seeked": targetSeekTimeRef.current = null; setIsLoading(false); break;
+          case "cinesrc:playing": setIsLoading(false); setIsPlaying(true); break;
+          case "cinesrc:progress": if (d.buffered !== undefined) setBuffered(d.buffered); break;
+          case "cinesrc:timeupdate":
+            if (isLoading) setIsLoading(false);
+            if (!isScrubbing && !targetSeekTimeRef.current) {
+              setCurrentTime(d.currentTime);
+              onProgressUpdate?.(d.currentTime, d.duration);
+              if (hasSubtitlesRef.current) {
+                const cue = subtitleEngineRef.current.getActiveCue(d.currentTime);
+                setActiveSubtitleCue((p) => p?.start === cue?.start && p?.end === cue?.end ? p : cue);
+              }
             }
-          }
-          break;
-        case "cinesrc:sourceused":
-          if (d.sourceId) {
-            setActiveSourceId(d.sourceId);
-            localStorage.setItem("streamly_lastserver", d.sourceId);
-            setLastServer(d.sourceId);
-          }
-          break;
-        case "cinesrc:play": setIsLoading(false); setIsPlaying(true); break;
-        case "cinesrc:pause": setIsPlaying(false); if (!isScrubbing) setIsLoading(false); break;
-        case "cinesrc:ratechange": setPlaybackRate(d.playbackRate); break;
-        case "cinesrc:volumechange":
-          if (d.volume !== undefined) setVolume(d.volume);
-          if (d.muted !== undefined) setIsMuted(d.muted);
-          break;
-        case "cinesrc:close":
-          // Back button clicked with back=close
-          navigate(-1);
-          break;
-        case "cinesrc:error":
-          setIsLoading(false);
-          const errType = d.error?.type || d.error?.details || 'unknown';
-          const ei = activeServerIndexRef.current;
-          // Ignore non-fatal HLS network errors (they auto-recover)
-          if (errType === 'networkError' || errType === 'levelLoadTimeOut') break;
-          setServerErrorCounts((p) => {
-            const nc = (p[ei] || 0) + 1;
-            if (nc >= 2) {
-              setErrorMessage("Stream unavailable — trying next server");
-              setTimeout(() => {
-                setErrorMessage("");
-                const ni = (ei + 1) % VideoSourceAdapter.getServers().length;
-                setActiveServerIndex(ni);
-                onServerChange?.(ni);
-              }, 2500);
-            } else {
-              setErrorMessage("Retrying...");
-              setTimeout(() => setErrorMessage(""), 3000);
+            if (d.duration) setDuration(d.duration);
+            if (d.buffered !== undefined) setBuffered(d.buffered);
+            if (!isScrubbing) setIsLoading(false);
+            if (d.duration > 0 && d.currentTime >= d.duration - 30 && hasNextEpisode && !upNextShownRef.current && !isLoopingRef.current) startUpNextCountdown();
+            if (d.duration > 0 && d.currentTime >= d.duration - 1 && hasNextEpisode && onNextEpisode && !hasTriggeredNextRef.current && !isLoopingRef.current) {
+              hasTriggeredNextRef.current = true;
+              clearInterval(upNextIntervalRef.current);
+              setShowUpNext(false);
+              onNextEpisode();
             }
-            return { ...p, [ei]: nc };
-          });
-          break;
-        default: break;
-      }
-      } catch {
-        // Silently catch any errors in message handling (DataCloneError, etc.)
-      }
+            break;
+          case "cinesrc:ended":
+            if (isLoopingRef.current) { sendCommand("seek", [0]); return; }
+            if (hasNextEpisode && !hasTriggeredNextRef.current) {
+              hasTriggeredNextRef.current = true;
+              clearInterval(upNextIntervalRef.current);
+              setShowUpNext(false);
+              onNextEpisode();
+            }
+            break;
+          case "cinesrc:nextepisode":
+            if (!d.internalNavigation && onNextEpisode && !hasTriggeredNextRef.current) {
+              hasTriggeredNextRef.current = true;
+              onNextEpisode();
+            }
+            break;
+          case "cinesrc:skipintro":
+            if (d.time != null) {
+              if (autoSkipIntro) {
+                sendCommand("seek", [d.time]);
+                showToast("Intro skipped");
+              } else {
+                setSkipIntroTime(d.time);
+                setShowSkipIntro(true);
+                clearTimeout(skipIntroTimeoutRef.current);
+                skipIntroTimeoutRef.current = setTimeout(() => setShowSkipIntro(false), 12000);
+              }
+            }
+            break;
+          case "cinesrc:sourceused":
+            if (d.sourceId) {
+              setActiveSourceId(d.sourceId);
+              localStorage.setItem("streamly_lastserver", d.sourceId);
+              setLastServer(d.sourceId);
+            }
+            break;
+          case "cinesrc:play": setIsLoading(false); setIsPlaying(true); break;
+          case "cinesrc:pause": setIsPlaying(false); if (!isScrubbing) setIsLoading(false); break;
+          case "cinesrc:ratechange": setPlaybackRate(d.playbackRate); break;
+          case "cinesrc:volumechange":
+            if (d.volume !== undefined) setVolume(d.volume);
+            if (d.muted !== undefined) setIsMuted(d.muted);
+            break;
+          case "cinesrc:close": navigate(-1); break;
+          case "cinesrc:error":
+            setIsLoading(false);
+            const errType = d.error?.type || d.error?.details || 'unknown';
+            if (errType === 'networkError' || errType === 'levelLoadTimeOut') break;
+            const ei = activeServerIndexRef.current;
+            setServerErrorCounts((p) => {
+              const nc = (p[ei] || 0) + 1;
+              if (nc >= 2) {
+                setErrorMessage("Stream unavailable — trying next server");
+                setTimeout(() => {
+                  setErrorMessage("");
+                  const ni = (ei + 1) % VideoSourceAdapter.getServers().length;
+                  setActiveServerIndex(ni);
+                  onServerChange?.(ni);
+                }, 2500);
+              } else {
+                setErrorMessage("Retrying...");
+                setTimeout(() => setErrorMessage(""), 3000);
+              }
+              return { ...p, [ei]: nc };
+            });
+            break;
+          default: break;
+        }
+      } catch { /* DataCloneError etc */ }
     };
     window.addEventListener("message", h);
     return () => window.removeEventListener("message", h);
   }, [isCineSrc, isScrubbing, volume, isMuted, playbackRate, sendCommand, hasNextEpisode, onNextEpisode, activeServerIndex, startUpNextCountdown, isLoading, onProgressUpdate]);
 
-  /* ═══ Actions ══════════════════════════════════════════════════════ */
+  /* Actions */
   const triggerCenterIcon = useCallback((type) => {
     centerIconKeyRef.current += 1;
     setCenterIcon({ type });
@@ -517,10 +560,10 @@ const CustomVideoPlayer = ({
       setIsMuted(false);
       localStorage.setItem("streamly_muted", "false");
     }
-    // Show volume popup briefly
-    setShowVolumePopup(true);
-    if (volumePopupRef.current) clearTimeout(volumePopupRef.current);
-    volumePopupRef.current = setTimeout(() => setShowVolumePopup(false), 800);
+    /* Show the circular arc volume HUD */
+    setShowVolumeArc(true);
+    if (volumeArcTimerRef.current) clearTimeout(volumeArcTimerRef.current);
+    volumeArcTimerRef.current = setTimeout(() => setShowVolumeArc(false), 1200);
   }, [isMuted, sendCommand]);
 
   const toggleMute = useCallback((e) => {
@@ -581,9 +624,7 @@ const CustomVideoPlayer = ({
       } else if (!silent) showToast("No subtitles found");
     } catch {
       if (!silent) showToast("Search failed");
-    } finally {
-      setIsFetchingSubtitles(false);
-    }
+    } finally { setIsFetchingSubtitles(false); }
   }, [movie.imdbId, movie.imdb_id, movie.external_ids, movie.title, movie.releaseYear]);
 
   useEffect(() => { fetchAvailableSubtitles(true); }, [fetchAvailableSubtitles, season, episode]);
@@ -634,7 +675,7 @@ const CustomVideoPlayer = ({
     toastTimeoutRef.current = setTimeout(() => setToastMessage(""), 2000);
   }, []);
 
-  /* ═══ Progress Bar ═════════════════════════════════════════════════ */
+  /* Progress Bar */
   const handleProgressScrub = useCallback((e) => {
     if (!progressBarRef.current || !duration) return;
     const r = progressBarRef.current.getBoundingClientRect();
@@ -671,7 +712,7 @@ const CustomVideoPlayer = ({
     };
   }, [isScrubbing, handleProgressScrub]);
 
-  /* ═══ Keyboard ═════════════════════════════════════════════════════ */
+  /* Keyboard */
   useEffect(() => {
     if (!isCineSrc) return;
     const h = (e) => {
@@ -684,7 +725,7 @@ const CustomVideoPlayer = ({
         case "arrowleft": case "j": case "<": case ",": e.preventDefault(); seekRelative(-10); break;
         case "arrowup": e.preventDefault(); changeVolume(volume + 0.1); break;
         case "arrowdown": e.preventDefault(); changeVolume(volume - 0.1); break;
-        case "a": e.preventDefault(); setAspectRatioIndex((p) => (p + 1) % ASPECT_RATIOS.length); setShowAspectRatioPopup(true); if (aspectRatioPopupRef.current) clearTimeout(aspectRatioPopupRef.current); aspectRatioPopupRef.current = setTimeout(() => setShowAspectRatioPopup(false), 1200); break;
+        case "a": e.preventDefault(); setAspectRatioIndex((p) => (p + 1) % ASPECT_RATIOS.length); setShowAspectRatioArc(true); if (aspectRatioArcTimerRef.current) clearTimeout(aspectRatioArcTimerRef.current); aspectRatioArcTimerRef.current = setTimeout(() => setShowAspectRatioArc(false), 1200); break;
         case "?": e.preventDefault(); setShowShortcuts((p) => !p); break;
         case "escape": setShowShortcuts(false); setShowSettings(false); setShowSubtitlesMenu(false); break;
         default: break;
@@ -706,7 +747,7 @@ const CustomVideoPlayer = ({
     return () => el.removeEventListener("wheel", h);
   }, [showCustomUI, volume, changeVolume, showSettings, showSubtitlesMenu, showShortcuts]);
 
-  /* ═══ Auto-hide controls ══════════════════════════════════════════ */
+  /* Auto-hide controls */
   const handleMouseMove = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -745,10 +786,11 @@ const CustomVideoPlayer = ({
   const pp = duration > 0 ? Math.max(0, Math.min((currentTime / duration) * 100, 100)) : 0;
   const bp = duration > 0 ? Math.max(0, Math.min((buffered / duration) * 100, 100)) : 0;
   const controlsVisible = showControls || !isPlaying || isScrubbing;
+  const effVolume = isMuted ? 0 : volume;
 
-  /* ════════════════════════════════════════════════════════════════════
-     VOID RENDER — Cinematic, auto-hiding, amber accent, no badges
-     ════════════════════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════════════════
+     RENDER — Apple TV+ inspired player
+     ══════════════════════════════════════════════════════════════ */
   return (
     <div
       ref={containerRef}
@@ -757,8 +799,8 @@ const CustomVideoPlayer = ({
         aspectRatio: isFullscreen ? undefined : "16/9",
         height: isFullscreen ? "100vh" : "auto",
         maxHeight: isFullscreen ? "100vh" : "calc(100vh - 120px)",
-        background: V.bg,
-        borderRadius: isFullscreen ? 0 : 8,
+        background: "#000",
+        borderRadius: isFullscreen ? 0 : 12,
         overflow: "hidden",
         cursor: controlsVisible || !showCustomUI ? "default" : "none",
         minHeight: isFullscreen ? "100vh" : undefined,
@@ -791,15 +833,13 @@ const CustomVideoPlayer = ({
             width: "100%", height: "100%", border: "none", background: "#000",
             pointerEvents: isCineSrc ? "auto" : (showCustomUI ? "none" : "auto"),
             opacity: isLoading && !hasInitiallyLoaded ? 0 : 1,
-            transition: "opacity 0.5s ease, transform 0.5s cubic-bezier(0.4,0,0.2,1)",
+            transition: "opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
             filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
             transformOrigin: "center center",
             ...ASPECT_RATIOS[aspectRatioIndex].style,
           }}
           allow="autoplay; fullscreen; picture-in-picture"
           onLoad={() => {
-            // For CineSrc: keep loading visible for a bit after iframe loads
-            // because the player inside still needs to initialize
             if (isCineSrc) {
               setTimeout(() => setIsLoading(false), 3000);
             } else {
@@ -809,19 +849,15 @@ const CustomVideoPlayer = ({
         />
       )}
 
-      {/* Overlays for non-CineSrc */}
-      {showCustomUI && !isCineSrc && (
-        <div onClick={handleOverlayClick} style={{ position: "absolute", inset: 0, zIndex: 10 }} />
-      )}
+      {/* CineSrc interaction overlay */}
       {showCustomUI && isCineSrc && (
         <div
           onMouseMove={handleMouseMove}
           onClick={(e) => {
-            // Only intercept clicks in the top 80% — bottom 20% lets CineSrc native controls through
             const r = containerRef.current?.getBoundingClientRect();
             if (r) {
               const pctY = (e.clientY - r.top) / r.height;
-              if (pctY > 0.85) return; // Let CineSrc handle bottom clicks (controls area)
+              if (pctY > 0.85) return;
             }
             e.stopPropagation();
             togglePlay();
@@ -846,43 +882,44 @@ const CustomVideoPlayer = ({
         />
       )}
 
-      {/* SUBTITLES */}
+      {/* Subtitles */}
       {showCustomUI && subtitleEnabled && hasSubtitles && activeSubtitleCue && (
         <div style={{
-          position: "absolute", bottom: controlsVisible ? "80px" : "30px",
+          position: "absolute", bottom: controlsVisible ? "100px" : "36px",
           left: 0, right: 0, display: "flex", justifyContent: "center",
           pointerEvents: "none", zIndex: 15,
-          transition: "bottom 0.35s cubic-bezier(0.4,0,0.2,1)",
+          transition: "bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
         }}>
           <div style={{
-            color: "#fff", padding: "5px 18px",
+            color: "#fff", padding: "6px 20px",
             fontSize: "clamp(15px, 2.5vw, 26px)", lineHeight: 1.4, fontWeight: 500,
-            textShadow: "0 1px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.8)",
+            textShadow: "0 1px 8px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.8)",
             textAlign: "center", maxWidth: "85%", whiteSpace: "pre-wrap",
-            background: "rgba(0,0,0,0.4)", borderRadius: 4,
+            background: "rgba(0,0,0,0.5)", borderRadius: 6,
+            backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
           }}>
             {activeSubtitleCue.text}
           </div>
         </div>
       )}
 
-      {/* BOTTOM VIGNETTE */}
+      {/* Bottom vignette */}
       {showCustomUI && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 11, pointerEvents: "none",
-          background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 12%, transparent 30%)",
+          background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 15%, transparent 35%)",
           transition: "opacity 0.4s", opacity: controlsVisible ? 1 : 0,
         }} />
       )}
 
-      {/* ═══ CENTER PLAY/PAUSE ICON ════════════════════════════════ */}
+      {/* ═══ CENTER PLAY/PAUSE ═══════════════════════════════════ */}
       <AnimatePresence>
         {showCustomUI && !isLoading && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: controlsVisible ? 0.9 : (isPlaying ? 0 : 0.9), scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: controlsVisible ? 0 : (isPlaying ? 0 : 0.8) }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             style={{
               position: "absolute", inset: 0, zIndex: 13,
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -893,41 +930,50 @@ const CustomVideoPlayer = ({
               {centerIcon ? (
                 <motion.div
                   key={centerIcon.type + centerIconKeyRef.current}
-                  initial={{ opacity: 0, scale: 0.6 }}
+                  initial={{ opacity: 0, scale: 0.5 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.4 }}
-                  transition={{ duration: 0.25, type: "spring", stiffness: 400, damping: 25 }}
+                  exit={{ opacity: 0, scale: 1.5 }}
+                  transition={SPRING_SNAPPY}
                   style={{
-                    width: 80, height: 80, borderRadius: "50%",
-                    background: "rgba(0,0,0,0.45)", backdropFilter: "blur(20px)",
+                    width: 72, height: 72, borderRadius: "50%",
+                    background: "rgba(0,0,0,0.35)", backdropFilter: "blur(24px)",
+                    WebkitBackdropFilter: "blur(24px)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    border: "1px solid rgba(255,255,255,0.08)",
                   }}
                 >
+                  {/* Expanding arc ring — the Apple motif */}
                   <motion.div
-                    initial={{ opacity: 0.6, scale: 0.7 }}
-                    animate={{ opacity: 0, scale: 2 }}
-                    transition={{ duration: 0.5 }}
-                    style={{ position: "absolute", inset: -1, borderRadius: "50%", border: `2px solid ${V.accent}` }}
-                  />
+                    initial={{ opacity: 0.6, scale: 0.8 }}
+                    animate={{ opacity: 0, scale: 2.2 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    style={{ position: "absolute", inset: -2 }}
+                  >
+                    <svg width="76" height="76" style={{ transform: "rotate(-90deg)" }}>
+                      <circle cx="38" cy="38" r="34" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2" strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 34 * 0.25} ${2 * Math.PI * 34 * 0.75}`} />
+                    </svg>
+                  </motion.div>
                   {centerIcon.type === "play"
-                    ? <Play size={34} fill="#fff" color="#fff" style={{ marginLeft: 4 }} />
-                    : <Pause size={34} fill="#fff" color="#fff" />}
+                    ? <Play size={30} fill="#fff" color="#fff" style={{ marginLeft: 3 }} />
+                    : <Pause size={30} fill="#fff" color="#fff" />}
                 </motion.div>
               ) : !isPlaying && !controlsVisible ? (
                 <motion.div
                   key="big-play"
                   initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 0.7, scale: 1 }}
+                  animate={{ opacity: 0.6, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
+                  transition={SPRING}
                   style={{
-                    width: 72, height: 72, borderRadius: "50%",
-                    background: "rgba(0,0,0,0.4)", backdropFilter: "blur(16px)",
+                    width: 64, height: 64, borderRadius: "50%",
+                    background: "rgba(0,0,0,0.35)", backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.06)",
                   }}
                 >
-                  <Play size={30} fill="#fff" color="#fff" style={{ marginLeft: 3 }} />
+                  <Play size={26} fill="#fff" color="#fff" style={{ marginLeft: 2 }} />
                 </motion.div>
               ) : null}
             </AnimatePresence>
@@ -935,92 +981,103 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ CINEMATIC PAUSED OVERLAY ═══════════════════════════════ */}
+      {/* ═══ PAUSED INFO OVERLAY ═════════════════════════════════ */}
       <AnimatePresence>
         {showPausedInfo && showCustomUI && !isPlaying && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             style={{
               position: "absolute", inset: 0, zIndex: 16,
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
+              background: "rgba(0,0,0,0.65)", backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
               pointerEvents: "none",
             }}
           >
             <motion.div
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
+              initial={{ y: 40, opacity: 0, scale: 0.96 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 20, opacity: 0 }}
-              transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               style={{
-                display: "flex", gap: "clamp(16px, 3vw, 32px)",
-                alignItems: "center", maxWidth: "min(600px, 85%)", padding: "0 20px",
+                display: "flex", gap: "clamp(20px, 4vw, 36px)",
+                alignItems: "center", maxWidth: "min(640px, 88%)", padding: "0 24px",
               }}
             >
               {(movie?.posterUrl || thumbnailUrl) && (
-                <div style={{
-                  width: "clamp(80px, 14vw, 140px)", aspectRatio: "2/3",
-                  borderRadius: 10, overflow: "hidden", flexShrink: 0,
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.8)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  style={{
+                    width: "clamp(80px, 14vw, 150px)", aspectRatio: "2/3",
+                    borderRadius: 12, overflow: "hidden", flexShrink: 0,
+                    boxShadow: "0 24px 64px rgba(0,0,0,0.85)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
                   <img
                     src={movie?.posterUrl || thumbnailUrl}
-                    alt=""
-                    loading="lazy"
+                    alt="" loading="lazy"
                     onError={(e) => { e.currentTarget.style.display = "none"; }}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   />
-                </div>
+                </motion.div>
               )}
               <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <Pause size={14} fill={V.accent} color={V.accent} />
-                  <span style={{ color: V.accent, fontSize: 11, fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase" }}>Paused</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: "50%",
+                    background: "rgba(255,255,255,0.06)", display: "flex",
+                    alignItems: "center", justifyContent: "center",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}>
+                    <Pause size={12} fill="rgba(255,255,255,0.8)" color="rgba(255,255,255,0.8)" />
+                  </div>
+                  <span style={{
+                    color: "rgba(255,255,255,0.5)", fontSize: 10, fontWeight: 700,
+                    letterSpacing: "2.5px", textTransform: "uppercase",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                  }}>Paused</span>
                 </div>
-                {/* Show actual title logo image if available, otherwise text */}
                 {movie?.logoUrl ? (
                   <img
-                    src={movie.logoUrl}
-                    alt={movie?.title}
+                    src={movie.logoUrl} alt={movie?.title}
                     style={{
-                      maxHeight: "clamp(40px, 8vw, 70px)",
-                      width: "auto",
-                      maxWidth: "min(360px, 70vw)",
-                      objectFit: "contain",
-                      filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.9))",
-                      marginBottom: 6,
+                      maxHeight: "clamp(40px, 8vw, 72px)", width: "auto",
+                      maxWidth: "min(380px, 72vw)", objectFit: "contain",
+                      filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.95))",
+                      marginBottom: 8,
                     }}
                     onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = 'block'); }}
                   />
                 ) : null}
                 <div style={{
                   color: "#fff", fontWeight: 800,
-                  fontSize: "clamp(1.2rem, 3vw, 2rem)", lineHeight: 1.1,
-                  marginBottom: 6, letterSpacing: "-0.02em",
+                  fontSize: "clamp(1.3rem, 3.2vw, 2.2rem)", lineHeight: 1.05,
+                  marginBottom: 8, letterSpacing: "-0.03em",
                   display: movie?.logoUrl ? 'none' : 'block',
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
                 }}>
                   {movie?.title || movie?.name}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                  {movie?.releaseYear && <span style={{ color: V.dim, fontSize: 12, fontWeight: 600 }}>{movie.releaseYear}</span>}
-                  {movie?.imdbRating > 0 && <span style={{ color: "#FBBF24", fontSize: 12, fontWeight: 700 }}>★ {movie.imdbRating}</span>}
-                  {isTvContent && season && <span style={{ color: V.accent, fontSize: 12, fontWeight: 700 }}>S{season} E{episode}</span>}
-                  {movie?.duration && <span style={{ color: V.dim, fontSize: 12 }}>{movie.duration}</span>}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                  {movie?.releaseYear && <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{movie.releaseYear}</span>}
+                  {movie?.imdbRating > 0 && <span style={{ color: "#FBBF24", fontSize: 13, fontWeight: 700 }}>★ {movie.imdbRating}</span>}
+                  {isTvContent && season && <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>S{season} E{episode}</span>}
+                  {movie?.duration && <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{movie.duration}</span>}
                   {movie?.genres?.slice(0, 3).map((g, i) => (
-                    <span key={i} style={{ color: V.faint, fontSize: 10, fontWeight: 600, background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 4 }}>{g}</span>
+                    <span key={i} style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, background: "rgba(255,255,255,0.04)", padding: "2px 8px", borderRadius: 6, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{g}</span>
                   ))}
-                  {movie?.contentRating && <span style={{ color: V.dim, fontSize: 10, fontWeight: 700, border: `1px solid ${V.faint}`, padding: "1px 5px", borderRadius: 3 }}>{movie.contentRating}</span>}
                 </div>
                 {(movie?.longDescription || movie?.description || movie?.overview) && (
                   <div style={{
-                    color: "rgba(255,255,255,0.65)",
-                    fontSize: "clamp(0.75rem, 1.3vw, 0.9rem)", lineHeight: 1.6,
-                    display: "-webkit-box", WebkitLineClamp: 4,
-                    WebkitBoxOrient: "vertical", overflow: "hidden",
+                    color: "rgba(255,255,255,0.55)", fontSize: "clamp(0.8rem, 1.4vw, 0.95rem)",
+                    lineHeight: 1.65, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                    display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden",
                   }}>
                     {movie?.longDescription || movie?.description || movie?.overview}
                   </div>
@@ -1031,52 +1088,47 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* LOADING STATE */}
+      {/* Loading background blur */}
       <AnimatePresence>
         {isLoading && !hasInitiallyLoaded && thumbnailUrl && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{
               position: "absolute", inset: 0, zIndex: 4,
               backgroundImage: `url(${thumbnailUrl})`,
               backgroundSize: "cover", backgroundPosition: "center",
-              filter: "blur(40px) brightness(0.15)", transform: "scale(1.2)",
+              filter: "blur(40px) brightness(0.12)", transform: "scale(1.2)",
             }}
           />
         )}
       </AnimatePresence>
+
+      {/* ═══ LOADING STATE — Spinning arc (like subtitle download) ═══ */}
       <AnimatePresence>
         {isLoading && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{
               position: "absolute", inset: 0, zIndex: 5,
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
-              pointerEvents: "none", gap: 16,
+              pointerEvents: "none", gap: 20,
             }}
           >
-            <div style={{ position: "relative", width: 48, height: 48 }}>
-              <motion.svg
-                viewBox="0 0 48 48"
-                style={{ width: "100%", height: "100%" }}
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-              >
-                <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(232,168,56,0.1)" strokeWidth="2" />
-                <circle cx="24" cy="24" r="20" fill="none" stroke={V.accent} strokeWidth="2" strokeLinecap="round" strokeDasharray="40 85.6" />
-              </motion.svg>
-            </div>
+            <SpinningArc size={52} strokeWidth={2.5} color="rgba(255,255,255,0.85)" />
             {!hasInitiallyLoaded && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} style={{ textAlign: "center" }}>
-                <div style={{ color: "#fff", fontSize: "clamp(1rem, 2vw, 1.3rem)", fontWeight: 700, marginBottom: 4 }}>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
+                style={{ textAlign: "center" }}>
+                <div style={{
+                  color: "#fff", fontSize: "clamp(1rem, 2vw, 1.3rem)", fontWeight: 700, marginBottom: 6,
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+                }}>
                   {movie?.title || movie?.name || "Loading"}
                 </div>
-                <div style={{ color: V.dim, fontSize: 11, fontWeight: 600, letterSpacing: "1px" }}>
+                <div style={{
+                  color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 600,
+                  letterSpacing: "0.5px",
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                }}>
                   {dynamicTips[currentTipIndex]?.text}
                 </div>
               </motion.div>
@@ -1085,19 +1137,19 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ERROR */}
+      {/* Error pill */}
       <AnimatePresence>
         {errorMessage && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             style={{
               position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)",
-              background: "rgba(239,68,68,0.9)", color: "#fff",
+              background: "rgba(255,69,58,0.85)", color: "#fff",
               padding: "6px 16px", borderRadius: 100,
+              backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
               display: "flex", alignItems: "center", gap: 6,
               zIndex: 60, fontWeight: 600, fontSize: 11,
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
             }}
           >
             <AlertCircle size={12} /> {errorMessage}
@@ -1105,7 +1157,7 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* TOAST */}
+      {/* Toast */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
@@ -1114,11 +1166,13 @@ const CustomVideoPlayer = ({
             exit={{ opacity: 0, y: -5, x: "-50%" }}
             style={{
               position: "absolute", top: 16, left: "50%",
-              background: V.glass, color: V.text,
+              background: "rgba(28,28,30,0.78)", color: "#fff",
               padding: "6px 16px", borderRadius: 100,
-              backdropFilter: "blur(20px)",
-              border: `1px solid ${V.glassBorder}`,
+              backdropFilter: "blur(40px) saturate(180%)",
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              border: "1px solid rgba(255,255,255,0.08)",
               zIndex: 62, fontWeight: 600, fontSize: 11, pointerEvents: "none",
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
             }}
           >
             {toastMessage}
@@ -1126,170 +1180,182 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ CENTER-TOP HUD — Volume & Aspect Ratio (Apple TV+ style) ═══ */}
+      {/* ═══ VOLUME ARC HUD — Circular arc at top center (Apple TV+ style) ═══ */}
       <AnimatePresence mode="wait">
-        {(showVolumePopup || showAspectRatioPopup) && (
+        {showVolumeArc && (
           <motion.div
-            key={showVolumePopup ? 'volume' : 'aspect'}
-            initial={{ opacity: 0, y: -16, scale: 0.88 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.92 }}
-            transition={{ type: "spring", stiffness: 320, damping: 28, mass: 0.8 }}
+            key="volume-arc"
+            initial={{ opacity: 0, scale: 0.7, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.85, y: -6 }}
+            transition={SPRING_SNAPPY}
             style={{
-              position: "absolute", top: 16, left: "50%", x: "-50%",
+              position: "absolute", top: 20, left: "50%", x: "-50%",
               zIndex: 65, pointerEvents: "none",
+            }}
+          >
+            <div style={{
+              display: "flex", alignItems: "center", gap: 14,
               background: "rgba(28,28,30,0.82)",
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 16, padding: "10px 18px",
-              display: "flex", alignItems: "center", gap: 14,
-              boxShadow: "0 8px 40px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.06)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {showVolumePopup && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                {/* Volume icon with smooth morph */}
-                <motion.div
-                  key={isMuted || volume === 0 ? "muted" : volume < 0.5 ? "low" : "high"}
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.5, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 18, padding: "10px 20px",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.05)",
+            }}>
+              {/* Circular arc volume indicator */}
+              <div style={{ position: "relative" }}>
+                <ArcRing
+                  progress={effVolume}
+                  size={44}
+                  strokeWidth={3}
+                  color={isMuted || volume === 0 ? "#ff453a" : "rgba(255,255,255,0.9)"}
+                  bgColor="rgba(255,255,255,0.06)"
+                  glowColor={isMuted || volume === 0 ? "rgba(255,69,58,0.5)" : "rgba(255,255,255,0.15)"}
                 >
-                  {isMuted || volume === 0 ? (
-                    <VolumeX size={18} color="#ff453a" strokeWidth={2.2} />
-                  ) : volume < 0.5 ? (
-                    <Volume2 size={18} color={V.accent} strokeWidth={2.2} />
-                  ) : (
-                    <Volume2 size={18} color="#fff" strokeWidth={2.2} />
-                  )}
-                </motion.div>
-                {/* Volume bar — Apple-style thin with glow */}
-                <div style={{
-                  width: 110, height: 4, borderRadius: 2,
-                  background: "rgba(255,255,255,0.12)", position: "relative",
-                  overflow: "visible",
-                }}>
                   <motion.div
-                    animate={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
-                    transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                    style={{
-                      height: "100%", borderRadius: 2,
-                      background: isMuted || volume === 0
-                        ? "#ff453a"
-                        : `linear-gradient(90deg, ${V.accent}, #5ac8fa)`,
-                      boxShadow: isMuted || volume === 0
-                        ? "0 0 10px rgba(255,69,58,0.4)"
-                        : `0 0 10px ${V.accentGlow}`,
-                    }}
-                  />
-                  {/* Thumb dot — smooth spring follow */}
-                  <motion.div
-                    animate={{ left: `${(isMuted ? 0 : volume) * 100}%` }}
-                    transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                    style={{
-                      position: "absolute", top: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: 12, height: 12, borderRadius: "50%",
-                      background: "#fff",
-                      boxShadow: "0 1px 6px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)",
-                    }}
-                  />
-                </div>
-                {/* Percentage — animated number roll */}
-                <motion.span
-                  key={Math.round((isMuted ? 0 : volume) * 100)}
-                  initial={{ y: -8, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  style={{
-                    color: isMuted || volume === 0 ? "#ff453a" : "#fff",
-                    fontSize: 13, fontWeight: 600,
-                    fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
-                    minWidth: 32, textAlign: "right",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {Math.round((isMuted ? 0 : volume) * 100)}%
-                </motion.span>
-              </div>
-            )}
-            {showVolumePopup && showAspectRatioPopup && (
-              <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.1)", borderRadius: 1 }} />
-            )}
-            {showAspectRatioPopup && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <motion.div
-                  initial={{ rotate: -90, scale: 0.5 }}
-                  animate={{ rotate: 0, scale: 1 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                >
-                  <Maximize size={16} color="#fff" strokeWidth={2} />
-                </motion.div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <motion.span
-                    key={aspectRatioIndex}
-                    initial={{ y: 6, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                    style={{ color: "#fff", fontSize: 13, fontWeight: 600, lineHeight: 1.2,
-                      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}
+                    key={isMuted || volume === 0 ? "muted" : volume < 0.3 ? "low" : "high"}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={SPRING_FAST}
                   >
-                    {ASPECT_RATIOS[aspectRatioIndex].name}
-                  </motion.span>
-                  <span style={{ color: V.dim, fontSize: 10, fontWeight: 500 }}>
-                    {aspectRatioIndex + 1} / {ASPECT_RATIOS.length}
-                  </span>
-                </div>
+                    {isMuted || volume === 0 ? (
+                      <VolumeX size={16} color="#ff453a" strokeWidth={2.2} />
+                    ) : volume < 0.3 ? (
+                      <Volume2 size={16} color="rgba(255,255,255,0.8)" strokeWidth={2.2} />
+                    ) : (
+                      <Volume2 size={16} color="#fff" strokeWidth={2.2} />
+                    )}
+                  </motion.div>
+                </ArcRing>
               </div>
-            )}
+
+              {/* Percentage number — animated slide */}
+              <motion.span
+                key={Math.round(effVolume * 100)}
+                initial={{ y: -6, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={SPRING_FAST}
+                style={{
+                  color: isMuted || volume === 0 ? "#ff453a" : "#fff",
+                  fontSize: 15, fontWeight: 700,
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+                  minWidth: 36, textAlign: "right",
+                  fontVariantNumeric: "tabular-nums",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {Math.round(effVolume * 100)}
+              </motion.span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* SHORTCUTS OVERLAY */}
+      {/* ═══ ASPECT RATIO ARC HUD ════════════════════════════════ */}
+      <AnimatePresence mode="wait">
+        {showAspectRatioArc && (
+          <motion.div
+            key="aspect-arc"
+            initial={{ opacity: 0, scale: 0.7, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.85, y: -6 }}
+            transition={SPRING_SNAPPY}
+            style={{
+              position: "absolute", top: 20, left: "50%", x: "-50%",
+              zIndex: 65, pointerEvents: "none",
+            }}
+          >
+            <div style={{
+              display: "flex", alignItems: "center", gap: 12,
+              background: "rgba(28,28,30,0.82)",
+              backdropFilter: "blur(40px) saturate(180%)",
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 18, padding: "10px 20px",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.05)",
+            }}>
+              <ArcRing
+                progress={(aspectRatioIndex + 1) / ASPECT_RATIOS.length}
+                size={36} strokeWidth={2.5}
+                color="#fff" bgColor="rgba(255,255,255,0.06)"
+              >
+                <Maximize size={14} color="#fff" strokeWidth={2} />
+              </ArcRing>
+              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <motion.span
+                  key={aspectRatioIndex}
+                  initial={{ y: 6, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={SPRING_FAST}
+                  style={{
+                    color: "#fff", fontSize: 13, fontWeight: 700, lineHeight: 1.2,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                  }}
+                >
+                  {ASPECT_RATIOS[aspectRatioIndex].name}
+                </motion.span>
+                <span style={{
+                  color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 600,
+                  fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                }}>
+                  {aspectRatioIndex + 1} / {ASPECT_RATIOS.length}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ SHORTCUTS OVERLAY ═══════════════════════════════════ */}
       <AnimatePresence>
         {showShortcuts && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setShowShortcuts(false)}
             style={{
               position: "absolute", inset: 0, zIndex: 70,
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: "rgba(0,0,0,0.8)", backdropFilter: "blur(6px)",
+              background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
             }}
           >
             <motion.div
-              initial={{ scale: 0.93 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              transition={SPRING}
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: "rgba(12,12,14,0.97)",
-                border: `1px solid ${V.glassBorder}`,
-                borderRadius: 14, padding: "20px 24px", width: 270,
-                color: V.text, boxShadow: "0 40px 80px rgba(0,0,0,0.8)",
+                background: "rgba(18,18,20,0.95)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 16, padding: "22px 26px", width: 280,
+                color: "#fff", boxShadow: "0 40px 80px rgba(0,0,0,0.8)",
+                backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <span style={{ fontWeight: 700, fontSize: 13 }}>Shortcuts</span>
-                <button onClick={() => setShowShortcuts(false)} style={{ background: "transparent", border: "none", color: V.faint, cursor: "pointer", display: "flex" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                <span style={{
+                  fontWeight: 700, fontSize: 14,
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+                }}>Shortcuts</span>
+                <button onClick={() => setShowShortcuts(false)} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", display: "flex" }}>
                   <X size={14} />
                 </button>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {KEYBOARD_SHORTCUTS.map(({ key, action }) => (
                   <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: V.dim, fontSize: 11 }}>{action}</span>
                     <span style={{
-                      background: "rgba(255,255,255,0.04)", border: `1px solid ${V.glassBorder}`,
-                      padding: "2px 8px", borderRadius: 4, fontFamily: "monospace",
-                      fontWeight: 700, fontSize: 10, color: V.accent,
+                      color: "rgba(255,255,255,0.5)", fontSize: 12,
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                    }}>{action}</span>
+                    <span style={{
+                      background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
+                      padding: "3px 10px", borderRadius: 6,
+                      fontFamily: "SF Mono, Menlo, monospace",
+                      fontWeight: 700, fontSize: 10, color: "rgba(255,255,255,0.7)",
                     }}>
                       {key}
                     </span>
@@ -1301,85 +1367,69 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* SIDE SEEK INDICATORS */}
+      {/* ═══ SEEK INDICATORS — Circular arc motif ════════════════ */}
       <div style={{ position: "absolute", inset: 0, zIndex: 12, pointerEvents: "none", display: "flex", alignItems: "center" }}>
+        {/* Left — rewind */}
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "30%", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <AnimatePresence>
             {sideIcon?.type === "backward" && (
               <motion.div
                 key="bwd"
-                initial={{ opacity: 0, scale: 0.4 }}
+                initial={{ opacity: 0, scale: 0.3 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.3 }}
-                transition={{ type: "spring", stiffness: 500, damping: 22 }}
-                style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+                exit={{ opacity: 0, scale: 1.4 }}
+                transition={SPRING_SNAPPY}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}
               >
-                {/* Outer ripple ring */}
-                <motion.div
-                  initial={{ opacity: 0.4, scale: 0.6 }}
-                  animate={{ opacity: 0, scale: 1.8 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                  style={{
-                    position: "absolute", width: 64, height: 64, top: -8, left: -8,
-                    borderRadius: "50%", border: `2px solid ${V.accent}`,
-                    pointerEvents: "none",
-                  }}
-                />
-                {/* Main circle */}
-                <div style={{
-                  width: 56, height: 56, borderRadius: "50%",
-                  background: "rgba(0,0,0,0.55)", backdropFilter: "blur(20px)",
-                  border: `1.5px solid ${V.accentBorder}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: `0 0 24px ${V.accentGlow}, inset 0 0 12px rgba(0,0,0,0.3)`,
-                }}>
-                  <Rewind size={24} color={V.accent} strokeWidth={2.5} fill="rgba(232,168,56,0.2)" />
+                <div style={{ position: "relative" }}>
+                  <ArcRing
+                    progress={0.35}
+                    size={64} strokeWidth={2.5}
+                    color="rgba(255,255,255,0.7)"
+                    bgColor="rgba(255,255,255,0.05)"
+                    glowColor="rgba(255,255,255,0.1)"
+                  >
+                    <Rewind size={22} color="#fff" strokeWidth={2} />
+                  </ArcRing>
                 </div>
                 <span style={{
-                  fontSize: 11, fontWeight: 800, color: V.accent,
-                  fontFamily: "monospace", textShadow: "0 0 10px rgba(0,0,0,0.8)",
-                  marginTop: 4,
+                  fontSize: 12, fontWeight: 700, color: "#fff",
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                  textShadow: "0 1px 12px rgba(0,0,0,0.9)",
+                  fontVariantNumeric: "tabular-nums",
                 }}>{sideIcon.text}</span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
+        {/* Right — forward */}
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "30%", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <AnimatePresence>
             {sideIcon?.type === "forward" && (
               <motion.div
                 key="fwd"
-                initial={{ opacity: 0, scale: 0.4 }}
+                initial={{ opacity: 0, scale: 0.3 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.3 }}
-                transition={{ type: "spring", stiffness: 500, damping: 22 }}
-                style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+                exit={{ opacity: 0, scale: 1.4 }}
+                transition={SPRING_SNAPPY}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}
               >
-                {/* Outer ripple ring */}
-                <motion.div
-                  initial={{ opacity: 0.4, scale: 0.6 }}
-                  animate={{ opacity: 0, scale: 1.8 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                  style={{
-                    position: "absolute", width: 64, height: 64, top: -8, left: -8,
-                    borderRadius: "50%", border: `2px solid ${V.accent}`,
-                    pointerEvents: "none",
-                  }}
-                />
-                {/* Main circle */}
-                <div style={{
-                  width: 56, height: 56, borderRadius: "50%",
-                  background: "rgba(0,0,0,0.55)", backdropFilter: "blur(20px)",
-                  border: `1.5px solid ${V.accentBorder}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: `0 0 24px ${V.accentGlow}, inset 0 0 12px rgba(0,0,0,0.3)`,
-                }}>
-                  <FastForward size={24} color={V.accent} strokeWidth={2.5} fill="rgba(232,168,56,0.2)" />
+                <div style={{ position: "relative" }}>
+                  <ArcRing
+                    progress={0.35}
+                    size={64} strokeWidth={2.5}
+                    color="rgba(255,255,255,0.7)"
+                    bgColor="rgba(255,255,255,0.05)"
+                    glowColor="rgba(255,255,255,0.1)"
+                  >
+                    <FastForward size={22} color="#fff" strokeWidth={2} />
+                  </ArcRing>
                 </div>
                 <span style={{
-                  fontSize: 11, fontWeight: 800, color: V.accent,
-                  fontFamily: "monospace", textShadow: "0 0 10px rgba(0,0,0,0.8)",
-                  marginTop: 4,
+                  fontSize: 12, fontWeight: 700, color: "#fff",
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                  textShadow: "0 1px 12px rgba(0,0,0,0.9)",
+                  fontVariantNumeric: "tabular-nums",
                 }}>{sideIcon.text}</span>
               </motion.div>
             )}
@@ -1387,38 +1437,38 @@ const CustomVideoPlayer = ({
         </div>
       </div>
 
-      {/* DOUBLE TAP RIPPLE */}
+      {/* Double-tap ripple */}
       <div style={{ position: "absolute", inset: 0, zIndex: 11, pointerEvents: "none" }}>
         <AnimatePresence>
           {doubleTapRipple && (
             <motion.div
               key={doubleTapRipple.id}
-              initial={{ opacity: 0.5 }}
+              initial={{ opacity: 0.4 }}
               animate={{ opacity: 0 }}
               transition={{ duration: 0.4 }}
               style={{
                 position: "absolute",
                 [doubleTapRipple.side]: 0,
                 width: "40%", height: "100%",
-                background: `radial-gradient(ellipse at ${doubleTapRipple.side} center, rgba(232,168,56,0.08) 0%, transparent 70%)`,
+                background: `radial-gradient(ellipse at ${doubleTapRipple.side} center, rgba(255,255,255,0.04) 0%, transparent 70%)`,
               }}
             />
           )}
         </AnimatePresence>
       </div>
 
-      {/* ═══ BOTTOM CONTROLS (slide up) ══════════════════════════════ */}
+      {/* ═══ BOTTOM CONTROLS ═════════════════════════════════════ */}
       <AnimatePresence>
         {showCustomUI && controlsVisible && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 20, pointerEvents: "none" }}
           >
-            {/* Skip Intro / Up Next Row */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 16px", marginBottom: 6, pointerEvents: "none" }}>
+            {/* Skip Intro / Up Next */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", marginBottom: 8, pointerEvents: "none" }}>
               <div style={{ pointerEvents: "auto" }}>
                 <AnimatePresence>
                   {showSkipIntro && skipIntroTime != null && (
@@ -1426,57 +1476,52 @@ const CustomVideoPlayer = ({
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -8 }}
-                      whileHover={{ scale: 1.06, x: 4 }}
-                      whileTap={{ scale: 0.94 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 26 }}
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      transition={SPRING}
                       onClick={(e) => { e.stopPropagation(); sendCommand("seek", [skipIntroTime]); setShowSkipIntro(false); }}
                       style={{
-                        background: V.glass, color: "#fff",
-                        border: `1px solid ${V.accent}`,
-                        padding: "7px 14px", borderRadius: 6, cursor: "pointer",
-                        fontWeight: 700, backdropFilter: "blur(16px)",
-                        display: "flex", alignItems: "center", gap: 5, fontSize: 11,
+                        background: "rgba(28,28,30,0.7)", color: "#fff",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        padding: "8px 16px", borderRadius: 100, cursor: "pointer",
+                        fontWeight: 700, backdropFilter: "blur(24px)",
+                        WebkitBackdropFilter: "blur(24px)",
+                        display: "flex", alignItems: "center", gap: 6, fontSize: 12,
+                        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                       }}
                     >
-                      <FastForward size={12} color={V.accent} fill={V.accent} /> Skip Intro
+                      <FastForward size={13} fill="rgba(255,255,255,0.7)" color="rgba(255,255,255,0.7)" /> Skip Intro
                     </motion.button>
                   )}
                 </AnimatePresence>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, pointerEvents: "auto" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, pointerEvents: "auto" }}>
                 <AnimatePresence>
                   {showUpNext && hasNextEpisode && (
                     <motion.div
                       initial={{ opacity: 0, x: 14 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
-                      transition={{ type: "spring", stiffness: 380, damping: 26 }}
+                      transition={SPRING}
                       style={{
-                        background: V.glass, border: `1px solid ${V.glassBorder}`,
-                        borderRadius: 10, padding: "7px 11px",
-                        display: "flex", alignItems: "center", gap: 9,
-                        backdropFilter: "blur(20px)",
+                        background: "rgba(28,28,30,0.7)", border: "1px solid rgba(255,255,255,0.06)",
+                        borderRadius: 12, padding: "8px 12px",
+                        display: "flex", alignItems: "center", gap: 10,
+                        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: 8, color: V.faint, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>Up Next</div>
-                        <div style={{ fontSize: 11, color: "#fff", fontWeight: 700 }}>Ep {(episode || 0) + 1}</div>
+                        <div style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>Up Next</div>
+                        <div style={{ fontSize: 12, color: "#fff", fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>Ep {(episode || 0) + 1}</div>
                       </div>
-                      <div style={{ position: "relative", width: 28, height: 28 }}>
-                        <svg width="28" height="28" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
-                          <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2" />
-                          <circle cx="14" cy="14" r="11" fill="none" stroke={V.accent} strokeWidth="2"
-                            strokeDasharray={`${2 * Math.PI * 11}`}
-                            strokeDashoffset={`${2 * Math.PI * 11 * (1 - upNextCountdown / 15)}`}
-                            strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.9s linear" }}
-                          />
-                        </svg>
-                        <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff" }}>{upNextCountdown}</span>
-                      </div>
+                      {/* Countdown arc */}
+                      <ArcRing progress={upNextCountdown / 15} size={32} strokeWidth={2} color="rgba(255,255,255,0.8)" bgColor="rgba(255,255,255,0.06)">
+                        <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{upNextCountdown}</span>
+                      </ArcRing>
                       <button onClick={(e) => { e.stopPropagation(); dismissUpNext(); }}
                         style={{
-                          background: "rgba(255,255,255,0.05)", border: "none", color: V.dim,
-                          cursor: "pointer", width: 20, height: 20, borderRadius: "50%",
+                          background: "rgba(255,255,255,0.04)", border: "none", color: "rgba(255,255,255,0.4)",
+                          cursor: "pointer", width: 22, height: 22, borderRadius: "50%",
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}
                       >
@@ -1488,9 +1533,11 @@ const CustomVideoPlayer = ({
                 {hasNextEpisode && (
                   <button onClick={(e) => { e.stopPropagation(); onNextEpisode?.(); }}
                     style={{
-                      background: V.accent, color: "#000", border: "none",
-                      padding: "6px 12px", borderRadius: 6, cursor: "pointer",
-                      fontWeight: 700, display: "flex", alignItems: "center", gap: 4, fontSize: 11,
+                      background: "rgba(255,255,255,0.12)", color: "#fff", border: "1px solid rgba(255,255,255,0.08)",
+                      padding: "6px 14px", borderRadius: 100, cursor: "pointer",
+                      fontWeight: 700, display: "flex", alignItems: "center", gap: 5, fontSize: 11,
+                      backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                     }}
                   >
                     Next <SkipForward size={12} fill="currentColor" />
@@ -1499,42 +1546,43 @@ const CustomVideoPlayer = ({
               </div>
             </div>
 
-            {/* PROGRESS BAR — Apple TV+ style */}
+            {/* ═══ PROGRESS BAR ═══════════════════════════════════ */}
             <div
               ref={progressBarRef}
               onMouseDown={onProgressMouseDown}
               onMouseMove={handleProgressHover}
               onMouseLeave={() => setHoverTime(null)}
               style={{
-                position: "relative", height: 28, display: "flex",
+                position: "relative", height: 32, display: "flex",
                 alignItems: "center", cursor: "pointer",
-                padding: "0 16px", pointerEvents: "auto",
+                padding: "0 20px", pointerEvents: "auto",
               }}
             >
               {/* Hover time tooltip */}
               <AnimatePresence>
                 {hoverTime != null && (
                   <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                    initial={{ opacity: 0, y: 8, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                    transition={SPRING_FAST}
                     style={{
-                      position: "absolute", bottom: 22,
+                      position: "absolute", bottom: 24,
                       left: `${hoverX}px`, transform: "translateX(-50%)",
                       pointerEvents: "none",
                     }}
                   >
                     <div style={{
-                      background: "rgba(28,28,30,0.9)",
-                      backdropFilter: "blur(20px) saturate(150%)",
+                      background: "rgba(28,28,30,0.88)",
+                      backdropFilter: "blur(24px) saturate(160%)",
+                      WebkitBackdropFilter: "blur(24px) saturate(160%)",
                       color: "#fff",
-                      padding: "4px 10px", borderRadius: 8,
-                      fontSize: 12, fontWeight: 600,
-                      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                      padding: "4px 12px", borderRadius: 10,
+                      fontSize: 13, fontWeight: 600,
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                       fontVariantNumeric: "tabular-nums",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
                     }}>
                       {fmt(hoverTime)}
                     </div>
@@ -1545,173 +1593,163 @@ const CustomVideoPlayer = ({
               <div style={{
                 position: "relative", width: "100%",
                 height: hoverTime != null || isScrubbing ? 5 : 3,
-                background: "rgba(255,255,255,0.15)",
+                background: "rgba(255,255,255,0.12)",
                 borderRadius: 3,
-                transition: "height 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                transition: "height 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
               }}>
-                {/* Buffer */}
                 {duration > 0 && <div style={{
                   position: "absolute", inset: 0, width: `${Math.min(bp, 100)}%`,
-                  background: "rgba(255,255,255,0.15)", borderRadius: 3,
+                  background: "rgba(255,255,255,0.12)", borderRadius: 3,
                   transition: "width 0.3s ease",
                 }} />}
-                {/* Progress fill — Apple blue gradient */}
                 {duration > 0 && <div style={{
                   position: "absolute", inset: 0, width: `${Math.min(pp, 100)}%`,
-                  background: "linear-gradient(90deg, #0A84FF, #5ac8fa)",
+                  background: "rgba(255,255,255,0.85)",
                   borderRadius: 3,
-                  boxShadow: "0 0 8px rgba(10,132,255,0.3)",
+                  boxShadow: "0 0 6px rgba(255,255,255,0.15)",
                   transition: isScrubbing ? "none" : "width 0.1s linear",
                 }} />}
-                {/* Scrubber dot — Apple-style with smooth spring */}
+                {/* Scrubber dot */}
                 {duration > 0 && !(currentTime === 0 && !isPlaying && !isScrubbing) && (
                   <motion.div
                     animate={{
                       left: `${Math.max(0, Math.min(pp, 100))}%`,
-                      width: hoverTime != null || isScrubbing ? 16 : 0,
-                      height: hoverTime != null || isScrubbing ? 16 : 0,
+                      width: hoverTime != null || isScrubbing ? 14 : 0,
+                      height: hoverTime != null || isScrubbing ? 14 : 0,
                       opacity: hoverTime != null || isScrubbing ? 1 : 0,
                     }}
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    transition={SPRING}
                     style={{
                       position: "absolute", top: "50%",
                       transform: "translate(-50%, -50%)",
                       borderRadius: "50%",
                       background: "#fff",
-                      boxShadow: "0 2px 12px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.1)",
-                      cursor: "grab",
-                      pointerEvents: "none",
+                      boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+                      cursor: "grab", pointerEvents: "none",
                     }}
                   />
                 )}
               </div>
             </div>
 
-            {/* TITLE INFO ROW — below progress bar with glass backdrop */}
+            {/* TITLE ROW */}
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "8px 16px 6px", pointerEvents: "none",
-              gap: 12,
-              marginTop: 4,
+              padding: "4px 20px 2px", pointerEvents: "none", gap: 12,
             }}>
-              {/* Left: current time / duration */}
               <span style={{
-                color: V.dim, fontSize: 11, fontWeight: 600,
-                fontFamily: "monospace", letterSpacing: "0.5px",
+                color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600,
+                fontFamily: "SF Mono, Menlo, monospace",
+                fontVariantNumeric: "tabular-nums", letterSpacing: "0.3px",
                 flexShrink: 0,
               }}>
                 {fmt(currentTime)} / {fmt(duration)}
               </span>
-              {/* Center: title + season/episode + year */}
               <div style={{
-                display: "flex", alignItems: "center", gap: 8,
+                display: "flex", alignItems: "center", gap: 10,
                 minWidth: 0, flex: 1, justifyContent: "center",
               }}>
                 <span style={{
-                  color: "#fff", fontSize: "clamp(13px, 1.5vw, 15px)",
+                  color: "rgba(255,255,255,0.85)", fontSize: "clamp(13px, 1.5vw, 15px)",
                   fontWeight: 700, letterSpacing: "-0.01em",
-                  textShadow: "0 1px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)",
+                  textShadow: "0 1px 10px rgba(0,0,0,0.9), 0 0 24px rgba(0,0,0,0.5)",
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                  maxWidth: "min(300px, 42vw)",
+                  maxWidth: "min(320px, 44vw)",
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                 }}>
                   {movie?.title || movie?.name}
                 </span>
                 {isTvContent && season && (
                   <span style={{
-                    color: V.accent, fontSize: "clamp(10px, 1.2vw, 12px)",
+                    color: "rgba(255,255,255,0.6)", fontSize: "clamp(10px, 1.2vw, 12px)",
                     fontWeight: 700, letterSpacing: "0.3px",
-                    background: V.accentDim,
-                    padding: "3px 10px", borderRadius: 6,
-                    border: `1px solid ${V.accentBorder}`,
+                    background: "rgba(255,255,255,0.06)",
+                    padding: "3px 10px", borderRadius: 100,
+                    border: "1px solid rgba(255,255,255,0.06)",
                     whiteSpace: "nowrap", flexShrink: 0,
-                    fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                   }}>
                     S{season} E{episode}
                   </span>
                 )}
                 {movie?.releaseYear && (
                   <span style={{
-                    color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600,
+                    color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 600,
                     flexShrink: 0, letterSpacing: "0.3px",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                   }}>{movie.releaseYear}</span>
                 )}
               </div>
-              {/* Right: spacer for symmetry */}
               <div style={{ flexShrink: 0, minWidth: 70 }} />
             </div>
 
-            {/* CONTROL ROW — Apple TV+ style */}
-            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 12px 14px", pointerEvents: "auto" }}>
+            {/* ═══ CONTROL ROW ════════════════════════════════════ */}
+            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 14px 16px", pointerEvents: "auto" }}>
               {/* Left: Play + Seek + Volume */}
-              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <motion.button
                   onClick={togglePlay}
                   whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.92 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  whileTap={{ scale: 0.88 }}
+                  transition={SPRING}
                   style={{
-                    background: "#fff", border: "none", color: "#000",
-                    cursor: "pointer", width: 40, height: 40, borderRadius: "50%",
+                    background: "rgba(255,255,255,0.12)", border: "none", color: "#fff",
+                    cursor: "pointer", width: 42, height: 42, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+                    backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
                   }}
                 >
                   {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" style={{ marginLeft: 2 }} />}
                 </motion.button>
                 <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(-10); }}
-                  whileHover={{ scale: 1.15, background: "rgba(255,255,255,0.08)" }}
-                  whileTap={{ scale: 0.85 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  style={{ background: "transparent", border: "none", color: V.dim, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
-                  title="Rewind 10s"
+                  whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                  transition={SPRING}
+                  style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
-                  <RotateCcw size={14} />
+                  <RotateCcw size={15} />
                 </motion.button>
                 <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(10); }}
-                  whileHover={{ scale: 1.15, background: "rgba(255,255,255,0.08)" }}
-                  whileTap={{ scale: 0.85 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  style={{ background: "transparent", border: "none", color: V.dim, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
-                  title="Forward 10s"
+                  whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                  transition={SPRING}
+                  style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
-                  <RotateCw size={14} />
+                  <RotateCw size={15} />
                 </motion.button>
-                {/* Volume */}
+                {/* Volume with expand-on-hover bar */}
                 <div onMouseEnter={() => setIsVolumeHovered(true)} onMouseLeave={() => setIsVolumeHovered(false)} style={{ display: "flex", alignItems: "center", gap: 0, position: "relative" }}>
                   <motion.button onClick={toggleMute}
-                    whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                    style={{ background: "transparent", border: "none", color: V.dim, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                    transition={SPRING}
+                    style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
                     <AnimatePresence mode="wait">
                       <motion.div key={isMuted || volume === 0 ? "off" : "on"}
-                        initial={{ scale: 0.5, opacity: 0, rotate: -30 }}
+                        initial={{ scale: 0.5, opacity: 0, rotate: -20 }}
                         animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                        exit={{ scale: 0.5, opacity: 0, rotate: 30 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                        exit={{ scale: 0.5, opacity: 0, rotate: 20 }}
+                        transition={SPRING_FAST}
                       >
-                        {isMuted || volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                        {isMuted || volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
                       </motion.div>
                     </AnimatePresence>
                   </motion.button>
-                  {/* Custom volume bar */}
                   <motion.div
                     initial={false}
-                    animate={{ width: isVolumeHovered ? 60 : 0, opacity: isVolumeHovered ? 1 : 0 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                    animate={{ width: isVolumeHovered ? 64 : 0, opacity: isVolumeHovered ? 1 : 0 }}
+                    transition={SPRING}
                     style={{ overflow: "hidden", position: "relative", height: 24, display: "flex", alignItems: "center" }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div
                       ref={volumeBarRef}
                       style={{
-                        width: 52, height: 4, borderRadius: 2,
-                        background: "rgba(255,255,255,0.12)", position: "relative",
+                        width: 56, height: 4, borderRadius: 2,
+                        background: "rgba(255,255,255,0.1)", position: "relative",
                         cursor: "pointer",
                       }}
                       onMouseDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
+                        e.stopPropagation(); e.preventDefault();
                         isDraggingVolumeRef.current = true;
                         const r = e.currentTarget.getBoundingClientRect();
                         const x = Math.max(0, Math.min(e.clientX - r.left, r.width));
@@ -1731,23 +1769,20 @@ const CustomVideoPlayer = ({
                         window.addEventListener("mouseup", mu);
                       }}
                     >
-                      {/* Fill */}
                       <div style={{
                         position: "absolute", left: 0, top: 0, bottom: 0,
-                        width: `${(isMuted ? 0 : volume) * 100}%`,
-                        background: `linear-gradient(90deg, ${V.accent}, #f0c060)`,
+                        width: `${effVolume * 100}%`,
+                        background: "rgba(255,255,255,0.8)",
                         borderRadius: 2,
                         transition: isDraggingVolumeRef.current ? "none" : "width 0.1s ease",
-                        boxShadow: `0 0 6px ${V.accentGlow}`,
                       }} />
-                      {/* Thumb dot */}
                       <div style={{
                         position: "absolute", top: "50%",
-                        left: `${(isMuted ? 0 : volume) * 100}%`,
+                        left: `${effVolume * 100}%`,
                         transform: "translate(-50%, -50%)",
                         width: 10, height: 10, borderRadius: "50%",
                         background: "#fff",
-                        boxShadow: `0 0 4px rgba(0,0,0,0.4), 0 0 0 1.5px ${V.accent}`,
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
                         transition: isDraggingVolumeRef.current ? "none" : "left 0.1s ease",
                       }} />
                     </div>
@@ -1756,60 +1791,57 @@ const CustomVideoPlayer = ({
               </div>
 
               {/* Right: Subtitles + Shortcuts + Settings + Fullscreen */}
-              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <input type="file" accept=".srt,.vtt" ref={subtitleInputRef} onChange={handleSubtitleUpload} style={{ display: "none" }} />
                 <motion.button onClick={(e) => { e.stopPropagation(); setShowSubtitlesMenu(!showSubtitlesMenu); setShowSettings(false); }}
-                  whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                  transition={SPRING}
                   style={{
-                    background: subtitleEnabled || showSubtitlesMenu ? V.accentDim : "transparent",
-                    border: subtitleEnabled || showSubtitlesMenu ? `1px solid ${V.accentBorder}` : "none",
-                    color: subtitleEnabled || showSubtitlesMenu ? V.accent : V.dim,
-                    cursor: "pointer", width: 32, height: 32, borderRadius: "50%",
+                    background: subtitleEnabled || showSubtitlesMenu ? "rgba(255,255,255,0.08)" : "transparent",
+                    border: subtitleEnabled || showSubtitlesMenu ? "1px solid rgba(255,255,255,0.08)" : "none",
+                    color: subtitleEnabled || showSubtitlesMenu ? "#fff" : "rgba(255,255,255,0.6)",
+                    cursor: "pointer", width: 34, height: 34, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     position: "relative",
                   }}
                 >
-                  <Captions size={14} />
-                  {subtitleEnabled && <div style={{ position: "absolute", top: 3, right: 3, width: 4, height: 4, background: V.accent, borderRadius: "50%" }} />}
+                  <Captions size={15} />
+                  {subtitleEnabled && <div style={{ position: "absolute", top: 4, right: 4, width: 4, height: 4, background: "#fff", borderRadius: "50%" }} />}
                 </motion.button>
                 <motion.button onClick={(e) => { e.stopPropagation(); setShowShortcuts((p) => !p); }}
-                  whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                  transition={SPRING}
                   style={{
-                    background: showShortcuts ? V.accentDim : "transparent",
-                    border: showShortcuts ? `1px solid ${V.accentBorder}` : "none",
-                    color: showShortcuts ? V.accent : V.dim,
-                    cursor: "pointer", width: 32, height: 32, borderRadius: "50%",
+                    background: showShortcuts ? "rgba(255,255,255,0.08)" : "transparent",
+                    border: showShortcuts ? "1px solid rgba(255,255,255,0.08)" : "none",
+                    color: showShortcuts ? "#fff" : "rgba(255,255,255,0.6)",
+                    cursor: "pointer", width: 34, height: 34, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}
                 >
-                  <Keyboard size={14} />
+                  <Keyboard size={15} />
                 </motion.button>
                 <motion.button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setShowSubtitlesMenu(false); }}
-                  whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                  transition={SPRING}
                   style={{
-                    background: showSettings ? V.accentDim : "transparent",
-                    border: showSettings ? `1px solid ${V.accentBorder}` : "none",
-                    color: showSettings ? V.accent : V.dim,
-                    cursor: "pointer", width: 32, height: 32, borderRadius: "50%",
+                    background: showSettings ? "rgba(255,255,255,0.08)" : "transparent",
+                    border: showSettings ? "1px solid rgba(255,255,255,0.08)" : "none",
+                    color: showSettings ? "#fff" : "rgba(255,255,255,0.6)",
+                    cursor: "pointer", width: 34, height: 34, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}
                 >
-                  <motion.div
-                    animate={{ rotate: showSettings ? 90 : 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  >
-                    <Settings size={14} />
+                  <motion.div animate={{ rotate: showSettings ? 90 : 0 }} transition={SPRING}>
+                    <Settings size={15} />
                   </motion.div>
                 </motion.button>
                 <motion.button onClick={toggleFullscreen}
-                  whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  style={{ background: "transparent", border: "none", color: V.dim, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                  transition={SPRING}
+                  style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
-                  {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+                  {isFullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
                 </motion.button>
               </div>
             </div>
@@ -1817,42 +1849,42 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ SETTINGS PANEL — Apple TV+ style ═══════════════════════ */}
+      {/* ═══ SETTINGS PANEL ═════════════════════════════════════ */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.95 }}
+            initial={{ opacity: 0, y: 16, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            transition={SPRING}
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", bottom: 56, right: 16, zIndex: 50,
-              width: 270, maxHeight: "50vh",
-              background: "rgba(28,28,30,0.85)",
+              position: "absolute", bottom: 60, right: 16, zIndex: 50,
+              width: 280, maxHeight: "50vh",
+              background: "rgba(18,18,20,0.88)",
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 14, padding: "14px 16px", color: V.text,
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 16, padding: "16px 18px", color: "#fff",
               overflowY: "auto",
-              boxShadow: "0 12px 48px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.06)",
+              boxShadow: "0 16px 56px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.04)",
             }}
           >
-
             {/* Speed */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Playback Speed</div>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Playback Speed</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[0.5, 0.75, 1, 1.25, 1.5, 2].map((r) => (
                   <motion.button key={r} onClick={() => { sendCommand("setPlaybackRate", [r]); setPlaybackRate(r); setShowSettings(false); }}
-                    whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                    whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+                    transition={SPRING}
                     style={{
-                      background: playbackRate === r ? V.accentDim : "rgba(255,255,255,0.04)",
-                      color: playbackRate === r ? V.accent : V.dim,
-                      border: playbackRate === r ? `1px solid ${V.accentBorder}` : `1px solid ${V.glassBorder}`,
-                      padding: "5px 10px", borderRadius: 100, cursor: "pointer",
-                      fontSize: 11, fontWeight: 700, transition: "all 0.15s",
+                      background: playbackRate === r ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.02)",
+                      color: playbackRate === r ? "#fff" : "rgba(255,255,255,0.5)",
+                      border: playbackRate === r ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.04)",
+                      padding: "6px 12px", borderRadius: 100, cursor: "pointer",
+                      fontSize: 11, fontWeight: 700,
+                      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                     }}
                   >
                     {r}x
@@ -1863,18 +1895,19 @@ const CustomVideoPlayer = ({
 
             {/* Quality */}
             {qualities?.length > 0 && (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Quality</div>
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Quality</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {qualities.map((q, i) => (
                     <motion.button key={i} onClick={() => { sendCommand("setQuality", [q.id || i]); setCurrentQuality(q); setShowSettings(false); }}
-                      whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                      whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+                      transition={SPRING}
                       style={{
-                        background: (currentQuality?.id === q.id) ? V.accentDim : "rgba(255,255,255,0.04)",
-                        color: (currentQuality?.id === q.id) ? V.accent : V.dim,
-                        border: (currentQuality?.id === q.id) ? `1px solid ${V.accentBorder}` : `1px solid ${V.glassBorder}`,
-                        padding: "5px 10px", borderRadius: 100, cursor: "pointer", fontSize: 11, fontWeight: 700,
+                        background: (currentQuality?.id === q.id) ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.02)",
+                        color: (currentQuality?.id === q.id) ? "#fff" : "rgba(255,255,255,0.5)",
+                        border: (currentQuality?.id === q.id) ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.04)",
+                        padding: "6px 12px", borderRadius: 100, cursor: "pointer", fontSize: 11, fontWeight: 700,
+                        fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                       }}
                     >
                       {q.name || q.height + "p" || i}
@@ -1886,16 +1919,17 @@ const CustomVideoPlayer = ({
 
             {/* Audio */}
             {audioTracks?.length > 0 && (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Audio</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Audio</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {audioTracks.map((t, i) => (
                     <button key={i} onClick={() => { sendCommand("setAudioTrack", [t.id || i]); setCurrentAudioTrack(t); setShowSettings(false); }}
                       style={{
-                        background: (currentAudioTrack?.id === t.id) ? "rgba(232,168,56,0.06)" : "rgba(255,255,255,0.02)",
-                        color: (currentAudioTrack?.id === t.id) ? V.accent : V.dim,
-                        border: "none", padding: "6px 10px", borderRadius: 7,
-                        cursor: "pointer", fontSize: 11, fontWeight: 600, textAlign: "left",
+                        background: (currentAudioTrack?.id === t.id) ? "rgba(255,255,255,0.06)" : "transparent",
+                        color: (currentAudioTrack?.id === t.id) ? "#fff" : "rgba(255,255,255,0.5)",
+                        border: "none", padding: "7px 12px", borderRadius: 10,
+                        cursor: "pointer", fontSize: 12, fontWeight: 600, textAlign: "left",
+                        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                       }}
                     >
                       {t.name || t.language || `Track ${i}`}
@@ -1906,17 +1940,18 @@ const CustomVideoPlayer = ({
             )}
 
             {/* Aspect Ratio */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Aspect Ratio</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Aspect Ratio</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {ASPECT_RATIOS.map((ar, i) => (
-                  <button key={ar.name} onClick={() => { setAspectRatioIndex(i); setShowSettings(false); setShowAspectRatioPopup(true); if (aspectRatioPopupRef.current) clearTimeout(aspectRatioPopupRef.current); aspectRatioPopupRef.current = setTimeout(() => setShowAspectRatioPopup(false), 1200); }}
+                  <button key={ar.name} onClick={() => { setAspectRatioIndex(i); setShowSettings(false); setShowAspectRatioArc(true); if (aspectRatioArcTimerRef.current) clearTimeout(aspectRatioArcTimerRef.current); aspectRatioArcTimerRef.current = setTimeout(() => setShowAspectRatioArc(false), 1200); }}
                     style={{
-                      background: aspectRatioIndex === i ? "rgba(232,168,56,0.06)" : "rgba(255,255,255,0.02)",
-                      color: aspectRatioIndex === i ? V.accent : V.dim,
-                      border: aspectRatioIndex === i ? `1px solid ${V.accentBorder}` : "none",
-                      padding: "6px 10px", borderRadius: 7, cursor: "pointer",
-                      fontSize: 11, fontWeight: 600, display: "flex", justifyContent: "space-between",
+                      background: aspectRatioIndex === i ? "rgba(255,255,255,0.06)" : "transparent",
+                      color: aspectRatioIndex === i ? "#fff" : "rgba(255,255,255,0.5)",
+                      border: aspectRatioIndex === i ? "1px solid rgba(255,255,255,0.08)" : "none",
+                      padding: "7px 12px", borderRadius: 10, cursor: "pointer",
+                      fontSize: 12, fontWeight: 600, display: "flex", justifyContent: "space-between",
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                     }}
                   >
                     {ar.name} {aspectRatioIndex === i && <Check size={11} strokeWidth={3} />}
@@ -1926,28 +1961,28 @@ const CustomVideoPlayer = ({
             </div>
 
             {/* Automations */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Automations</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Automations</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {[
                   { label: "Auto-Skip Intro", val: autoSkipIntro, set: setAutoSkipIntro, key: "streamly_autoSkip" },
                   ...(movie?.isSeries ? [{ label: "Auto-Play Next", val: autoPlayNext, set: setAutoPlayNext, key: "streamly_autoNext" }] : []),
                 ].map((item, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{item.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>{item.label}</span>
                     <div onClick={() => { const v = !item.val; item.set(v); localStorage.setItem(item.key, String(v)); }}
                       style={{
-                        width: 32, height: 17,
-                        background: item.val ? V.accent : "rgba(255,255,255,0.1)",
+                        width: 36, height: 20,
+                        background: item.val ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)",
                         borderRadius: 100, position: "relative", cursor: "pointer",
                         transition: "background 0.25s",
                       }}
                     >
                       <div style={{
-                        width: 13, height: 13, background: "#fff", borderRadius: "50%",
+                        width: 16, height: 16, background: item.val ? "#000" : "rgba(255,255,255,0.6)", borderRadius: "50%",
                         position: "absolute", top: 2,
-                        left: item.val ? 17 : 2,
-                        transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)",
+                        left: item.val ? 18 : 2,
+                        transition: "left 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s",
                       }} />
                     </div>
                   </div>
@@ -1955,13 +1990,14 @@ const CustomVideoPlayer = ({
               </div>
             </div>
 
-            <div style={{ height: 1, background: "rgba(255,255,255,0.04)", margin: "10px 0" }} />
+            <div style={{ height: 1, background: "rgba(255,255,255,0.04)", margin: "12px 0" }} />
             <button onClick={(e) => { e.stopPropagation(); setUseNativeControls(true); setShowSettings(false); }}
               style={{
-                width: "100%", background: "rgba(139,92,246,0.08)", color: "#8B5CF6",
-                border: "1px solid rgba(139,92,246,0.2)", padding: 9, borderRadius: 8,
-                cursor: "pointer", fontSize: 11, fontWeight: 700,
+                width: "100%", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.7)",
+                border: "1px solid rgba(255,255,255,0.06)", padding: 10, borderRadius: 12,
+                cursor: "pointer", fontSize: 12, fontWeight: 700,
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
               }}
             >
               <Captions size={13} /> Native Audio
@@ -1970,77 +2006,79 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ SUBTITLES PANEL — Apple TV+ style ══════════════════════ */}
+      {/* ═══ SUBTITLES PANEL ═════════════════════════════════════ */}
       <AnimatePresence>
         {showSubtitlesMenu && (
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.95 }}
+            initial={{ opacity: 0, y: 16, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            transition={SPRING}
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", bottom: 56, right: 56, zIndex: 50,
-              width: 250, maxHeight: "45vh",
-              background: "rgba(28,28,30,0.85)",
+              position: "absolute", bottom: 60, right: 56, zIndex: 50,
+              width: 260, maxHeight: "45vh",
+              background: "rgba(18,18,20,0.88)",
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 14, padding: "14px 16px", color: V.text,
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 16, padding: "16px 18px", color: "#fff",
               overflowY: "auto",
-              boxShadow: "0 12px 48px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.06)",
+              boxShadow: "0 16px 56px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.04)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700 }}>Subtitles</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Subtitles</span>
               <div onClick={(e) => { e.stopPropagation(); setSubtitleEnabled(!subtitleEnabled); }}
                 style={{
-                  width: 32, height: 17,
-                  background: subtitleEnabled ? V.accent : "rgba(255,255,255,0.1)",
+                  width: 36, height: 20,
+                  background: subtitleEnabled ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)",
                   borderRadius: 100, position: "relative", cursor: "pointer",
                   transition: "background 0.25s",
                 }}
               >
                 <div style={{
-                  width: 13, height: 13, background: "#fff", borderRadius: "50%",
+                  width: 16, height: 16, background: subtitleEnabled ? "#000" : "rgba(255,255,255,0.6)", borderRadius: "50%",
                   position: "absolute", top: 2,
-                  left: subtitleEnabled ? 17 : 2,
-                  transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)",
+                  left: subtitleEnabled ? 18 : 2,
+                  transition: "left 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s",
                 }} />
               </div>
             </div>
             <div data-scrollable="true" style={{
-              background: "rgba(255,255,255,0.02)", padding: 8, borderRadius: 8,
-              border: `1px solid ${V.glassBorder}`, maxHeight: 140,
-              overflowY: "auto", marginBottom: 10,
+              background: "rgba(255,255,255,0.02)", padding: 8, borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.04)", maxHeight: 140,
+              overflowY: "auto", marginBottom: 12,
             }}>
               {availableSubtitleLangs.length > 0 ? (
                 availableSubtitleLangs.map((l, i) => (
                   <button key={i} onClick={() => { handleSubtitleLanguageSelect(l.downloadLink); setShowSubtitlesMenu(false); }}
                     style={{
                       display: "block", width: "100%", background: "transparent",
-                      color: "rgba(255,255,255,0.8)", border: "none",
-                      padding: "7px 10px", borderRadius: 6, cursor: "pointer",
+                      color: "rgba(255,255,255,0.75)", border: "none",
+                      padding: "8px 12px", borderRadius: 8, cursor: "pointer",
                       fontSize: 12, fontWeight: 600, textAlign: "left", transition: "background 0.12s",
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     {l.language}
                   </button>
                 ))
               ) : (
-                <div style={{ fontSize: 11, color: V.faint, textAlign: "center", padding: 10 }}>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "center", padding: 12, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>
                   {isFetchingSubtitles ? "Searching..." : "No subtitles found"}
                 </div>
               )}
             </div>
             <button onClick={(e) => { e.stopPropagation(); subtitleInputRef.current?.click(); setShowSubtitlesMenu(false); }}
               style={{
-                width: "100%", background: "rgba(255,255,255,0.03)", color: V.text,
-                border: `1px dashed ${V.glassBorder}`, padding: 10, borderRadius: 8,
+                width: "100%", background: "rgba(255,255,255,0.02)", color: "rgba(255,255,255,0.7)",
+                border: "1px dashed rgba(255,255,255,0.08)", padding: 12, borderRadius: 12,
                 cursor: "pointer", fontSize: 12, fontWeight: 600,
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
               }}
             >
               <Upload size={12} /> {subtitleFileName || "Upload (.srt)"}
@@ -2053,43 +2091,41 @@ const CustomVideoPlayer = ({
       <AnimatePresence>
         {contextMenu.show && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.1 }}
             style={{
               position: "absolute", left: contextMenu.x, top: contextMenu.y, zIndex: 100,
-              background: "rgba(10,10,12,0.95)", backdropFilter: "blur(16px)",
-              border: `1px solid ${V.glassBorder}`, borderRadius: 10,
+              background: "rgba(12,12,14,0.94)", backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+              border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12,
               padding: "4px 0", minWidth: 180,
-              boxShadow: "0 16px 40px rgba(0,0,0,0.6)", pointerEvents: "auto",
+              boxShadow: "0 16px 48px rgba(0,0,0,0.6)", pointerEvents: "auto",
             }}
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
           >
             {[
               { icon: <Link size={12} />, label: "Copy URL", action: () => { navigator.clipboard.writeText(window.location.href); setContextMenu({ show: false, x: 0, y: 0 }); showToast("Copied"); } },
-              { icon: <Repeat size={12} color={isLooping ? V.accent : "#fff"} />, label: isLooping ? "Loop On" : "Loop Off", action: () => { setIsLooping(!isLooping); setContextMenu({ show: false, x: 0, y: 0 }); } },
-              { icon: isPlaying ? <Pause size={12} /> : <Play size={12} />, label: isPlaying ? "Pause" : "Play", action: () => { togglePlay(); setContextMenu({ show: false, x: 0, y: 0 }); } },
-              { icon: isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />, label: isMuted ? "Unmute" : "Mute", action: () => { toggleMute(); setContextMenu({ show: false, x: 0, y: 0 }); } },
-            ].map((item, i) => (
-              <div key={i} className="void-hover" onClick={item.action}
-                style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: V.text, fontSize: 11, fontWeight: 500 }}
+              { icon: <Repeat size={12} color={isLooping ? "#fff" : undefined} />, label: isLooping ? "Loop On" : "Loop Off", action: () => { setIsLooping(!isLooping); setContextMenu({ show: false, x: 0, y: 0 }); } },
+              ...(movie?.posterUrl ? [{ icon: <Film size={12} />, label: "Open Poster", action: () => { window.open(movie.posterUrl, "_blank"); setContextMenu({ show: false, x: 0, y: 0 }); } }] : []),
+              { icon: <Keyboard size={12} />, label: "Shortcuts", action: () => { setShowShortcuts(true); setContextMenu({ show: false, x: 0, y: 0 }); } },
+            ].map(({ icon, label, action }, i) => (
+              <button key={i} onClick={action}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, width: "100%",
+                  background: "transparent", border: "none", color: "rgba(255,255,255,0.8)",
+                  padding: "8px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                  textAlign: "left", transition: "background 0.1s",
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                {item.icon} {item.label}
-              </div>
+                {icon} {label}
+              </button>
             ))}
-            <div style={{ height: 1, background: "rgba(255,255,255,0.04)", margin: "3px 0" }} />
-            <div className="void-hover" onClick={() => {
-              setIsLoading(true); setIframeUrl("");
-              setTimeout(() => { setHasInitiallyLoaded(false); contentSignatureRef.current = ""; }, 100);
-              setContextMenu({ show: false, x: 0, y: 0 });
-              showToast("Reloading...");
-            }}
-              style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: V.text, fontSize: 11, fontWeight: 500 }}
-            >
-              <RefreshCw size={12} /> Reload
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
