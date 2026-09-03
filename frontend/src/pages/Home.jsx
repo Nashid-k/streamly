@@ -1,7 +1,7 @@
 import SEO from "../components/SEO";
 import slugify from "slugify";
 import ErrorBoundary from "../components/ErrorBoundary";
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Play, ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import {
@@ -714,23 +714,47 @@ export default function Home({
     return list || [];
   };
 
+  // Platform lookup map: categories have pre-resolved source data, trending/recommendations don't.
+  // Build a map from movie id → source, so we can enrich rails that lack platform data.
+  const platformLookup = useMemo(() => {
+    const map = new Map();
+    for (const cat of (rawCategories || [])) {
+      for (const m of (cat.movies || []).filter(Boolean)) {
+        if (m.id && m.source && !map.has(m.id)) {
+          map.set(m.id, m.source);
+        }
+      }
+    }
+    return map;
+  }, [rawCategories]);
+
+  // Enrich a movie array: for movies with source=null, look up platform from categories
+  const enrichWithPlatforms = useCallback((movies) => {
+    return (movies || []).map(m => {
+      if (!m || m.source) return m;
+      const lookupSource = platformLookup.get(m.id);
+      if (lookupSource) return { ...m, source: lookupSource };
+      return m;
+    });
+  }, [platformLookup]);
+
   // Real cross-platform Top 10 from the backend (ranked, not a client-side shuffle)
   const top10Movies = useMemo(
-    () => applyPageFilter(top10Data || EMPTY_ARRAY).slice(0, 10).map(normalizeMovieSource),
+    () => enrichWithPlatforms(applyPageFilter(top10Data || EMPTY_ARRAY).slice(0, 10)).map(normalizeMovieSource),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [top10Data, filter],
+    [top10Data, filter, enrichWithPlatforms],
   );
 
   const trendingThisWeek = useMemo(
-    () => applyPageFilter(trendingData || EMPTY_ARRAY).slice(0, 20).map(normalizeMovieSource),
+    () => enrichWithPlatforms(applyPageFilter(trendingData || EMPTY_ARRAY).slice(0, 20)).map(normalizeMovieSource),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [trendingData, filter],
+    [trendingData, filter, enrichWithPlatforms],
   );
 
   const airingThisWeek = useMemo(
-    () => applyPageFilter(airingData || EMPTY_ARRAY).slice(0, 20).map(normalizeMovieSource),
+    () => enrichWithPlatforms(applyPageFilter(airingData || EMPTY_ARRAY).slice(0, 20)).map(normalizeMovieSource),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [airingData, filter],
+    [airingData, filter, enrichWithPlatforms],
   );
 
   const lastWatched =
@@ -748,8 +772,8 @@ export default function Home({
     refetchOnWindowFocus: false,
   });
   const recommendations = useMemo(
-    () => Array.isArray(rawRecommendations) ? rawRecommendations.map(normalizeMovieSource) : [],
-    [rawRecommendations],
+    () => Array.isArray(rawRecommendations) ? enrichWithPlatforms(rawRecommendations).map(normalizeMovieSource) : [],
+    [rawRecommendations, enrichWithPlatforms],
   );
 
   const finalPool = useMemo(() => {
