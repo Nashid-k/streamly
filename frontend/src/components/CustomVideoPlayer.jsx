@@ -1098,18 +1098,19 @@ const CustomVideoPlayer = ({
         {(showVolumePopup || showAspectRatioPopup) && (
           <motion.div
             key="hud"
-            initial={{ opacity: 0, y: -12, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            initial={{ opacity: 0, y: -12, scale: 0.9, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: -8, scale: 0.95, x: "-50%" }}
             transition={{ type: "spring", stiffness: 400, damping: 28 }}
             style={{
-              position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)",
+              position: "absolute", top: 16, left: "50%",
               zIndex: 65, pointerEvents: "none",
               background: "rgba(6,6,10,0.88)", backdropFilter: "blur(20px)",
               border: `1px solid ${V.glassBorder}`,
               borderRadius: 12, padding: "8px 16px",
               display: "flex", alignItems: "center", gap: 10,
               boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+              whiteSpace: "nowrap",
             }}
           >
             {showVolumePopup && (
