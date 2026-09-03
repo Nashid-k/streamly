@@ -267,9 +267,11 @@ export default function HistoryPage() {
                             movie={normalizeMovieSource(movie)}
                             showProgress={true}
                             progressValue={
-                              movie.lastWatched
-                                ? Math.min(95, Math.max(10, 100 - Math.floor((Date.now() - movie.lastWatched) / (1000 * 60 * 60 * 24))))
-                                : 0
+                              movie.timestamp > 0 && movie.duration > 0
+                                ? Math.min(95, Math.round((movie.timestamp / movie.duration) * 100))
+                                : movie.timestamp > 0
+                                  ? Math.min(95, Math.max(10, Math.round(movie.timestamp / 60)))
+                                  : 0
                             }
                           />
                           <motion.button

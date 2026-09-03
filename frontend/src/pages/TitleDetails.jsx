@@ -51,6 +51,7 @@ import { buildMovieAddedNotification } from "../utils/notificationEngine";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
 import CustomVideoPlayer from "../components/CustomVideoPlayer";
+import ErrorBoundary from "../components/ErrorBoundary";
 const EMPTY_ARRAY = [];
 
 import { VideoSourceAdapter } from "../api/videoSourceAdapter";
@@ -2518,34 +2519,36 @@ export default function TitleDetails() {
                   />
                 </>
               ) : (
-                <CustomVideoPlayer
-                  movie={movie}
-                  season={isTvContent ? selectedSeason : undefined}
-                  episode={isTvContent ? playingEpisode : undefined}
-                  preferredServerIndex={playingServerIndex}
-                  onServerChange={setPlayingServerIndex}
-                  onClose={() => setIsPlaying(false)}
-                  thumbnailUrl={movie.backdropUrl || movie.posterUrl}
-                  startTime={effectiveSavedTimestamp}
-                  hasNextEpisode={
-                    isTvContent && playingEpisode < episodes.length
-                  }
-                  onNextEpisode={() => {
-                    if (playingEpisode < episodes.length) {
-                      setPlayingEpisode((prev) => prev + 1);
+                <ErrorBoundary>
+                  <CustomVideoPlayer
+                    movie={movie}
+                    season={isTvContent ? selectedSeason : undefined}
+                    episode={isTvContent ? playingEpisode : undefined}
+                    preferredServerIndex={playingServerIndex}
+                    onServerChange={setPlayingServerIndex}
+                    onClose={() => setIsPlaying(false)}
+                    thumbnailUrl={movie.backdropUrl || movie.posterUrl}
+                    startTime={effectiveSavedTimestamp}
+                    hasNextEpisode={
+                      isTvContent && playingEpisode < episodes.length
                     }
-                  }}
-                  onProgressUpdate={(currentTime, duration) => {
-                    if (duration > 0 && currentTime > 10) {
-                      updateProgress(
-                        { ...movie, source: resolvedPlatform, sourceName },
-                        selectedSeason,
-                        playingEpisode,
-                        currentTime,
-                      );
-                    }
-                  }}
-                />
+                    onNextEpisode={() => {
+                      if (playingEpisode < episodes.length) {
+                        setPlayingEpisode((prev) => prev + 1);
+                      }
+                    }}
+                    onProgressUpdate={(currentTime, duration) => {
+                      if (duration > 0 && currentTime > 10) {
+                        updateProgress(
+                          { ...movie, source: resolvedPlatform, sourceName },
+                          selectedSeason,
+                          playingEpisode,
+                          currentTime,
+                        );
+                      }
+                    }}
+                  />
+                </ErrorBoundary>
               )}
             </motion.div>
           </motion.div>

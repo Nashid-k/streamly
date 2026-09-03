@@ -6,7 +6,7 @@
  *   isOpen  {boolean}  — whether the modal is visible
  *   onClose {function} — close callback
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import Loader from "./Loader";
@@ -42,6 +42,12 @@ export default function AuthModal({ isOpen, onClose }) {
   const [success, setSuccess] = useState("");
   const lastAttemptRef = useRef(0); // Rate limit ref
   const failedAttemptsRef = useRef(0); // Track consecutive failures for progressive backoff
+  const successTimerRef = useRef(null);
+
+  // Cleanup success timer on unmount
+  useEffect(() => {
+    return () => { if (successTimerRef.current) clearTimeout(successTimerRef.current); };
+  }, []);
 
   function resetForm() {
     setEmail("");
@@ -97,12 +103,12 @@ export default function AuthModal({ isOpen, onClose }) {
         await register(email.trim(), pass, name.trim());
         failedAttemptsRef.current = 0;
         setSuccess("Account created! Welcome to Streamly 🎉");
-        setTimeout(onClose, 1200);
+        successTimerRef.current = setTimeout(onClose, 1200);
       } else {
         await login(email.trim(), pass);
         failedAttemptsRef.current = 0;
         setSuccess("Signed in successfully!");
-        setTimeout(onClose, 800);
+        successTimerRef.current = setTimeout(onClose, 800);
       }
     } catch (err) {
       setError(friendly(err));

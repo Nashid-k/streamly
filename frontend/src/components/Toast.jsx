@@ -4,6 +4,7 @@ import {
   useState,
   useCallback,
   useRef,
+  useEffect,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, X, AlertCircle, Info, Volume2, Settings, Play } from "lucide-react";
@@ -185,6 +186,8 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const timersRef = useRef(new Map());
+
   const toast = useCallback(
     (type, titleOrMessage, message) => {
       const id = ++idRef.current;
@@ -193,11 +196,25 @@ export function ToastProvider({ children }) {
           ? { ...titleOrMessage, id }
           : { id, type, title: titleOrMessage, message };
       setToasts((prev) => [...prev.slice(-4), toastObj]);
-      setTimeout(() => dismiss(id), toastObj.duration || 3000);
+      const timer = setTimeout(() => {
+        dismiss(id);
+        timersRef.current.delete(id);
+      }, toastObj.duration || 3000);
+      timersRef.current.set(id, timer);
       return id;
     },
     [dismiss],
   );
+
+  // Cleanup all timers on unmount
+  useEffect(() => {
+    return () => {
+      for (const timer of timersRef.current.values()) {
+        clearTimeout(timer);
+      }
+      timersRef.current.clear();
+    };
+  }, []);
 
   return (
     <ToastContext.Provider value={{ toast, dismiss }}>

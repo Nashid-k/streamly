@@ -199,9 +199,10 @@ export function formatTMDBDate(
   const tz = viewerTimezone || getUserTimezone();
   try {
     const date = new Date(localDateStr + 'T12:00:00Z');
+    if (isNaN(date.getTime())) return tmdbDateString;
     return date.toLocaleDateString(undefined, { timeZone: tz, ...options });
   } catch {
-    return localDateStr;
+    return tmdbDateString;
   }
 }
 
