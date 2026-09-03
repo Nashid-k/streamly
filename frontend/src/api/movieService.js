@@ -1,19 +1,6 @@
 import { apiClient } from "./apiClient";
 
 export const movieService = {
-  getStreamUrl: async (
-    id,
-    serverIndex = 0,
-    season,
-    episode,
-    platform = "netflix",
-  ) => {
-    const params = { server: serverIndex, platform };
-    if (season !== undefined) params.season = season;
-    if (episode !== undefined) params.episode = episode;
-    const res = await apiClient.get(`/movies/${id}/stream-url`, { params });
-    return res.data;
-  },
   searchMovies: async (query) => {
     if (!query) return [];
     const res = await apiClient.get(`/movies/search`, {

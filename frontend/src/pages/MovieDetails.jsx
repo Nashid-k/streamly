@@ -4,7 +4,6 @@ import CastRail from "../components/CastRail";
 import { useQuery } from "@tanstack/react-query";
 import { movieService } from "../api/movieService";
 import Loader from "../components/Loader";
-import { TelemetryAdapter } from "../api/telemetryAdapter";
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -1505,18 +1504,13 @@ export default function MovieDetails() {
                               },
                               isTvContent ? 1 : null,
                               isTvContent ? 1 : null,
-                              0,
-                            );
-                          }
-                          TelemetryAdapter.trackPlay(
-                            movie.id,
-                            movie.title,
-                            resolvedPlatform,
-                          );
-                        },
-                        children: (
-                          <>
-                            <Play size={20} fill="currentColor" stroke="none" />{" "}
+                               0,
+                             );
+                           }
+                         },
+                         children: (
+                           <>
+                             <Play size={20} fill="currentColor" stroke="none" />{" "}
                             {savedTimestamp > 0
                               ? `Continue (${formatTime(savedTimestamp)})`
                               : "Play Now"}
@@ -1545,20 +1539,15 @@ export default function MovieDetails() {
                                     sourceName,
                                   },
                                   isTvContent ? 1 : null,
-                                  isTvContent ? 1 : null,
-                                  0,
-                                );
-                                TelemetryAdapter.trackPlay(
-                                  movie.id,
-                                  movie.title,
-                                  resolvedPlatform,
-                                );
-                              },
-                              children: (
-                                <>
-                                  <RotateCcw size={20} /> Start Over
-                                </>
-                              ),
+                                   isTvContent ? 1 : null,
+                                   0,
+                                 );
+                               },
+                               children: (
+                                 <>
+                                   <RotateCcw size={20} /> Start Over
+                                 </>
+                               ),
                             },
                           ]
                         : []),
@@ -1574,11 +1563,6 @@ export default function MovieDetails() {
                         onClick: () => {
                           setPlayMode("trailer");
                           setIsPlaying(true);
-                          TelemetryAdapter.trackPlay(
-                            movie.id,
-                            movie.title,
-                            "Trailer",
-                          );
                         },
                         children: (
                           <>
@@ -1913,7 +1897,7 @@ export default function MovieDetails() {
                           exit={{ opacity: 0, scale: 0.95, y: -8 }}
                           transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.3), ease: [0.16, 1, 0.3, 1] }}
                           whileHover={{ y: -4, boxShadow: '0 16px 40px -10px rgba(0,0,0,0.7)' }}
-                          onClick={() => { if (SERVERS.length > 0) { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: resolvedPlatform, sourceName }, selectedSeason, ep.episodeNumber); TelemetryAdapter.trackPlay(movie.id, movie.title, resolvedPlatform); } }}
+                          onClick={() => { if (SERVERS.length > 0) { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: resolvedPlatform, sourceName }, selectedSeason, ep.episodeNumber); } }}
                           style={{
                             background: isEpPlaying ? 'linear-gradient(180deg, rgba(244,63,94,0.1) 0%, #050505 100%)' : '#0a0a0c',
                             borderRadius: '16px', overflow: 'hidden',
@@ -1967,7 +1951,7 @@ export default function MovieDetails() {
                         exit={{ opacity: 0, x: 12 }}
                         transition={{ duration: 0.3, delay: Math.min(idx * 0.03, 0.25) }}
                         whileHover={{ background: 'rgba(255,255,255,0.04)' }}
-                        onClick={() => { if (SERVERS.length > 0) { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: resolvedPlatform, sourceName }, selectedSeason, ep.episodeNumber); TelemetryAdapter.trackPlay(movie.id, movie.title, resolvedPlatform); } }}
+                        onClick={() => { if (SERVERS.length > 0) { setIsPlaying(true); setPlayingEpisode(ep.episodeNumber); updateProgress({ ...movie, source: resolvedPlatform, sourceName }, selectedSeason, ep.episodeNumber); } }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '1rem',
                           padding: '0.75rem 1rem', borderRadius: '12px',

@@ -21,6 +21,8 @@ import {
   Keyboard,
   LogOut,
   Film,
+  Compass,
+  Sparkles,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import slugify from "slugify";
@@ -1491,11 +1493,25 @@ function Layout({ children }) {
           <span>Movies</span>
         </Link>
         <Link
+          to="/new"
+          className={`bottom-nav-item ${location.pathname === "/new" ? "active" : ""}`}
+        >
+          <Sparkles size={22} />
+          <span>New</span>
+        </Link>
+        <Link
           to="/series"
           className={`bottom-nav-item ${location.pathname === "/series" ? "active" : ""}`}
         >
           <Tv size={22} />
           <span>TV Shows</span>
+        </Link>
+        <Link
+          to="/anime"
+          className={`bottom-nav-item ${location.pathname === "/anime" ? "active" : ""}`}
+        >
+          <Compass size={22} />
+          <span>Anime</span>
         </Link>
         <Link
           to="/search"

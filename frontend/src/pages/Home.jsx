@@ -1393,7 +1393,7 @@ export default function Home({
               </FadeInSection>
             )}
             {/* 6. Airing This Week */}
-            {airingThisWeek.length > 0 && activeGenre === "All" && (
+            {filter !== "movies" && filter !== "anime" && airingThisWeek.length > 0 && activeGenre === "All" && (
               <FadeInSection>
                 <ErrorBoundary>
                   <MovieRail
