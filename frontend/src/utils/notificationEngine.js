@@ -44,7 +44,7 @@ export function buildEpisodeReleasedNotification({ title, season, episode, episo
   const formattedDate = releaseDate ? formatTMDBDate(releaseDate, { weekday: 'long', month: 'short', day: 'numeric' }, undefined, platformKey) : "today";
 
   return {
-    id: `ep-released-${movieId}-s${season}e${episode}-${Date.now()}`,
+    id: `ep-released-${movieId}-s${season}e${episode }`,
     type: NOTIF_TYPES.EPISODE_RELEASED,
     title: `📺 New Episode Released`,
     message: `Season ${season}, Episode ${episode}${episodeTitle ? `: "${episodeTitle}"` : ""} of ${title} is now streaming on ${platformName}.`,
@@ -78,7 +78,7 @@ export function buildEpisodeAiringNotification({ title, season, episode, episode
     : `in ${timeUntil.replace('in ', '')}`;
 
   return {
-    id: `ep-airing-${movieId}-s${season}e${episode}-${Date.now()}`,
+    id: `ep-airing-${movieId}-s${season}e${episode }`,
     type: NOTIF_TYPES.EPISODE_AIRING,
     title: `🔴 Upcoming Episode`,
     message: `Season ${season}, Episode ${episode}${episodeTitle ? `: "${episodeTitle}"` : ""} of ${title} will air ${timeContext} on ${platformName}.`,
@@ -113,7 +113,7 @@ export function buildMovieAddedNotification({ title, platform, year, duration, i
   if (duration) parts.push(duration);
 
   return {
-    id: `added-${movieId}-${Date.now()}`,
+    id: `added-${movieId }`,
     type: isSeries ? NOTIF_TYPES.SERIES_ADDED : NOTIF_TYPES.MOVIE_ADDED,
     title: `${emoji} ${typeLabel} Added`,
     message: `${title} added to your list.${parts.length > 0 ? " " + parts.join(" · ") : ""}`,
@@ -140,7 +140,7 @@ export function buildPlatformAvailabilityNotification({ title, platform, previou
   const prevPlatformName = prevPlatformKey ? PlatformAdapter.getName(prevPlatformKey) : previousPlatform;
 
   return {
-    id: `avail-${movieId}-${platform}-${Date.now()}`,
+    id: `avail-${movieId}-${platform }`,
     type: NOTIF_TYPES.PLATFORM_AVAILABILITY,
     title: `🆕 Now Available`,
     message: prevPlatformName
@@ -179,7 +179,7 @@ export function buildWeeklyDigestNotification({ newEpisodes, newMovies, platform
   const detail = trendingTitles ? `Trending: ${trendingTitles}` : null;
 
   return {
-    id: `digest-weekly-${Date.now()}`,
+    id: `digest-weekly-${newEpisodes || 0}-${newMovies || 0}`,
     type: NOTIF_TYPES.WEEKLY_DIGEST,
     title: `🔥 Weekly Digest`,
     message,
@@ -202,7 +202,7 @@ export function buildRecommendationNotification({ title, reason, platform, image
   const platformName = platformKey ? PlatformAdapter.getName(platformKey) : platform || null;
 
   return {
-    id: `rec-${movieId}-${Date.now()}`,
+    id: `rec-${movieId }`,
     type: NOTIF_TYPES.RECOMMENDATION,
     title: `💡 Recommended for You`,
     message: `Because you watched ${reason}${platformName ? `, "${title}" is now streaming on ${platformName}` : `, you might like "${title}"`}.`,
@@ -231,7 +231,7 @@ export function buildMilestoneNotification({ type, count, title }) {
   };
 
   return {
-    id: `milestone-${type}-${Date.now()}`,
+    id: `milestone-${type}-${count }`,
     type: NOTIF_TYPES.MILESTONE,
     title: title || `🎉 Milestone Reached`,
     message: messages[type] || `You've reached a new milestone!`,
@@ -249,7 +249,7 @@ export function buildMilestoneNotification({ type, count, title }) {
  */
 export function buildWelcomeNotification({ isSignedIn }) {
   return {
-    id: `welcome-${Date.now()}`,
+    id: `welcome-${isSignedIn ? 'in' : 'out' }`,
     type: NOTIF_TYPES.WELCOME,
     title: `👋 Welcome to Streamly!`,
     message: isSignedIn
@@ -289,7 +289,8 @@ export function generateSmartNotifications({ myList = [], continueWatching = [],
     // Upcoming episode alert
     if (item.nextEpisode?.releaseDate) {
       const timeUntil = getTimeUntil(item.nextEpisode.releaseDate, undefined, item.source);
-      if (timeUntil === "today" || timeUntil === "tomorrow" || timeUntil.startsWith("in ")) {
+      if (timeUntil === "today" || timeUntil === "tomorrow" || timeUntil.startsWith("in ")) {          const contentId = `ep-airing-${item.id}-s${item.nextEpisode.season || 1}e${item.nextEpisode.episode || 1}`;
+        if (existingIds.has(contentId)) continue;
         const notif = buildEpisodeAiringNotification({
           title: item.title,
           season: item.nextEpisode.season || 1,
@@ -300,9 +301,8 @@ export function generateSmartNotifications({ myList = [], continueWatching = [],
           imageUrl: item.backdropUrl || item.posterUrl,
           movieId: item.id,
         });
-        if (!existingIds.has(notif.id) && !existingIds.has(`ep-airing-${item.id}`)) {
-          newNotifs.push(notif);
-        }
+        notif.id = contentId; // Override timestamp-based ID with content-based ID
+        newNotifs.push(notif);
       }
     }
   }
@@ -310,8 +310,9 @@ export function generateSmartNotifications({ myList = [], continueWatching = [],
   // 2. Check airing this week for watchlist matches
   if (airingThisWeek.length > 0) {
     for (const airing of airingThisWeek) {
-      const inList = myList.some((m) => String(m.id) === String(airing.id));
-      if (inList && airing.nextEpisode?.releaseDate) {
+      const inList = myList.some((m) => String(m.id) === String(airing.id));        if (inList && airing.nextEpisode?.releaseDate) {
+        const contentId = `ep-airing-${airing.id}-s${airing.nextEpisode.season || 1}e${airing.nextEpisode.episode || 1}`;
+        if (existingIds.has(contentId)) continue;
         const notif = buildEpisodeAiringNotification({
           title: airing.title,
           season: airing.nextEpisode.season || 1,
@@ -322,9 +323,8 @@ export function generateSmartNotifications({ myList = [], continueWatching = [],
           imageUrl: airing.backdropUrl || airing.posterUrl,
           movieId: airing.id,
         });
-        if (!existingIds.has(`ep-airing-${airing.id}`)) {
-          newNotifs.push(notif);
-        }
+        notif.id = contentId;
+        newNotifs.push(notif);
       }
     }
   }
@@ -334,8 +334,10 @@ export function generateSmartNotifications({ myList = [], continueWatching = [],
     const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
     for (const item of continueWatching) {
       if (item.lastWatched && item.lastWatched < threeDaysAgo && item.timestamp > 0) {
+        const contentId = `cw-reminder-${item.id}`;
+        if (existingIds.has(contentId)) continue;
         const notif = {
-          id: `cw-reminder-${item.id}-${Date.now()}`,
+          id: contentId,
           type: NOTIF_TYPES.MILESTONE,
           title: `⏸️ Pick Up Where You Left Off`,
           message: `You started "${item.title}" ${Math.floor((Date.now() - item.lastWatched) / (1000 * 60 * 60 * 24))} days ago. Continue watching?`,

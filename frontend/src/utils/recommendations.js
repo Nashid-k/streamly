@@ -154,7 +154,7 @@ export function buildDeepRecommendations(movie, allMovies = [], options = {}) {
     .slice(0, maxResults)
     .map(({ movie, score, reasons }) => ({
       ...movie,
-      matchScore: Math.min(99, Math.round((score / 100) * 100)),
+      matchScore: Math.min(99, Math.round(score)),
       matchReason: reasons.sort((a, b) => b.score - a.score)[0]?.reason || "Similar",
       matchSignals: reasons.map(r => r.signal),
     }));

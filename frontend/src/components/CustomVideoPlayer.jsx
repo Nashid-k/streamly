@@ -459,13 +459,30 @@ const CustomVideoPlayer = ({
     }
   }, [hasInitiallyLoaded, dynamicTips.length]);
 
-  /* Block popup ads from CineSrc iframe */
+  /* Block popup ads from CineSrc iframe — only override while player is active */
   useEffect(() => {
-    if (!isCineSrc) return;
+    if (!isCineSrc || !showCustomUI) return;
     const origOpen = window.open;
-    window.open = () => null;
+    // Only block popups that look like ads (no opener, from iframe context)
+    window.open = (url, target, features) => {
+      // Allow popups with explicit features (OAuth, share dialogs, etc.)
+      if (features) return origOpen(url, target, features);
+      // Block blank popups likely from ad scripts
+      return null;
+    };
     return () => { window.open = origOpen; };
-  }, [isCineSrc]);
+  }, [isCineSrc, showCustomUI]);
+
+  /* Cleanup ALL timers on unmount to prevent memory leaks */
+  useEffect(() => {
+    return () => {
+      [controlsTimeoutRef, clickTimeoutRef, seekTimeoutRef,
+       centerIconTimeoutRef, sideIconTimeoutRef, skipIntroTimeoutRef,
+       toastTimeoutRef, volumeArcTimerRef, aspectRatioArcTimerRef,
+       gestureHudTimerRef].forEach(r => { if (r.current) clearTimeout(r.current); });
+      if (upNextIntervalRef.current) clearInterval(upNextIntervalRef.current);
+    };
+  }, []);
 
   /* URL Generation */
   useEffect(() => {
@@ -600,7 +617,7 @@ const CustomVideoPlayer = ({
           case "cinesrc:waiting": setIsLoading(true); break;
           case "cinesrc:seeking": setIsLoading(true); break;
           case "cinesrc:seeked": targetSeekTimeRef.current = null; setIsLoading(false); break;
-          case "cinesrc:playing": setIsLoading(false); setIsPlaying(true); break;
+          case "cinesrc:playing": setIsLoading(false); setIsPlaying(true); setServerErrorCounts({}); break;
           case "cinesrc:progress": if (d.buffered !== undefined) setBuffered(d.buffered); break;
           case "cinesrc:timeupdate":
             if (isLoadingRef.current) setIsLoading(false);
@@ -663,7 +680,7 @@ const CustomVideoPlayer = ({
               setLastServer(d.sourceId);
             }
             break;
-          case "cinesrc:play": setIsLoading(false); setIsPlaying(true); break;
+          case "cinesrc:play": setIsLoading(false); setIsPlaying(true); setServerErrorCounts({}); break;
           case "cinesrc:pause": setIsPlaying(false); if (!isScrubbing) setIsLoading(false); break;
           case "cinesrc:ratechange": setPlaybackRate(d.playbackRate); break;
           case "cinesrc:volumechange":
@@ -1217,6 +1234,7 @@ const CustomVideoPlayer = ({
                  so CineSrc's own spinner stays hidden behind our overlay */
             } else {
               setIsLoading(false);
+              setServerErrorCounts({}); // Reset error count on successful load
             }
           }}
         />
