@@ -200,7 +200,7 @@ const CustomVideoPlayer = ({
   const [subtitleEnabled, setSubtitleEnabled] = useState(false);
   const [subtitleFileName, setSubtitleFileName] = useState("");
 
-  // Derived TV detection — consistent with MovieDetails isTvContent
+  // Derived TV detection — consistent with TitleDetails isTvContent
   const isTvContent = movie?.isSeries || String(movie?.id || '').startsWith('tmdb-tv-');
 
   // Reset on episode/season/movie change

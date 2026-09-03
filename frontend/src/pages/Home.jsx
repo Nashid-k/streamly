@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { movieService } from "../api/movieService";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
+import RailArrow from "../components/RailArrow";
 
 const GENRE_OPTIONS = [
   "All",
@@ -47,42 +48,10 @@ const FadeInSection = ({ children, delay = 0 }) => (
   </motion.div>
 );
 
-const RailArrow = ({ dir, onClick }) => (
-  <motion.button
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    onClick={onClick}
-    aria-label={dir === "left" ? "Scroll left" : "Scroll right"}
-    style={{
-      position: "absolute",
-      [dir === "left" ? "left" : "right"]: "0px",
-      top: "calc(50% + 8px)",
-      transform: "translateY(-50%)",
-      zIndex: 10,
-      background: "rgba(5,5,5,0.9)",
-      border: "1px solid rgba(255,255,255,0.08)",
-      color: "rgba(255,255,255,0.7)",
-      borderRadius: "50%",
-      width: "38px",
-      height: "38px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      backdropFilter: "blur(12px)",
-      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
-    }}
-  >
-    {dir === "left" ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-  </motion.button>
-);
-
 const MovieRail = React.memo(
   function MovieRail({ category, railIndex = 0 }) {
     const railRef = useRef(null);
     const containerRef = useRef(null);
-    const [showArrows, setShowArrows] = useState(false);
     const [inView, setInView] = useState(false);
     const isDynamicRail =
       category.name === "Continue Watching" ||
@@ -149,8 +118,6 @@ const MovieRail = React.memo(
       <div
         ref={containerRef}
         className="movie-rail-wrapper"
-        onMouseEnter={() => setShowArrows(true)}
-        onMouseLeave={() => setShowArrows(false)}
         style={{ position: "relative" }}
       >
         <div
@@ -195,14 +162,8 @@ const MovieRail = React.memo(
 
         {inView && (
           <>
-            <AnimatePresence>
-              {showArrows && (
-                <>
-                  <RailArrow dir="left" onClick={() => scroll("left")} />
-                  <RailArrow dir="right" onClick={() => scroll("right")} />
-                </>
-              )}
-            </AnimatePresence>
+            <RailArrow dir="left" onClick={() => scroll("left")} />
+            <RailArrow dir="right" onClick={() => scroll("right")} />
 
             <div
               ref={railRef}
@@ -215,7 +176,7 @@ const MovieRail = React.memo(
                 overscrollBehaviorX: "contain",
                 overflowX: "auto",
                 scrollbarWidth: "none",
-                padding: "0.25rem 0.25rem",
+                padding: "0.25rem 1.4rem",
               }}
             >
               {category.movies.slice(0, visibleCount).map((movie, i) => (
@@ -251,7 +212,6 @@ const Top10Rail = React.memo(
   function Top10Rail({ movies, filter, railIndex = 0 }) {
     const railRef = useRef(null);
     const containerRef = useRef(null);
-    const [showArrows, setShowArrows] = useState(false);
     const [inView, setInView] = useState(false);
     const top10 = movies.slice(0, 10);
 
@@ -327,14 +287,8 @@ const Top10Rail = React.memo(
 
         {inView && (
           <>
-            <AnimatePresence>
-              {showArrows && (
-                <>
-                  <RailArrow dir="left" onClick={() => scroll("left")} />
-                  <RailArrow dir="right" onClick={() => scroll("right")} />
-                </>
-              )}
-            </AnimatePresence>
+            <RailArrow dir="left" onClick={() => scroll("left")} />
+            <RailArrow dir="right" onClick={() => scroll("right")} />
 
             <div
               ref={railRef}
@@ -346,7 +300,7 @@ const Top10Rail = React.memo(
                 overscrollBehaviorX: "contain",
                 overflowX: "auto",
                 scrollbarWidth: "none",
-                padding: "0.25rem 0.25rem",
+                padding: "0.25rem 1.4rem",
               }}
             >
               {top10.map((movie, i) => (

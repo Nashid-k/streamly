@@ -1,6 +1,7 @@
 import SEO from "../components/SEO";
 import MovieDetailsSkeleton from "../components/MovieDetailsSkeleton";
 import CastRail from "../components/CastRail";
+import RailArrow from "../components/RailArrow";
 import { useQuery } from "@tanstack/react-query";
 import { movieService } from "../api/movieService";
 import Loader from "../components/Loader";
@@ -427,7 +428,7 @@ function ServerDropdown({ servers, selectedIndex, onSelect }) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function MovieDetails() {
+export default function TitleDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedSeason, setSelectedSeason] = useState(1);
@@ -497,12 +498,22 @@ export default function MovieDetails() {
   }, [isPlaying, playMode, playingServerIndex, playingEpisode, selectedSeason]);
 
   const castRailRef = useRef(null);
+  const directorRailRef = useRef(null);
   const pageRef = useRef(null);
 
   const scrollCast = (dir) => {
     if (castRailRef.current) {
       castRailRef.current.scrollBy({
         left: dir === "left" ? -400 : 400,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  const scrollDirector = (dir) => {
+    if (directorRailRef.current) {
+      directorRailRef.current.scrollBy({
+        left: dir === "left" ? -500 : 500,
         behavior: "smooth",
       });
     }
@@ -2126,8 +2137,20 @@ export default function MovieDetails() {
           >
             More from {movie.director}
           </motion.h2>
-          <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none' }}>
-            {similar.slice(0, 8).filter(s => s.director && s.director === movie.director).slice(0, 5).map((sim, idx) => (
+            <div
+              style={{
+                position: "relative",
+                display: "flex",
+                gap: "1rem",
+                overflowX: "auto",
+                padding: "1rem",
+                scrollbarWidth: "none",
+              }}
+              ref={directorRailRef}
+            >
+              <RailArrow dir="left" onClick={() => scrollDirector("left")} />
+              <RailArrow dir="right" onClick={() => scrollDirector("right")} />
+              {similar.slice(0, 8).filter(s => s.director && s.director === movie.director).slice(0, 5).map((sim, idx) => (
               <motion.div
                 key={`dir-${sim.id}-${idx}`}
                 initial={{ opacity: 0, x: 20 }}

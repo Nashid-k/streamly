@@ -44,7 +44,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 const APP_VERSION = __VERSION__ || "1.0.0";
 
 const HomePage = lazy(() => import("./pages/Home"));
-const MovieDetails = lazy(() => import("./pages/MovieDetails"));
+const TitleDetails = lazy(() => import("./pages/TitleDetails"));
 const PersonDetails = lazy(() => import("./pages/PersonDetails"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const CategoryPage = lazy(() => import("./pages/CategoryPage"));
@@ -1576,7 +1576,7 @@ function App() {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/category/:name" element={<CategoryPage />} />
               <Route path="/genre/:genre" element={<GenrePage />} />
-              <Route path="/watch/:id/:slug?" element={<MovieDetails />} />
+              <Route path="/watch/:id/:slug?" element={<TitleDetails />} />
               <Route path="/person/:id/:slug?" element={<PersonDetails />} />
             </Routes>
           </Suspense>

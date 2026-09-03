@@ -1378,6 +1378,9 @@ input:focus-visible {
   }
 
   /* Movie Rails */
+  .movie-rail-wrapper > button {
+    display: none !important;
+  }
   .movie-rail,
   .cast-rail {
     scroll-snap-type: x mandatory;
