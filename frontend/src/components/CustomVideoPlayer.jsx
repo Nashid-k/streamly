@@ -820,9 +820,30 @@ const CustomVideoPlayer = ({
   const toggleFullscreen = useCallback((e) => {
     if (e) e.stopPropagation();
     const el = containerRef.current;
-    if (!isFullscreen) el?.requestFullscreen?.() || el?.webkitRequestFullscreen?.();
-    else document.exitFullscreen?.() || document.webkitExitFullscreen?.();
-  }, [isFullscreen]);
+    if (!isFullscreen) {
+      /* Try native fullscreen API */
+      const r = el?.requestFullscreen?.() || el?.webkitRequestFullscreen?.();
+      /* If promise exists (modern browsers), handle orientation on resolve */
+      if (r && typeof r.then === 'function') {
+        r.then(() => {
+          /* Rotate to landscape on mobile after entering fullscreen */
+          if (isTouch && screen.orientation?.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+          }
+        }).catch(() => {
+          /* Fullscreen failed — try Orientation API fallback for iOS */
+          if (isTouch && screen.orientation?.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+          }
+        });
+      } else if (isTouch && screen.orientation?.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
+    } else {
+      document.exitFullscreen?.() || document.webkitExitFullscreen?.();
+      if (screen.orientation?.unlock) screen.orientation.unlock();
+    }
+  }, [isFullscreen, isTouch]);
 
   const fmt = (t) => {
     if (!t || isNaN(t)) return "0:00";
@@ -917,6 +938,7 @@ const CustomVideoPlayer = ({
     if (!isTouch || !showCustomUI) return;
     /* Pinch detection: two fingers */
     if (e.touches.length === 2) {
+      e.preventDefault(); /* Block browser pinch-to-zoom */
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       pinchStartDistRef.current = Math.hypot(dx, dy);
@@ -939,6 +961,7 @@ const CustomVideoPlayer = ({
     if (!isTouch || !showCustomUI) return;
     /* Pinch to fullscreen */
     if (e.touches.length === 2 && pinchStartDistRef.current) {
+      e.preventDefault(); /* Block browser pinch-to-zoom during our gesture */
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const dist = Math.hypot(dx, dy);
@@ -1084,18 +1107,21 @@ const CustomVideoPlayer = ({
     <div
       ref={containerRef}
       style={{
-        position: "relative", width: "100%",
+        position: isFullscreen ? "fixed" : "relative", width: "100%",
         aspectRatio: isFullscreen ? undefined : "16/9",
-        height: isFullscreen ? "100vh" : "auto",
-        maxHeight: isFullscreen ? "100vh" : "min(calc(100vh - 120px), 80vw)",
+        height: isFullscreen ? '100dvh' : 'auto',
+        maxHeight: isFullscreen ? '100dvh' : 'min(calc(100vh - 120px), 80vw)',
+        minHeight: isFullscreen ? '100dvh' : undefined,
         background: "#000",
         borderRadius: isFullscreen ? 0 : 12,
+        inset: isFullscreen ? "0" : undefined,
+        zIndex: isFullscreen ? 9999 : undefined,
         overflow: "hidden",
         cursor: controlsVisible || !showCustomUI ? "default" : "none",
         minHeight: isFullscreen ? "100vh" : undefined,
         userSelect: "none",
         WebkitUserSelect: "none",
-        touchAction: "none",
+        touchAction: "manipulation", /* Allow our touch handlers, block browser zoom */
         WebkitTouchCallout: "none",
         /* Safe area insets for notched phones */
         paddingBottom: isFullscreen ? 'env(safe-area-inset-bottom, 0px)' : undefined,
@@ -2068,7 +2094,7 @@ const CustomVideoPlayer = ({
               </AnimatePresence>
               {/* Track */}
               <div style={{
-                position: "relative", width: "100%",
+                position: isFullscreen ? "fixed" : "relative", width: "100%",
                 height: hoverTime != null || isScrubbing ? 5 : 3,
                 background: "rgba(255,255,255,0.12)",
                 borderRadius: 3,
