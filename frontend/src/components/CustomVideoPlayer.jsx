@@ -139,62 +139,60 @@ const ArcRing = ({ progress = 0, size = 48, strokeWidth = 3, color = "#fff", bgC
   );
 };
 
-/* Apple-style animated progress arc for loading states */
+/* Apple TV+ style loading arc — clean spinning gradient trail */
 const LoadingArc = ({ size = 56, strokeWidth = 2.5, progress = 0 }) => {
   const r = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * r;
-  const trackGap = circ * 0.15; /* small gap at bottom like Apple */
   return (
     <div style={{ position: "relative", width: size, height: size }}>
-      {/* Track ring with gap */}
+      {/* Static track ring */}
       <svg width={size} height={size} style={{ position: "absolute", inset: 0 }}>
         <circle
           cx={size/2} cy={size/2} r={r}
           fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth}
-          strokeDasharray={`${circ - trackGap} ${trackGap}`}
-          strokeLinecap="round"
-          transform={`rotate(90 ${size/2} ${size/2})`} /* gap at bottom */
         />
       </svg>
-      {/* Spinning progress arc */}
+      {/* Spinning gradient arc — Apple TV+ style with fade trail */}
       <motion.svg
         width={size} height={size}
         style={{ position: "absolute", inset: 0 }}
         animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 1.8, ease: "linear" }}
+        transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
       >
+        <defs>
+          <linearGradient id="loadArcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="50%" stopColor="rgba(255,255,255,0.6)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.95)" />
+          </linearGradient>
+        </defs>
         <circle
           cx={size/2} cy={size/2} r={r}
-          fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth={strokeWidth}
+          fill="none" stroke="url(#loadArcGrad)" strokeWidth={strokeWidth}
           strokeLinecap="round"
-          strokeDasharray={`${circ * 0.3} ${circ * 0.7}`}
+          strokeDasharray={`${circ * 0.25} ${circ * 0.75}`}
         />
       </motion.svg>
       {/* Inner progress ring — fills over time */}
       {progress > 0 && (
         <svg width={size} height={size} style={{ position: "absolute", inset: 0 }}>
+          <defs>
+            <linearGradient id="loadInnerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0.25)" />
+            </linearGradient>
+          </defs>
           <circle
             cx={size/2} cy={size/2} r={r - strokeWidth * 2}
-            fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={strokeWidth * 0.6}
+            fill="none" stroke="url(#loadInnerGrad)" strokeWidth={strokeWidth * 0.5}
             strokeDasharray={2 * Math.PI * (r - strokeWidth * 2)}
             strokeDashoffset={2 * Math.PI * (r - strokeWidth * 2) * (1 - progress)}
             strokeLinecap="round"
-            style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}
+            style={{ transition: "stroke-dashoffset 1s cubic-bezier(0.16, 1, 0.3, 1)" }}
             transform={`rotate(-90 ${size/2} ${size/2})`}
           />
         </svg>
       )}
-      {/* Center dot */}
-      <motion.div
-        animate={{ opacity: [0.4, 1, 0.4] }}
-        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-        style={{
-          position: "absolute",
-          top: size/2 - 2, left: size/2 - 2,
-          width: 4, height: 4, borderRadius: "50%",
-          background: "rgba(255,255,255,0.7)",
-        }}
-      />
     </div>
   );
 };
@@ -1186,40 +1184,104 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* Loading — fully opaque cover to hide CineSrc's own spinner */}
+      {/* Loading — Apple TV+ style: blurred poster backdrop + arc spinner */}
       <AnimatePresence>
         {isLoading && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
             style={{
               position: "absolute", inset: 0, zIndex: 5,
-              background: thumbnailUrl
-                ? `linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(8,8,12,0.98) 100%)`
-                : "#000",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              overflow: "hidden",
+            }}
+          >
+            {/* Blurred poster backdrop — Apple TV+ style */}
+            {thumbnailUrl ? (
+              <div style={{
+                position: "absolute", inset: -40,
+                backgroundImage: `url(${thumbnailUrl})`,
+                backgroundSize: "cover", backgroundPosition: "center",
+                filter: "blur(30px) brightness(0.25) saturate(1.2)",
+                transform: "scale(1.1)",
+              }} />
+            ) : (
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "radial-gradient(ellipse at 50% 40%, #0a0a0f 0%, #000 70%)",
+              }} />
+            )}
+            {/* Dark vignette overlay for text readability */}
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.65) 100%)",
+            }} />
+            {/* Content layer */}
+            <div style={{
+              position: "relative", zIndex: 1,
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
               gap: "clamp(12px, 3vw, 20px)",
-            }}
-          >
-            <LoadingArc size={56} responsive="clamp(44px, 8vw, 60px)" strokeWidth={2.5} progress={loadProgress} />
-            {!hasInitiallyLoaded && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
-                style={{ textAlign: "center" }}>
-                <div style={{
-                  color: "#fff", fontSize: "clamp(1rem, 2vw, 1.3rem)", fontWeight: 700, marginBottom: 6,
-                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
-                }}>
-                  {movie?.title || movie?.name || "Loading"}
-                </div>
-                <div style={{
-                  color: "rgba(255,255,255,0.45)", fontSize: R.fontSmall, fontWeight: 600,
-                  letterSpacing: "0.5px",
-                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
-                }}>
-                  {dynamicTips[currentTipIndex]?.text}
-                </div>
-              </motion.div>
-            )}
+              padding: "0 20px",
+            }}>
+              <LoadingArc size={56} strokeWidth={2.5} progress={loadProgress} />
+              {!hasInitiallyLoaded && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ textAlign: "center" }}
+                >
+                  <div style={{
+                    color: "#fff", fontSize: "clamp(1rem, 2.5vw, 1.5rem)", fontWeight: 700, marginBottom: 6,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+                    letterSpacing: "-0.02em",
+                    textShadow: "0 2px 12px rgba(0,0,0,0.5)",
+                  }}>
+                    {movie?.title || movie?.name || "Loading"}
+                  </div>
+                  {isTvContent && season && (
+                    <div style={{
+                      color: "rgba(255,255,255,0.5)", fontSize: R.fontMedium, fontWeight: 600,
+                      marginBottom: 8,
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                    }}>
+                      Season {season} · Episode {episode}
+                    </div>
+                  )}
+                  <motion.div
+                    key={currentTipIndex}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.3 }}
+                    style={{
+                      color: "rgba(255,255,255,0.3)", fontSize: R.fontSmall, fontWeight: 500,
+                      letterSpacing: "0.3px",
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                    }}
+                  >
+                    {dynamicTips[currentTipIndex]?.text}
+                  </motion.div>
+                  {/* Thin progress bar */}
+                  <div style={{
+                    marginTop: 12, width: "clamp(100px, 30vw, 180px)", height: 2,
+                    background: "rgba(255,255,255,0.06)", borderRadius: 1,
+                    overflow: "hidden",
+                  }}>
+                    <motion.div
+                      animate={{ width: `${loadProgress * 100}%` }}
+                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      style={{
+                        height: "100%", borderRadius: 1,
+                        background: "linear-gradient(90deg, rgba(255,255,255,0.15), rgba(255,255,255,0.4))",
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
