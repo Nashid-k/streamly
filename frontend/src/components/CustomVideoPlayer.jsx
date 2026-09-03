@@ -90,8 +90,12 @@ const ArcRing = ({ progress = 0, size = 48, strokeWidth = 3, color = "#fff", bgC
         <div style={{
           position: "absolute", inset: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
+          /* Counter-rotate so children stay upright despite SVG rotation */
+          transform: "none",
         }}>
-          {children}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {children}
+          </div>
         </div>
       )}
     </div>
@@ -854,11 +858,6 @@ const CustomVideoPlayer = ({
         <div
           onMouseMove={handleMouseMove}
           onClick={(e) => {
-            const r = containerRef.current?.getBoundingClientRect();
-            if (r) {
-              const pctY = (e.clientY - r.top) / r.height;
-              if (pctY > 0.85) return;
-            }
             e.stopPropagation();
             togglePlay();
           }}
@@ -1382,22 +1381,38 @@ const CustomVideoPlayer = ({
                 style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}
               >
                 <div style={{ position: "relative" }}>
-                  <ArcRing
-                    progress={0.35}
-                    size={64} strokeWidth={2.5}
-                    color="rgba(255,255,255,0.7)"
-                    bgColor="rgba(255,255,255,0.05)"
-                    glowColor="rgba(255,255,255,0.1)"
+                  <motion.div
+                    initial={{ rotate: 0 }}
+                    animate={{ rotate: [0, -360] }}
+                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <Rewind size={22} color="#fff" strokeWidth={2} />
-                  </ArcRing>
+                    <ArcRing
+                      progress={0.4}
+                      size={64} strokeWidth={2.5}
+                      color="rgba(255,255,255,0.8)"
+                      bgColor="rgba(255,255,255,0.04)"
+                      glowColor="rgba(255,255,255,0.12)"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.4, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.1, ...SPRING_SNAPPY }}
+                      >
+                        <Rewind size={22} color="#fff" strokeWidth={2} />
+                      </motion.div>
+                    </ArcRing>
+                  </motion.div>
                 </div>
-                <span style={{
-                  fontSize: 12, fontWeight: 700, color: "#fff",
-                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
-                  textShadow: "0 1px 12px rgba(0,0,0,0.9)",
-                  fontVariantNumeric: "tabular-nums",
-                }}>{sideIcon.text}</span>
+                <motion.span
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15, ...SPRING_FAST }}
+                  style={{
+                    fontSize: 12, fontWeight: 700, color: "#fff",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                    textShadow: "0 1px 12px rgba(0,0,0,0.9)",
+                    fontVariantNumeric: "tabular-nums",
+                  }}>{sideIcon.text}</motion.span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1415,22 +1430,38 @@ const CustomVideoPlayer = ({
                 style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}
               >
                 <div style={{ position: "relative" }}>
-                  <ArcRing
-                    progress={0.35}
-                    size={64} strokeWidth={2.5}
-                    color="rgba(255,255,255,0.7)"
-                    bgColor="rgba(255,255,255,0.05)"
-                    glowColor="rgba(255,255,255,0.1)"
+                  <motion.div
+                    initial={{ rotate: 0 }}
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <FastForward size={22} color="#fff" strokeWidth={2} />
-                  </ArcRing>
+                    <ArcRing
+                      progress={0.4}
+                      size={64} strokeWidth={2.5}
+                      color="rgba(255,255,255,0.8)"
+                      bgColor="rgba(255,255,255,0.04)"
+                      glowColor="rgba(255,255,255,0.12)"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.4, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.1, ...SPRING_SNAPPY }}
+                      >
+                        <FastForward size={22} color="#fff" strokeWidth={2} />
+                      </motion.div>
+                    </ArcRing>
+                  </motion.div>
                 </div>
-                <span style={{
-                  fontSize: 12, fontWeight: 700, color: "#fff",
-                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
-                  textShadow: "0 1px 12px rgba(0,0,0,0.9)",
-                  fontVariantNumeric: "tabular-nums",
-                }}>{sideIcon.text}</span>
+                <motion.span
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15, ...SPRING_FAST }}
+                  style={{
+                    fontSize: 12, fontWeight: 700, color: "#fff",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                    textShadow: "0 1px 12px rgba(0,0,0,0.9)",
+                    fontVariantNumeric: "tabular-nums",
+                  }}>{sideIcon.text}</motion.span>
               </motion.div>
             )}
           </AnimatePresence>
