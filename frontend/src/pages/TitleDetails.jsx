@@ -507,7 +507,6 @@ export default function TitleDetails() {
 
   const [playMode, setPlayMode] = useState("movie");
   const [playingServerIndex, setPlayingServerIndex] = useState(0);
-
   // Trigger loading state when iframe src/key is about to change
   useEffect(() => {
     if (isPlaying) setIframeLoading(true);
@@ -769,20 +768,10 @@ export default function TitleDetails() {
   const hasProgress = continueWatching?.some((m) => m.id === movie?.id);
   const progressItem = continueWatching?.find((m) => m.id === movie?.id);
   const savedTimestamp = progressItem?.timestamp || 0;
-  const backdropSrc = movie.backdropUrl || movie.posterUrl;
-  const backdropTiny = backdropSrc ? CdnImageAdapter.getTinyUrl(backdropSrc) : null;
-  const backdropFull = backdropSrc ? CdnImageAdapter.getBackdropUrl(backdropSrc) : null;
+  const backdropSrc = movie?.backdropUrl || movie?.posterUrl;
+  const backdropOptimized = backdropSrc ? CdnImageAdapter.getBackdropUrl(backdropSrc) : null;
 
-  // Blur-up: start with tiny placeholder, swap to full after preload
-  const [backdropReady, setBackdropReady] = useState(false);
-  useEffect(() => {
-    if (!backdropFull) return;
-    setBackdropReady(false);
-    const img = new Image();
-    img.src = backdropFull;
-    img.onload = () => setBackdropReady(true);
-    img.onerror = () => setBackdropReady(true);
-  }, [backdropFull]);
+
 
   return (
     <div
@@ -812,10 +801,9 @@ export default function TitleDetails() {
           width: "100vw",
           marginLeft: "-50vw",
           marginTop: 0,
-          backgroundImage: backdropSrc ? `url(${backdropReady ? backdropFull : backdropTiny || backdropSrc})` : "none",
+          backgroundImage: backdropSrc ? `url(${backdropOptimized || backdropSrc})` : "none",
           backgroundSize: "cover",
           backgroundPosition: "center top",
-          transition: "background-image 0.6s ease",
         }}
       >
 
