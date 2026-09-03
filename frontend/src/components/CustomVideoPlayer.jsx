@@ -484,6 +484,9 @@ const CustomVideoPlayer = ({
     };
   }, []);
 
+  const startTimeRef = useRef(startTime);
+  useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
+
   /* URL Generation */
   useEffect(() => {
     let watchdogTimer;
@@ -507,7 +510,7 @@ const CustomVideoPlayer = ({
       let url = VideoSourceAdapter.getStreamUrl(activeServerIndex, tid, isTv ? season : null, isTv ? episode : null, imdbId, movie.title);
       if (activeServerIndex === 0) {
         if (!isNew && currentTime > 0 && !targetSeekTimeRef.current) url += `&t=${Math.floor(currentTime)}&continueprompt=false`;
-        else if (isNew && startTime > 0) url += `&t=${Math.floor(startTime)}&continueprompt=false`;
+        else if (isNew && startTimeRef.current > 0) url += `&t=${Math.floor(startTimeRef.current)}&continueprompt=false`;
       }
       setIframeUrl(url);
       const watchdogDelay = activeServerIndex === 0 ? 20000 : 12000;
@@ -539,7 +542,7 @@ const CustomVideoPlayer = ({
     };
     gen();
     return () => { if (watchdogTimer) clearTimeout(watchdogTimer); };
-  }, [activeServerIndex, movie, season, episode, startTime, useNativeControls]);
+  }, [activeServerIndex, movie, season, episode, useNativeControls]);
 
   const sendCommand = useCallback((c, a = []) => {
     try {
