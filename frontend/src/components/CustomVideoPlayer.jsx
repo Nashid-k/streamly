@@ -44,19 +44,19 @@ const LOADING_TIPS = [
   { text: "Right-click for more options", icon: Settings },
 ];
 
-/* ═══ VOID Design Tokens ═══════════════════════════════════════ */
+/* ═══ Apple-inspired Design Tokens ══════════════════════════════ */
 const V = {
-  bg: "#06060a",
-  accent: "#E8A838",
-  accentDim: "rgba(232,168,56,0.12)",
-  accentBorder: "rgba(232,168,56,0.3)",
-  accentGlow: "rgba(232,168,56,0.4)",
+  bg: "#000",
+  accent: "#0A84FF",
+  accentDim: "rgba(10,132,255,0.15)",
+  accentBorder: "rgba(10,132,255,0.35)",
+  accentGlow: "rgba(10,132,255,0.5)",
   text: "#fff",
-  dim: "rgba(255,255,255,0.45)",
-  faint: "rgba(255,255,255,0.18)",
-  glass: "rgba(6,6,10,0.85)",
-  glassBorder: "rgba(255,255,255,0.06)",
-  surface: "#0e0e14",
+  dim: "rgba(255,255,255,0.55)",
+  faint: "rgba(255,255,255,0.2)",
+  glass: "rgba(30,30,30,0.72)",
+  glassBorder: "rgba(255,255,255,0.08)",
+  surface: "#1c1c1e",
 };
 
 const CustomVideoPlayer = ({
@@ -1107,76 +1107,90 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ CENTER-TOP HUD — Volume & Aspect Ratio ══════════════════ */}
-      <AnimatePresence>
+      {/* ═══ CENTER-TOP HUD — Volume & Aspect Ratio (Apple TV+ style) ═══ */}
+      <AnimatePresence mode="wait">
         {(showVolumePopup || showAspectRatioPopup) && (
           <motion.div
-            key="hud"
-            initial={{ opacity: 0, y: -12, scale: 0.9, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
-            exit={{ opacity: 0, y: -8, scale: 0.95, x: "-50%" }}
-            transition={{ type: "spring", stiffness: 400, damping: 28 }}
+            key={showVolumePopup ? 'volume' : 'aspect'}
+            initial={{ opacity: 0, y: -16, scale: 0.88 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 320, damping: 28, mass: 0.8 }}
             style={{
-              position: "absolute", top: 16, left: "50%",
+              position: "absolute", top: 16, left: "50%", x: "-50%",
               zIndex: 65, pointerEvents: "none",
-              background: "rgba(6,6,10,0.88)", backdropFilter: "blur(20px)",
-              border: `1px solid ${V.glassBorder}`,
-              borderRadius: 12, padding: "8px 16px",
-              display: "flex", alignItems: "center", gap: 10,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+              background: "rgba(28,28,30,0.82)",
+              backdropFilter: "blur(40px) saturate(180%)",
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 16, padding: "10px 18px",
+              display: "flex", alignItems: "center", gap: 14,
+              boxShadow: "0 8px 40px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.06)",
               whiteSpace: "nowrap",
             }}
           >
             {showVolumePopup && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                {/* Volume icon */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {/* Volume icon with smooth morph */}
                 <motion.div
-                  key={isMuted || volume === 0 ? "muted" : "active"}
-                  initial={{ scale: 0.6, rotate: -20 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  key={isMuted || volume === 0 ? "muted" : volume < 0.5 ? "low" : "high"}
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.5, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 >
                   {isMuted || volume === 0 ? (
-                    <VolumeX size={16} color={V.accent} />
+                    <VolumeX size={18} color="#ff453a" strokeWidth={2.2} />
                   ) : volume < 0.5 ? (
-                    <Volume2 size={16} color={V.accent} />
+                    <Volume2 size={18} color={V.accent} strokeWidth={2.2} />
                   ) : (
-                    <Volume2 size={16} color="#fff" />
+                    <Volume2 size={18} color="#fff" strokeWidth={2.2} />
                   )}
                 </motion.div>
-                {/* Volume bar */}
+                {/* Volume bar — Apple-style thin with glow */}
                 <div style={{
-                  width: 100, height: 4, borderRadius: 2,
-                  background: "rgba(255,255,255,0.1)", position: "relative",
+                  width: 110, height: 4, borderRadius: 2,
+                  background: "rgba(255,255,255,0.12)", position: "relative",
+                  overflow: "visible",
                 }}>
                   <motion.div
                     animate={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 35 }}
                     style={{
                       height: "100%", borderRadius: 2,
-                      background: `linear-gradient(90deg, ${V.accent}, #f0c060)`,
-                      boxShadow: `0 0 8px ${V.accentGlow}`,
+                      background: isMuted || volume === 0
+                        ? "#ff453a"
+                        : `linear-gradient(90deg, ${V.accent}, #5ac8fa)`,
+                      boxShadow: isMuted || volume === 0
+                        ? "0 0 10px rgba(255,69,58,0.4)"
+                        : `0 0 10px ${V.accentGlow}`,
                     }}
                   />
-                  {/* Thumb dot */}
-                  <div style={{
-                    position: "absolute", top: "50%",
-                    left: `${(isMuted ? 0 : volume) * 100}%`,
-                    transform: "translate(-50%, -50%)",
-                    width: 8, height: 8, borderRadius: "50%",
-                    background: "#fff",
-                    boxShadow: `0 0 4px rgba(0,0,0,0.5), 0 0 0 1.5px ${V.accent}`,
-                  }} />
+                  {/* Thumb dot — smooth spring follow */}
+                  <motion.div
+                    animate={{ left: `${(isMuted ? 0 : volume) * 100}%` }}
+                    transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                    style={{
+                      position: "absolute", top: "50%",
+                      transform: "translate(-50%, -50%)",
+                      width: 12, height: 12, borderRadius: "50%",
+                      background: "#fff",
+                      boxShadow: "0 1px 6px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)",
+                    }}
+                  />
                 </div>
-                {/* Percentage */}
+                {/* Percentage — animated number roll */}
                 <motion.span
                   key={Math.round((isMuted ? 0 : volume) * 100)}
-                  initial={{ scale: 1.3, opacity: 0.7 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  initial={{ y: -8, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   style={{
-                    color: V.accent, fontSize: 12, fontWeight: 800,
-                    fontFamily: "monospace", minWidth: 30, textAlign: "right",
+                    color: isMuted || volume === 0 ? "#ff453a" : "#fff",
+                    fontSize: 13, fontWeight: 600,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                    minWidth: 32, textAlign: "right",
+                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
                   {Math.round((isMuted ? 0 : volume) * 100)}%
@@ -1184,28 +1198,29 @@ const CustomVideoPlayer = ({
               </div>
             )}
             {showVolumePopup && showAspectRatioPopup && (
-              <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
+              <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.1)", borderRadius: 1 }} />
             )}
             {showAspectRatioPopup && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <motion.div
                   initial={{ rotate: -90, scale: 0.5 }}
                   animate={{ rotate: 0, scale: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 25 }}
                 >
-                  <Maximize size={14} color="#fff" />
+                  <Maximize size={16} color="#fff" strokeWidth={2} />
                 </motion.div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <motion.span
                     key={aspectRatioIndex}
                     initial={{ y: 6, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                    style={{ color: "#fff", fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}
+                    style={{ color: "#fff", fontSize: 13, fontWeight: 600, lineHeight: 1.2,
+                      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}
                   >
                     {ASPECT_RATIOS[aspectRatioIndex].name}
                   </motion.span>
-                  <span style={{ color: V.dim, fontSize: 9, fontWeight: 600 }}>
+                  <span style={{ color: V.dim, fontSize: 10, fontWeight: 500 }}>
                     {aspectRatioIndex + 1} / {ASPECT_RATIOS.length}
                   </span>
                 </div>
@@ -1465,71 +1480,90 @@ const CustomVideoPlayer = ({
               </div>
             </div>
 
-            {/* PROGRESS BAR */}
+            {/* PROGRESS BAR — Apple TV+ style */}
             <div
               ref={progressBarRef}
               onMouseDown={onProgressMouseDown}
               onMouseMove={handleProgressHover}
               onMouseLeave={() => setHoverTime(null)}
               style={{
-                position: "relative", height: 24, display: "flex",
+                position: "relative", height: 28, display: "flex",
                 alignItems: "center", cursor: "pointer",
-                padding: "0 0", pointerEvents: "auto",
+                padding: "0 16px", pointerEvents: "auto",
               }}
             >
+              {/* Hover time tooltip */}
               <AnimatePresence>
                 {hoverTime != null && (
                   <motion.div
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 3 }}
-                    transition={{ duration: 0.1 }}
+                    initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     style={{
-                      position: "absolute", bottom: 18,
+                      position: "absolute", bottom: 22,
                       left: `${hoverX}px`, transform: "translateX(-50%)",
                       pointerEvents: "none",
                     }}
                   >
                     <div style={{
-                      background: V.surface, color: V.text,
-                      padding: "2px 7px", borderRadius: 4,
-                      fontSize: 10, fontWeight: 800, fontFamily: "monospace",
-                      border: `1px solid ${V.glassBorder}`,
+                      background: "rgba(28,28,30,0.9)",
+                      backdropFilter: "blur(20px) saturate(150%)",
+                      color: "#fff",
+                      padding: "4px 10px", borderRadius: 8,
+                      fontSize: 12, fontWeight: 600,
+                      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                      fontVariantNumeric: "tabular-nums",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
                     }}>
                       {fmt(hoverTime)}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
+              {/* Track */}
               <div style={{
                 position: "relative", width: "100%",
-                height: hoverTime != null || isScrubbing ? 6 : 3,
-                background: "rgba(255,255,255,0.08)",
+                height: hoverTime != null || isScrubbing ? 5 : 3,
+                background: "rgba(255,255,255,0.15)",
                 borderRadius: 3,
-                transition: "height 0.25s cubic-bezier(0.4,0,0.2,1)",
+                transition: "height 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
               }}>
-                {duration > 0 && <div style={{ position: "absolute", inset: 0, width: `${Math.min(bp, 100)}%`, background: "rgba(255,255,255,0.1)", borderRadius: 3, transition: "width 0.3s" }} />}
+                {/* Buffer */}
+                {duration > 0 && <div style={{
+                  position: "absolute", inset: 0, width: `${Math.min(bp, 100)}%`,
+                  background: "rgba(255,255,255,0.15)", borderRadius: 3,
+                  transition: "width 0.3s ease",
+                }} />}
+                {/* Progress fill — Apple blue gradient */}
                 {duration > 0 && <div style={{
                   position: "absolute", inset: 0, width: `${Math.min(pp, 100)}%`,
-                  background: `linear-gradient(90deg, ${V.accent}, #f0c060)`,
+                  background: "linear-gradient(90deg, #0A84FF, #5ac8fa)",
                   borderRadius: 3,
-                  boxShadow: `0 0 10px ${V.accentGlow}`,
+                  boxShadow: "0 0 8px rgba(10,132,255,0.3)",
+                  transition: isScrubbing ? "none" : "width 0.1s linear",
                 }} />}
-                {/* Scrubber dot — hidden when at 0 or no duration, grows on hover */}
+                {/* Scrubber dot — Apple-style with smooth spring */}
                 {duration > 0 && !(currentTime === 0 && !isPlaying && !isScrubbing) && (
-                <div className="void-scrubber" style={{
-                  position: "absolute", left: `${Math.max(0, Math.min(pp, 100))}%`, top: "50%",
-                  transform: "translate(-50%,-50%)",
-                  width: hoverTime != null || isScrubbing ? 14 : 8,
-                  height: hoverTime != null || isScrubbing ? 14 : 8,
-                  borderRadius: "50%",
-                  background: "#fff",
-                  boxShadow: hoverTime != null || isScrubbing
-                    ? `0 0 12px rgba(0,0,0,0.5), 0 0 0 3px ${V.accent}, 0 0 20px ${V.accentGlow}`
-                    : `0 0 6px rgba(0,0,0,0.4), 0 0 0 2px ${V.accent}`,
-                  transition: "width 0.2s, height 0.2s, box-shadow 0.2s, left 0.1s",
-                  cursor: "grab",
-                }} />
+                  <motion.div
+                    animate={{
+                      left: `${Math.max(0, Math.min(pp, 100))}%`,
+                      width: hoverTime != null || isScrubbing ? 16 : 0,
+                      height: hoverTime != null || isScrubbing ? 16 : 0,
+                      opacity: hoverTime != null || isScrubbing ? 1 : 0,
+                    }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    style={{
+                      position: "absolute", top: "50%",
+                      transform: "translate(-50%, -50%)",
+                      borderRadius: "50%",
+                      background: "#fff",
+                      boxShadow: "0 2px 12px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.1)",
+                      cursor: "grab",
+                      pointerEvents: "none",
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -1566,12 +1600,12 @@ const CustomVideoPlayer = ({
                 {isTvContent && season && (
                   <span style={{
                     color: V.accent, fontSize: "clamp(10px, 1.2vw, 12px)",
-                    fontWeight: 800, letterSpacing: "0.5px",
-                    background: `linear-gradient(135deg, ${V.accentDim}, rgba(232,168,56,0.08))`,
-                    padding: "3px 10px", borderRadius: 5,
+                    fontWeight: 700, letterSpacing: "0.3px",
+                    background: V.accentDim,
+                    padding: "3px 10px", borderRadius: 6,
                     border: `1px solid ${V.accentBorder}`,
                     whiteSpace: "nowrap", flexShrink: 0,
-                    textShadow: `0 0 8px ${V.accentGlow}`,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                   }}>
                     S{season} E{episode}
                   </span>
@@ -1587,22 +1621,23 @@ const CustomVideoPlayer = ({
               <div style={{ flexShrink: 0, minWidth: 70 }} />
             </div>
 
-            {/* CONTROL ROW */}
-            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 12px 12px", pointerEvents: "auto" }}>
+            {/* CONTROL ROW — Apple TV+ style */}
+            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 12px 14px", pointerEvents: "auto" }}>
               {/* Left: Play + Seek + Volume */}
               <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <motion.button
                   onClick={togglePlay}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   style={{
-                    background: V.accent, border: "none", color: "#000",
-                    cursor: "pointer", width: 36, height: 36, borderRadius: "50%",
+                    background: "#fff", border: "none", color: "#000",
+                    cursor: "pointer", width: 40, height: 40, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: `0 4px 14px ${V.accentGlow}`,
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
                   }}
                 >
-                  {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" style={{ marginLeft: 2 }} />}
+                  {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" style={{ marginLeft: 2 }} />}
                 </motion.button>
                 <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(-10); }}
                   whileHover={{ scale: 1.15, background: "rgba(255,255,255,0.08)" }}
@@ -1763,23 +1798,25 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ SETTINGS PANEL ══════════════════════════════════════════ */}
+      {/* ═══ SETTINGS PANEL — Apple TV+ style ═══════════════════════ */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            initial={{ opacity: 0, y: 12, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", bottom: 52, right: 16, zIndex: 50,
-              width: 260, maxHeight: "50vh",
-              background: "rgba(10,10,12,0.97)", backdropFilter: "blur(24px)",
-              border: `1px solid ${V.glassBorder}`,
-              borderRadius: 12, padding: "12px 14px", color: V.text,
+              position: "absolute", bottom: 56, right: 16, zIndex: 50,
+              width: 270, maxHeight: "50vh",
+              background: "rgba(28,28,30,0.85)",
+              backdropFilter: "blur(40px) saturate(180%)",
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 14, padding: "14px 16px", color: V.text,
               overflowY: "auto",
-              boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
+              boxShadow: "0 12px 48px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.06)",
             }}
           >
 
@@ -1914,23 +1951,25 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ SUBTITLES PANEL ══════════════════════════════════════════ */}
+      {/* ═══ SUBTITLES PANEL — Apple TV+ style ══════════════════════ */}
       <AnimatePresence>
         {showSubtitlesMenu && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            initial={{ opacity: 0, y: 12, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", bottom: 52, right: 56, zIndex: 50,
-              width: 240, maxHeight: "45vh",
-              background: "rgba(10,10,12,0.97)", backdropFilter: "blur(24px)",
-              border: `1px solid ${V.glassBorder}`,
-              borderRadius: 12, padding: "12px 14px", color: V.text,
+              position: "absolute", bottom: 56, right: 56, zIndex: 50,
+              width: 250, maxHeight: "45vh",
+              background: "rgba(28,28,30,0.85)",
+              backdropFilter: "blur(40px) saturate(180%)",
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 14, padding: "14px 16px", color: V.text,
               overflowY: "auto",
-              boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
+              boxShadow: "0 12px 48px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.06)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
