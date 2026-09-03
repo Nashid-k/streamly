@@ -291,8 +291,9 @@ export function useNotifications(user) {
               id: "welcome-" + Date.now(),
               title: "Welcome to Streamly!",
               message:
-                "Start exploring personalized content from 7 different platforms.",
+                "Discover movies and series from 7 platforms — Netflix, Prime Video, Hotstar, Apple TV+, Zee5, Sony LIV & JioCinema — all in one place.",
               link: "/",
+              type: "welcome",
               createdAt: Date.now(),
               isRead: false,
             },
@@ -312,8 +313,9 @@ export function useNotifications(user) {
               id: "welcome-" + Date.now(),
               title: "Welcome to Streamly!",
               message:
-                "Sign in to sync your watch history and lists across devices.",
+                "Sign in to sync your watch history, lists, and get personalized release notifications.",
               link: "/",
+              type: "welcome",
               createdAt: Date.now(),
               isRead: false,
             },

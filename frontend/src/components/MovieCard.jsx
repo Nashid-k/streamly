@@ -90,7 +90,7 @@ export default function MovieCard({
   platformBadge = "sm",
 }) {
   const navigate = useNavigate();
-  const { isInList, toggleMyList } = useAppAuth();
+  const { isInList, toggleMyList, addNotification } = useAppAuth();
   const { toast } = useToast();
   const { isVisible, ref: virtualRef } = useVirtualRenderAdapter("400px"); // render 400px before it comes into view
   const [isLoaded, setIsLoaded] = useState(false);
@@ -108,7 +108,7 @@ export default function MovieCard({
 
   const handleMouseEnter = useCallback(() => {
     // 1. Instantly trigger background data prefetch for 0ms load times if clicked
-    PrefetchAdapter.prefetchMovieDetails(movie.id, movie.source || "netflix");
+    PrefetchAdapter.prefetchMovieDetails(movie.id, movie.source || "all");
 
     // 2. Debounce the hover animation state to prevent UI thrashing on quick swipes
     hoverTimeoutRef.current = setTimeout(() => {
@@ -155,8 +155,37 @@ export default function MovieCard({
         type: wasInList ? "info" : "success",
         duration: 2500,
       });
+      // Generate a rich notification when adding to list
+      if (!wasInList && addNotification) {
+        const platformKey = movie.source ? normalizePlatformKey(movie.source) : null;
+        const platformName = platformKey ? PlatformAdapter.getName(platformKey) : (movie.sourceName || null);
+        const slug = slugify(movie.title, { lower: true, strict: true });
+        const detailUrl = `/watch/${movie.id}/${slug}`;
+        if (isTvContent) {
+          const seasons = movie.seasonsCount || movie.totalSeasons || 0;
+          addNotification({
+            title: `📺 ${movie.title}`,
+            message: platformName
+              ? `Added to your list. Series with ${seasons > 0 ? `${seasons} season${seasons > 1 ? 's' : ''}` : 'multiple seasons'} streaming on ${platformName}.${movie.nextEpisode?.releaseDate ? ` New episode airing soon.` : ''}`
+              : `Added to your list. Series${seasons > 0 ? ` with ${seasons} season${seasons > 1 ? 's' : ''}` : ''} added successfully.`,
+            link: detailUrl,
+            type: 'episode',
+            platform: platformName,
+          });
+        } else {
+          addNotification({
+            title: `🎬 ${movie.title}`,
+            message: platformName
+              ? `Added to your list. Now streaming on ${platformName}.${movie.releaseYear ? ` (${movie.releaseYear})` : ''}`
+              : `Added to your list.${movie.releaseYear ? ` (${movie.releaseYear})` : ''} Check streaming platforms for availability.`,
+            link: detailUrl,
+            type: 'movie',
+            platform: platformName,
+          });
+        }
+      }
     },
-    [movie, isInList, toggleMyList, toast],
+    [movie, isInList, toggleMyList, toast, addNotification, isTvContent],
   );
 
   const inList = isInList(movie.id);

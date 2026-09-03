@@ -1121,6 +1121,16 @@ function Layout({ children }) {
                       else if (diffMs > 1000 * 60)
                         timeStr = `${Math.floor(diffMs / (1000 * 60))}m ago`;
 
+                      // Type-based icon and accent color
+                      const typeConfig = {
+                        episode: { icon: <Tv size={16} />, accent: '#60a5fa', bg: 'rgba(96,165,250,0.08)' },
+                        movie: { icon: <Film size={16} />, accent: '#f43f5e', bg: 'rgba(244,63,94,0.08)' },
+                        info: { icon: <Bell size={16} />, accent: '#a1a1aa', bg: 'rgba(255,255,255,0.04)' },
+                        welcome: { icon: <Sparkles size={16} />, accent: '#fbbf24', bg: 'rgba(251,191,36,0.08)' },
+                      };
+                      const type = n.type || 'info';
+                      const cfg = typeConfig[type] || typeConfig.info;
+
                       return (
                         <div
                           key={n.id}
@@ -1144,6 +1154,8 @@ function Layout({ children }) {
                             gap: "6px",
                             borderBottom: "1px solid rgba(255,255,255,0.05)",
                             cursor: n.link ? "pointer" : "default",
+                            background: cfg.bg,
+                            borderLeft: `3px solid ${cfg.accent}`,
                           }}
                           onMouseEnter={(e) => {
                             if (n.link)
@@ -1152,35 +1164,58 @@ function Layout({ children }) {
                           }}
                           onMouseLeave={(e) => {
                             if (n.link)
-                              e.currentTarget.style.background = "transparent";
+                              e.currentTarget.style.background = cfg.bg;
                           }}
                         >
-                          <div
-                            style={{
-                              fontSize: "0.9rem",
-                              color: "#fff",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {n.title}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: cfg.accent, flexShrink: 0, display: 'flex' }}>
+                              {cfg.icon}
+                            </span>
+                            <div
+                              style={{
+                                fontSize: "0.9rem",
+                                color: "#fff",
+                                fontWeight: 600,
+                                flex: 1,
+                              }}
+                            >
+                              {n.title}
+                            </div>
                           </div>
                           <div
                             style={{
-                              fontSize: "0.85rem",
+                              fontSize: "0.82rem",
                               color: "#a1a1aa",
-                              lineHeight: 1.4,
+                              lineHeight: 1.45,
+                              paddingLeft: '24px',
                             }}
                           >
                             {n.message}
                           </div>
                           <div
                             style={{
-                              fontSize: "0.75rem",
+                              fontSize: "0.72rem",
                               color: "#71717a",
-                              marginTop: "4px",
+                              marginTop: "2px",
+                              paddingLeft: '24px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
                             }}
                           >
                             {timeStr}
+                            {n.platform && (
+                              <span style={{
+                                background: 'rgba(255,255,255,0.08)',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                fontSize: '0.68rem',
+                                fontWeight: 600,
+                                color: '#a1a1aa',
+                              }}>
+                                {n.platform}
+                              </span>
+                            )}
                           </div>
                         </div>
                       );

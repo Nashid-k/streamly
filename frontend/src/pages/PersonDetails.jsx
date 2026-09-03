@@ -335,7 +335,7 @@ export default function PersonDetails() {
                 style={{ width: "200px", flexShrink: 0 }}
               >
                 <MovieCard
-                  movie={{ ...movie, source: movie.source || "netflix" }}
+                  movie={{ ...movie, source: movie.source || movie.availablePlatforms?.[0] || null }}
                 />
               </motion.div>
             ))}
@@ -363,7 +363,7 @@ export default function PersonDetails() {
                 }}
               >
                 <MovieCard
-                  movie={{ ...movie, source: movie.source || "netflix" }}
+                  movie={{ ...movie, source: movie.source || movie.availablePlatforms?.[0] || null }}
                 />
               </motion.div>
             ))}

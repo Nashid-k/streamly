@@ -45,7 +45,7 @@ import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast.jsx";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
-import { normalizePlatformKey } from "../api/platformAdapter";
+import { normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
 import CustomVideoPlayer from "../components/CustomVideoPlayer";
@@ -434,7 +434,7 @@ export default function TitleDetails() {
   const navigate = useNavigate();
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [playingEpisode, setPlayingEpisode] = useState(1);
-  const { isInList, toggleMyList, continueWatching, updateProgress } =
+  const { isInList, toggleMyList, continueWatching, updateProgress, addNotification } =
     useAppAuth();
   const { toast } = useToast();
   const cwRef = useRef(continueWatching);
@@ -462,6 +462,33 @@ export default function TitleDetails() {
           type: "success",
           duration: 2500,
         });
+        // Generate a rich notification when adding to list
+        if (addNotification && movieObj) {
+          const platformName = resolvedPlatform ? PlatformAdapter.getName(resolvedPlatform) : (movieObj.availablePlatforms?.[0] || null);
+          const seasons = normalizedSeasonCount;
+          if (isTvContent) {
+            const epCount = totalEpisodes || episodes.length || 0;
+            addNotification({
+              title: `📺 ${movieObj.title}`,
+              message: platformName
+                ? `Added to your list. ${seasons > 0 ? `${seasons} season${seasons > 1 ? 's' : ''}, ` : ''}${epCount > 0 ? `${epCount} episode${epCount > 1 ? 's' : ''}` : 'multiple episodes'} streaming on ${platformName}.${movieObj.nextEpisode?.releaseDate ? ` New episode coming soon.` : ''}`
+                : `Added to your list. ${seasons > 0 ? `${seasons} season${seasons > 1 ? 's' : ''}` : 'Series'} added successfully.`,
+              link: `/watch/${movieObj.id}`,
+              type: 'episode',
+              platform: platformName,
+            });
+          } else {
+            addNotification({
+              title: `🎬 ${movieObj.title}`,
+              message: platformName
+                ? `Added to your list. Now streaming on ${platformName}.${movieObj.releaseYear ? ` (${movieObj.releaseYear})` : ''} ${movieObj.duration ? `· ${movieObj.duration}` : ''}`
+                : `Added to your list.${movieObj.releaseYear ? ` (${movieObj.releaseYear})` : ''} Check streaming platforms for availability.`,
+              link: `/watch/${movieObj.id}`,
+              type: 'movie',
+              platform: platformName,
+            });
+          }
+        }
       }
     } catch {
       toast({
@@ -735,13 +762,7 @@ export default function TitleDetails() {
   }
 
   const resolvedPlatform = effectivePlatform;
-  const sourceName = (() => {
-    const map = {
-      netflix: 'Netflix', prime: 'Prime Video', hotstar: 'Hotstar',
-      appletv: 'Apple TV+', zee5: 'Zee5', sonyliv: 'Sony LIV', jio: 'JioCinema',
-    };
-    return map[resolvedPlatform] || movie?.availablePlatforms?.[0] || 'Streaming';
-  })();
+  const sourceName = resolvedPlatform ? PlatformAdapter.getName(resolvedPlatform) : (movie?.availablePlatforms?.[0] || 'Streaming');
 
   const formatTime = (time) => {
     if (!time || isNaN(time)) return "0:00";
@@ -1090,7 +1111,7 @@ export default function TitleDetails() {
                 >
                   <span
                     style={{
-                      background: "#e50914",
+                      background: resolvedPlatform ? PlatformAdapter.getColor(resolvedPlatform) : 'linear-gradient(135deg, #f43f5e, #fb923c)',
                       color: "white",
                       padding: "4px 8px",
                       borderRadius: "4px",

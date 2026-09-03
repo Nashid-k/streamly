@@ -113,7 +113,7 @@ export class PlatformAdapter {
    * @param {string} rawName
    */
   static resolveFromRawName(rawName) {
-    if (!rawName) return { id: "netflix", name: "Netflix" };
+    if (!rawName) return null;
 
     const lower = rawName.toLowerCase();
     if (lower.includes("prime")) return PLATFORMS.prime;
@@ -124,24 +124,22 @@ export class PlatformAdapter {
     if (lower.includes("sony")) return PLATFORMS.sonyliv;
     if (lower.includes("jio")) return PLATFORMS.jio;
 
-    return { id: "netflix", name: "Netflix" }; // fallback
+    return null; // no match
   }
 }
 
 /**
  * Maps a movie's availablePlatforms into a single `source`/`sourceName`
- * pair for display, defaulting to netflix when nothing matches.
+ * pair for display, returning null source when nothing matches.
  */
 export function mapSource(movie) {
-  let resolved = { id: "netflix", name: "Netflix" };
   if (movie.availablePlatforms && movie.availablePlatforms.length > 0) {
     for (const p of movie.availablePlatforms) {
       const match = PlatformAdapter.resolveFromRawName(p);
-      if (match.id !== "netflix" || p.toLowerCase().includes("netflix")) {
-        resolved = match;
-        break;
+      if (match) {
+        return { ...movie, source: match.id, sourceName: match.name };
       }
     }
   }
-  return { ...movie, source: resolved.id, sourceName: resolved.name };
+  return { ...movie, source: null, sourceName: null };
 }

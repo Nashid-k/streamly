@@ -265,7 +265,7 @@ export default function HistoryPage() {
                           <MovieCard
                             movie={{
                               ...movie,
-                              source: movie.source || "netflix",
+                              source: movie.source || movie.availablePlatforms?.[0] || null,
                             }}
                             showProgress={true}
                             progressValue={

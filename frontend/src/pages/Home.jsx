@@ -434,8 +434,8 @@ export default function Home({
       featuredData
         ? featuredData.map((m) => ({
             ...m,
-            source: m.source || "netflix",
-            sourceName: m.sourceName || "Netflix",
+            source: m.source || m.availablePlatforms?.[0] || null,
+            sourceName: m.sourceName || null,
           }))
         : EMPTY_ARRAY,
     [featuredData],
