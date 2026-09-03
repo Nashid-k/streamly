@@ -286,6 +286,8 @@ const CustomVideoPlayer = ({
   const swipeStartRef = useRef(null);
   const swipeSideRef = useRef(null);
   const swipeHudTimerRef = useRef(null);
+  const pinchStartDistRef = useRef(null);
+  const pinchStartFullscreenRef = useRef(false);
 
   /* Refs */
   const iframeRef = useRef(null);
@@ -701,7 +703,22 @@ const CustomVideoPlayer = ({
     const n = !isMuted;
     setIsMuted(n);
     localStorage.setItem("streamly_muted", n.toString());
-    sendCommand("setVolume", [n ? 0 : volume]);
+    if (n) {
+      /* Muting: send 0 to CineSrc */
+      sendCommand("setVolume", [0]);
+    } else {
+      /* Unmuting: if stored volume is 0, restore to device default */
+      const restoreVol = volume <= 0 ? 0.7 : volume;
+      if (volume <= 0) {
+        setVolume(restoreVol);
+        localStorage.setItem("streamly_volume", restoreVol.toString());
+      }
+      sendCommand("setVolume", [restoreVol]);
+      /* Also show the volume HUD */
+      setShowVolumeArc(true);
+      if (volumeArcTimerRef.current) clearTimeout(volumeArcTimerRef.current);
+      volumeArcTimerRef.current = setTimeout(() => setShowVolumeArc(false), 1200);
+    }
   }, [isMuted, volume, sendCommand]);
 
   const seekRelative = useCallback((s) => {
@@ -880,6 +897,16 @@ const CustomVideoPlayer = ({
   /* ═══ Touch Swipe Gestures — Volume (right) & Brightness (left) ═══ */
   const handleTouchStart = useCallback((e) => {
     if (!isTouch || !showCustomUI) return;
+    /* Pinch detection: two fingers */
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchStartDistRef.current = Math.hypot(dx, dy);
+      pinchStartFullscreenRef.current = isFullscreen;
+      swipeStartRef.current = null; /* Cancel swipe */
+      return;
+    }
+    /* Single finger: swipe for volume/brightness */
     const touch = e.touches[0];
     const r = containerRef.current?.getBoundingClientRect();
     if (!r) return;
@@ -888,19 +915,38 @@ const CustomVideoPlayer = ({
     if (!side) return;
     swipeStartRef.current = { y: touch.clientY, side };
     swipeSideRef.current = side;
-  }, [isTouch, showCustomUI]);
+  }, [isTouch, showCustomUI, isFullscreen]);
 
   const handleTouchMove = useCallback((e) => {
-    if (!isTouch || !showCustomUI || !swipeStartRef.current) return;
+    if (!isTouch || !showCustomUI) return;
+    /* Pinch to fullscreen */
+    if (e.touches.length === 2 && pinchStartDistRef.current) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / pinchStartDistRef.current;
+      /* Pinch out: ratio > 1.2 = enter fullscreen */
+      if (ratio > 1.2 && !pinchStartFullscreenRef.current) {
+        toggleFullscreen();
+        pinchStartDistRef.current = null;
+      }
+      /* Pinch in: ratio < 0.8 = exit fullscreen */
+      if (ratio < 0.8 && pinchStartFullscreenRef.current) {
+        toggleFullscreen();
+        pinchStartDistRef.current = null;
+      }
+      return;
+    }
+    /* Single finger swipe */
+    if (!swipeStartRef.current) return;
     const touch = e.touches[0];
     const dy = swipeStartRef.current.y - touch.clientY;
     const r = containerRef.current?.getBoundingClientRect();
     if (!r) return;
-    const sensitivity = r.height * 0.4; /* 40% of player height = full range */
+    const sensitivity = r.height * 0.4;
     const pct = Math.max(-1, Math.min(1, dy / sensitivity));
     const side = swipeStartRef.current.side;
     if (side === 'right') {
-      /* Volume: swipe up = louder */
       const newVol = Math.max(0, Math.min(1, volume + pct * 0.5));
       setVolume(newVol);
       localStorage.setItem('streamly_volume', newVol.toString());
@@ -910,25 +956,23 @@ const CustomVideoPlayer = ({
         localStorage.setItem('streamly_muted', 'false');
       }
     } else if (side === 'left') {
-      /* Brightness: swipe up = brighter */
       const newBright = Math.max(0.2, Math.min(1.5, brightness + pct * 0.3));
       setBrightness(newBright);
     }
     setSwipeSide(side);
     setSwipePercent(Math.abs(pct));
-    /* Reset start point for continuous tracking */
     swipeStartRef.current = { y: touch.clientY, side };
-    /* Auto-hide HUD */
     if (swipeHudTimerRef.current) clearTimeout(swipeHudTimerRef.current);
     swipeHudTimerRef.current = setTimeout(() => {
       setSwipeSide(null);
       setSwipePercent(0);
     }, 1000);
-  }, [isTouch, showCustomUI, volume, isMuted, brightness, sendCommand]);
+  }, [isTouch, showCustomUI, volume, isMuted, brightness, sendCommand, toggleFullscreen]);
 
   const handleTouchEnd = useCallback(() => {
     swipeStartRef.current = null;
     swipeSideRef.current = null;
+    pinchStartDistRef.current = null;
     if (swipeHudTimerRef.current) clearTimeout(swipeHudTimerRef.current);
     swipeHudTimerRef.current = setTimeout(() => {
       setSwipeSide(null);
@@ -2075,7 +2119,12 @@ const CustomVideoPlayer = ({
                   <RotateCw size={15} />
                 </motion.button>
                 {/* Volume with expand-on-hover bar */}
-                <div onMouseEnter={() => setIsVolumeHovered(true)} onMouseLeave={() => setIsVolumeHovered(false)} style={{ display: "flex", alignItems: "center", gap: 0, position: "relative" }}>
+                <div
+                  onMouseEnter={() => setIsVolumeHovered(true)}
+                  onMouseLeave={() => setIsVolumeHovered(false)}
+                  onTouchStart={(e) => { e.stopPropagation(); setIsVolumeHovered(!isVolumeHovered); }}
+                  style={{ display: "flex", alignItems: "center", gap: 0, position: "relative" }}
+                >
                   <motion.button onClick={toggleMute}
                     whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                     transition={SPRING}
@@ -2092,9 +2141,10 @@ const CustomVideoPlayer = ({
                       </motion.div>
                     </AnimatePresence>
                   </motion.button>
+                  {/* Volume bar: always visible on touch, hover-expand on desktop */}
                   <motion.div
                     initial={false}
-                    animate={{ width: isVolumeHovered ? 64 : 0, opacity: isVolumeHovered ? 1 : 0 }}
+                    animate={{ width: (isTouch && isVolumeHovered) || (!isTouch && isVolumeHovered) ? 64 : isTouch ? 48 : 0, opacity: (isTouch && isVolumeHovered) || (!isTouch && isVolumeHovered) || (isTouch && controlsVisible) ? 1 : 0 }}
                     transition={SPRING}
                     style={{ overflow: "hidden", position: "relative", height: 24, display: "flex", alignItems: "center" }}
                     onClick={(e) => e.stopPropagation()}
@@ -2126,6 +2176,22 @@ const CustomVideoPlayer = ({
                         window.addEventListener("mousemove", mm);
                         window.addEventListener("mouseup", mu);
                       }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation(); e.preventDefault();
+                        isDraggingVolumeRef.current = true;
+                        const touch = e.touches[0];
+                        const r = e.currentTarget.getBoundingClientRect();
+                        const x = Math.max(0, Math.min(touch.clientX - r.left, r.width));
+                        changeVolume(x / r.width);
+                      }}
+                      onTouchMove={(e) => {
+                        if (!isDraggingVolumeRef.current || !volumeBarRef.current) return;
+                        const touch = e.touches[0];
+                        const r = volumeBarRef.current.getBoundingClientRect();
+                        const x = Math.max(0, Math.min(touch.clientX - r.left, r.width));
+                        changeVolume(x / r.width);
+                      }}
+                      onTouchEnd={() => { isDraggingVolumeRef.current = false; }}
                     >
                       <div style={{
                         position: "absolute", left: 0, top: 0, bottom: 0,
