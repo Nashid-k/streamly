@@ -10,6 +10,12 @@
 
 // ─── Platform Registry ──────────────────────────────────────────────────────
 
+// Generate SVG data URI for platform logos (reliable, no 404s)
+function brandSvg(text, color, textColor = '#fff') {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40'><rect width='120' height='40' rx='6' fill='${encodeURIComponent(color)}'/><text x='60' y='26' text-anchor='middle' font-family='Arial,sans-serif' font-size='14' font-weight='bold' fill='${encodeURIComponent(textColor)}'>${encodeURIComponent(text)}</text></svg>`;
+  return `data:image/svg+xml,${svg}`;
+}
+
 export const PLATFORMS = {
   // ── Global giants ──
   netflix: {
@@ -77,7 +83,7 @@ export const PLATFORMS = {
     id: "hulu",
     name: "Hulu",
     shortName: "Hulu",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Hulu_Logo.svg",
+    iconUrl: brandSvg('HULU', '#1CE783'),
     iconHeight: "16px",
     color: "#1CE783",
     gradient: "linear-gradient(135deg, #1CE783, #0d9e5a)",
@@ -89,7 +95,7 @@ export const PLATFORMS = {
     id: "max",
     name: "Max",
     shortName: "Max",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/4/4b/Max_%28streaming_service%29_logo.svg",
+    iconUrl: brandSvg('MAX', '#002BE7'),
     iconHeight: "14px",
     color: "#002BE7",
     gradient: "linear-gradient(135deg, #002BE7, #001a8a)",
@@ -101,7 +107,7 @@ export const PLATFORMS = {
     id: "paramount",
     name: "Paramount+",
     shortName: "Paramount+",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Paramount%2B_logo.svg",
+    iconUrl: brandSvg('PARAMOUNT+', '#0064FF'),
     iconHeight: "16px",
     color: "#0064FF",
     gradient: "linear-gradient(135deg, #0064FF, #004acc)",
@@ -113,7 +119,7 @@ export const PLATFORMS = {
     id: "peacock",
     name: "Peacock",
     shortName: "Peacock",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d2/Peacock_Streaming_Service_logo.svg",
+    iconUrl: brandSvg('PEACOCK', '#FDB927', '#000'),
     iconHeight: "16px",
     color: "#FDB927",
     gradient: "linear-gradient(135deg, #FDB927, #d4a020)",
@@ -125,7 +131,7 @@ export const PLATFORMS = {
     id: "crunchycroll",
     name: "Crunchyroll",
     shortName: "Crunchyroll",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/7/70/Crunchyroll_logo_%282023%29.svg",
+    iconUrl: brandSvg('CRUNCHYROLL', '#F47521'),
     iconHeight: "14px",
     color: "#F47521",
     gradient: "linear-gradient(135deg, #F47521, #c45d18)",
@@ -137,7 +143,7 @@ export const PLATFORMS = {
     id: "mubi",
     name: "MUBI",
     shortName: "MUBI",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3e/MUBI_logo.svg",
+    iconUrl: brandSvg('MUBI', '#333'),
     iconHeight: "14px",
     color: "#000000",
     gradient: "linear-gradient(135deg, #333, #000)",
@@ -187,7 +193,7 @@ export const PLATFORMS = {
     id: "mxplayer",
     name: "MX Player",
     shortName: "MX Player",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a0/MX_Player_logo_2022.svg",
+    iconUrl: brandSvg('MX', '#FF6B00'),
     iconHeight: "16px",
     color: "#FF6B00",
     gradient: "linear-gradient(135deg, #FF6B00, #cc5500)",
@@ -199,7 +205,7 @@ export const PLATFORMS = {
     id: "voot",
     name: "Voot",
     shortName: "Voot",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Voot_logo_2023.svg",
+    iconUrl: brandSvg('VOOT', '#FF0000'),
     iconHeight: "16px",
     color: "#FF0000",
     gradient: "linear-gradient(135deg, #FF0000, #cc0000)",
@@ -211,7 +217,7 @@ export const PLATFORMS = {
     id: "erosnow",
     name: "Eros Now",
     shortName: "Eros Now",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/4/4f/Eros_Now_logo.svg",
+    iconUrl: brandSvg('EROS NOW', '#FF6B00'),
     iconHeight: "16px",
     color: "#FF6B00",
     gradient: "linear-gradient(135deg, #FF6B00, #cc5500)",
@@ -223,7 +229,7 @@ export const PLATFORMS = {
     id: "aha",
     name: "aha",
     shortName: "aha",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/f/ff/Aha_logo.svg",
+    iconUrl: brandSvg('aha', '#FF3366'),
     iconHeight: "16px",
     color: "#FF3366",
     gradient: "linear-gradient(135deg, #FF3366, #cc2952)",
@@ -235,7 +241,7 @@ export const PLATFORMS = {
     id: "hoichoi",
     name: "Hoichoi",
     shortName: "Hoichoi",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a1/Hoichoi_Logo.svg",
+    iconUrl: brandSvg('HOICHOI', '#E5007D'),
     iconHeight: "16px",
     color: "#E5007D",
     gradient: "linear-gradient(135deg, #E5007D, #b80064)",
@@ -247,7 +253,7 @@ export const PLATFORMS = {
     id: "shemaroo",
     name: "ShemarooMe",
     shortName: "ShemarooMe",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/2/2f/Shemaroo_Entertainment_logo.svg",
+    iconUrl: brandSvg('SHEMAROO', '#FF0000'),
     iconHeight: "16px",
     color: "#FF0000",
     gradient: "linear-gradient(135deg, #FF0000, #cc0000)",
@@ -259,7 +265,7 @@ export const PLATFORMS = {
     id: "sunnxt",
     name: "Sun NXT",
     shortName: "Sun NXT",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/6/67/Sun_NXT_logo.svg",
+    iconUrl: brandSvg('SUN NXT', '#FF6600'),
     iconHeight: "16px",
     color: "#FF6600",
     gradient: "linear-gradient(135deg, #FF6600, #cc5200)",
@@ -271,7 +277,7 @@ export const PLATFORMS = {
     id: "lionsgate",
     name: "Lionsgate Play",
     shortName: "Lionsgate Play",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/5/52/Lionsgate_logo.svg",
+    iconUrl: brandSvg('LIONSGATE', '#C8102E'),
     iconHeight: "16px",
     color: "#C8102E",
     gradient: "linear-gradient(135deg, #C8102E, #a00d24)",
@@ -285,7 +291,7 @@ export const PLATFORMS = {
     id: "britbox",
     name: "BritBox",
     shortName: "BritBox",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/7/75/BritBox_logo.svg",
+    iconUrl: brandSvg('BRITBOX', '#00B140'),
     iconHeight: "16px",
     color: "#00B140",
     gradient: "linear-gradient(135deg, #00B140, #008d33)",
@@ -297,7 +303,7 @@ export const PLATFORMS = {
     id: "stan",
     name: "Stan",
     shortName: "Stan",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Stan_logo.svg",
+    iconUrl: brandSvg('STAN', '#0D47A1'),
     iconHeight: "16px",
     color: "#0D47A1",
     gradient: "linear-gradient(135deg, #0D47A1, #0a3880)",
@@ -309,7 +315,7 @@ export const PLATFORMS = {
     id: "curiositystream",
     name: "Curiosity Stream",
     shortName: "Curiosity",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a4/CuriosityStream_logo.svg",
+    iconUrl: brandSvg('CURIOSITY', '#1A1A2E'),
     iconHeight: "16px",
     color: "#1A1A2E",
     gradient: "linear-gradient(135deg, #1A1A2E, #0d0d17)",
@@ -321,7 +327,7 @@ export const PLATFORMS = {
     id: "justwatch",
     name: "JustWatch",
     shortName: "JustWatch",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/4/45/JustWatch_logo.svg",
+    iconUrl: brandSvg('JUSTWATCH', '#00C3FF'),
     iconHeight: "16px",
     color: "#00C3FF",
     gradient: "linear-gradient(135deg, #00C3FF, #009ccc)",
@@ -565,9 +571,9 @@ export function normalizeMovieSource(movie) {
   // Guard: never crash on null/undefined
   if (!movie || typeof movie !== 'object') return { source: null, sourceName: null };
 
-  // 1. If source is already a valid canonical key, use it
+  // 1. If source is already a valid canonical key, use it — but always set sourceName to match
   if (movie.source && PLATFORMS[movie.source]) {
-    return { ...movie, source: movie.source, sourceName: movie.sourceName || PLATFORMS[movie.source].name };
+    return { ...movie, source: movie.source, sourceName: PLATFORMS[movie.source].name };
   }
 
   // 2. If source is a raw string, normalize it
@@ -578,7 +584,7 @@ export function normalizeMovieSource(movie) {
     }
   }
 
-  // 3. Try availablePlatforms
+  // 3. Try availablePlatforms — use the FIRST match (most relevant)
   if (movie.availablePlatforms && Array.isArray(movie.availablePlatforms) && movie.availablePlatforms.length > 0) {
     for (const p of movie.availablePlatforms) {
       const match = PlatformAdapter.resolveFromRawName(p);
@@ -586,20 +592,19 @@ export function normalizeMovieSource(movie) {
         return { ...movie, source: match.id, sourceName: match.name };
       }
     }
-    // Even if no match, return the raw first platform as sourceName (for display)
+    // No match found — use raw first platform as sourceName for transparency
     const rawFirst = movie.availablePlatforms[0];
     if (rawFirst) {
       const rawKey = normalizePlatformKey(rawFirst);
       if (rawKey) {
         return { ...movie, source: rawKey, sourceName: PLATFORMS[rawKey].name };
       }
-      // Raw string didn't normalize — still show it as sourceName for transparency
       return { ...movie, source: null, sourceName: rawFirst };
     }
   }
 
-  // 4. No platform data at all — keep ALL movie properties intact
-  return { ...movie, source: movie.source || null, sourceName: movie.sourceName || null };
+  // 4. No platform data — keep all movie properties, set source to null (never Netflix default)
+  return { ...movie, source: null, sourceName: null };
 }
 
 /**

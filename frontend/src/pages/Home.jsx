@@ -218,6 +218,7 @@ const Top10Rail = React.memo(
     const railRef = useRef(null);
     const containerRef = useRef(null);
     const [inView, setInView] = useState(false);
+    const [showArrows, setShowArrows] = useState(false);
     const top10 = movies.slice(0, 10);
 
     useEffect(() => {
@@ -715,19 +716,19 @@ export default function Home({
 
   // Real cross-platform Top 10 from the backend (ranked, not a client-side shuffle)
   const top10Movies = useMemo(
-    () => applyPageFilter(top10Data || EMPTY_ARRAY).slice(0, 10),
+    () => applyPageFilter(top10Data || EMPTY_ARRAY).slice(0, 10).map(normalizeMovieSource),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [top10Data, filter],
   );
 
   const trendingThisWeek = useMemo(
-    () => applyPageFilter(trendingData || EMPTY_ARRAY).slice(0, 20),
+    () => applyPageFilter(trendingData || EMPTY_ARRAY).slice(0, 20).map(normalizeMovieSource),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [trendingData, filter],
   );
 
   const airingThisWeek = useMemo(
-    () => applyPageFilter(airingData || EMPTY_ARRAY).slice(0, 20),
+    () => applyPageFilter(airingData || EMPTY_ARRAY).slice(0, 20).map(normalizeMovieSource),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [airingData, filter],
   );
@@ -738,7 +739,7 @@ export default function Home({
       : null;
 
   // Real "Because you watched X" recommendations from the backend
-  const { data: recommendations } = useQuery({
+  const { data: rawRecommendations } = useQuery({
     queryKey: ["recommendations", lastWatched?.id],
     queryFn: () => movieService.getRecommendations(lastWatched.id),
     enabled: Boolean(lastWatched && lastWatched.id),
@@ -746,6 +747,10 @@ export default function Home({
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const recommendations = useMemo(
+    () => Array.isArray(rawRecommendations) ? rawRecommendations.map(normalizeMovieSource) : [],
+    [rawRecommendations],
+  );
 
   const finalPool = useMemo(() => {
     try {
