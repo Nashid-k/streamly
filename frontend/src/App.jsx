@@ -122,9 +122,9 @@ function Layout({ children }) {
   });
 
   const results = useMemo(() => {
-    if (!rawResults || !rawResults.movies) return [];
+    if (!rawResults || !Array.isArray(rawResults.movies)) return [];
 
-    const mapped = rawResults.movies.map(mapSource);
+    const mapped = rawResults.movies.filter(Boolean).map(mapSource);
     const seen = new Set();
     const unique = mapped.filter((m) => {
       const key = m.tmdbId || m.id;
