@@ -1,4 +1,4 @@
-import { queryClient } from "../main";
+import { queryClient } from "../queryClient";
 import { movieService } from "./movieService";
 
 // Track in-flight prefetches to avoid duplicate requests (#19 fix)
