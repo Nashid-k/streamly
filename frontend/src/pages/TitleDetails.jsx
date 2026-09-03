@@ -47,7 +47,6 @@ import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import { normalizePlatformKey, PlatformAdapter, normalizeMovieSource, PLATFORMS } from "../api/platformAdapter";
 import { buildMovieAddedNotification } from "../utils/notificationEngine";
-import SpoilerEpisodeGuide from "../components/SpoilerEpisodeGuide";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
 import CustomVideoPlayer from "../components/CustomVideoPlayer";
@@ -2046,23 +2045,6 @@ export default function TitleDetails() {
             }
           </motion.div>
           </AnimatePresence>
-
-          {/* Spoiler-Safe Episode Guide */}
-          {episodes.length > 0 && (
-            <div style={{ marginTop: '1.5rem' }}>
-              <SpoilerEpisodeGuide
-                episodes={episodes}
-                season={selectedSeason}
-                onPlayEpisode={(epNum) => {
-                  if (SERVERS.length > 0) {
-                    setIsPlaying(true);
-                    setPlayingEpisode(epNum);
-                    updateProgress({ ...movie, source: resolvedPlatform, sourceName }, selectedSeason, epNum);
-                  }
-                }}
-              />
-            </div>
-          )}
         </motion.section>
       )}
 
