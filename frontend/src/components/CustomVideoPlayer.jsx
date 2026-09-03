@@ -1210,9 +1210,9 @@ const CustomVideoPlayer = ({
 
   // Reusable icon button style
   const iconBtn = (active = false) => ({
-    background: active ? "rgba(255,255,255,0.12)" : "transparent",
-    border: "none",
-    color: "white",
+    background: active ? "rgba(255,107,0,0.15)" : "rgba(255,255,255,0.06)",
+    border: active ? "1px solid rgba(255,107,0,0.3)" : "1px solid rgba(255,255,255,0.08)",
+    color: active ? "#FF6B00" : "rgba(255,255,255,0.9)",
     cursor: "pointer",
     width: "38px",
     height: "38px",
@@ -1220,8 +1220,9 @@ const CustomVideoPlayer = ({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "all 0.18s cubic-bezier(0.4,0,0.2,1)",
+    transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
     flexShrink: 0,
+    backdropFilter: "blur(8px)",
   });
 
   return (
@@ -2563,12 +2564,12 @@ const CustomVideoPlayer = ({
                         style={{
                           background:
                             playbackRate === rate
-                              ? "white"
+                              ? "rgba(255,107,0,0.18)"
                               : "rgba(255,255,255,0.05)",
-                          color: playbackRate === rate ? "#000" : "white",
+                          color: playbackRate === rate ? "#FF6B00" : "rgba(255,255,255,0.75)",
                           border:
                             playbackRate === rate
-                              ? "none"
+                              ? "1px solid rgba(255,107,0,0.35)"
                               : "1px solid rgba(255,255,255,0.08)",
                           padding: "7px 11px",
                           borderRadius: "100px",
@@ -2619,15 +2620,18 @@ const CustomVideoPlayer = ({
                           style={{
                             background:
                               (currentQuality?.id === q.id || currentQuality === q)
-                                ? "white"
+                                ? "rgba(255,107,0,0.18)"
                                 : "rgba(255,255,255,0.05)",
-                            color: (currentQuality?.id === q.id || currentQuality === q) ? "#000" : "white",
-                            border: "none",
+                            color: (currentQuality?.id === q.id || currentQuality === q) ? "#FF6B00" : "rgba(255,255,255,0.75)",
+                            border: (currentQuality?.id === q.id || currentQuality === q)
+                              ? "1px solid rgba(255,107,0,0.35)"
+                              : "1px solid rgba(255,255,255,0.08)",
                             padding: "7px 11px",
                             borderRadius: "100px",
                             cursor: "pointer",
                             fontSize: "12px",
                             fontWeight: "800",
+                            transition: "all 0.18s",
                           }}
                         >
                           {q.name || q.height + 'p' || q.label || 'Quality ' + idx}
@@ -3229,10 +3233,10 @@ const CustomVideoPlayer = ({
                     style={{
                       position: "relative",
                       width: "100%",
-                      height: hoverTime != null ? "5px" : "3px",
-                      background: "rgba(255,255,255,0.18)",
-                      borderRadius: "3px",
-                      transition: "height 0.2s cubic-bezier(0.4,0,0.2,1)",
+                      height: hoverTime != null ? "8px" : "4px",
+                      background: "rgba(255,255,255,0.12)",
+                      borderRadius: "4px",
+                      transition: "height 0.25s cubic-bezier(0.4,0,0.2,1)",
                     }}
                   >
                     <div
@@ -3240,8 +3244,8 @@ const CustomVideoPlayer = ({
                         position: "absolute",
                         inset: 0,
                         width: `${bufferedPercent}%`,
-                        background: "rgba(255,255,255,0.22)",
-                        borderRadius: "3px",
+                        background: "rgba(255,255,255,0.15)",
+                        borderRadius: "4px",
                         transition: "width 0.4s",
                       }}
                     />
@@ -3251,25 +3255,28 @@ const CustomVideoPlayer = ({
                         inset: 0,
                         width: `${progressPercent}%`,
                         background:
-                          "linear-gradient(90deg, rgba(255,107,0,0.8), #FF6B00)",
-                        borderRadius: "3px",
+                          "linear-gradient(90deg, #FF6B00, #FF8C33)",
+                        borderRadius: "4px",
                         boxShadow:
-                          "0 0 10px rgba(255,107,0,0.5), 0 0 4px rgba(255,107,0,0.4)",
+                          "0 0 12px rgba(255,107,0,0.6), 0 0 4px rgba(255,107,0,0.5)",
+                        transition: "box-shadow 0.3s",
                       }}
                     />
                     <div
+                      className="progress-scrubber"
                       style={{
                         position: "absolute",
                         left: `${progressPercent}%`,
                         top: "50%",
-                        transform: "translate(-50%, -50%)",
-                        width: "14px",
-                        height: "14px",
+                        transform: "translate(-50%, -50%) scale(1)",
+                        width: "16px",
+                        height: "16px",
                         borderRadius: "50%",
-                        background: "white",
-                        opacity: 1,
+                        background: "#fff",
                         boxShadow:
-                          "0 2px 8px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,107,0,0.4)",
+                          "0 2px 10px rgba(0,0,0,0.6), 0 0 0 3px rgba(255,107,0,0.5), 0 0 16px rgba(255,107,0,0.3)",
+                        transition: "transform 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s",
+                        cursor: "grab",
                       }}
                     />
                   </div>
@@ -3297,21 +3304,22 @@ const CustomVideoPlayer = ({
                   >
                     <motion.button
                       onClick={togglePlay}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.92 }}
+                      whileHover={{ scale: 1.12 }}
+                      whileTap={{ scale: 0.9 }}
                       style={{
-                        background: "white",
+                        background: "linear-gradient(135deg, #FF6B00, #FF8C33)",
                         border: "none",
-                        color: "black",
+                        color: "white",
                         cursor: "pointer",
-                        width: "40px",
-                        height: "40px",
+                        width: "42px",
+                        height: "42px",
                         borderRadius: "50%",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
+                        boxShadow: "0 4px 20px rgba(255,107,0,0.5), 0 2px 8px rgba(0,0,0,0.4)",
                         flexShrink: 0,
+                        transition: "box-shadow 0.2s",
                       }}
                       title={isPlaying ? "Pause (K)" : "Play (K)"}
                     >
@@ -3412,9 +3420,9 @@ const CustomVideoPlayer = ({
                             changeVolume(parseFloat(e.target.value));
                           }}
                           onClick={(e) => e.stopPropagation()}
+                          className="player-volume-slider"
                           style={{
                             width: "68px",
-                            accentColor: "#FF6B00",
                             cursor: "pointer",
                             height: "3px",
                             flexShrink: 0,
@@ -3688,6 +3696,7 @@ const CustomVideoPlayer = ({
                 }}
               >
                 <div
+                  className="ctx-menu-item"
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
                     setContextMenu({ show: false, x: 0, y: 0 });
@@ -3707,6 +3716,7 @@ const CustomVideoPlayer = ({
                   <Link size={14} /> Copy video URL
                 </div>
                 <div
+                  className="ctx-menu-item"
                   onClick={() => {
                     setIsLooping(!isLooping);
                     setContextMenu({ show: false, x: 0, y: 0 });
@@ -3727,6 +3737,7 @@ const CustomVideoPlayer = ({
                   {isLooping ? "Loop is On" : "Loop is Off"}
                 </div>
                 <div
+                  className="ctx-menu-item"
                   onClick={() => {
                     togglePlay();
                     setContextMenu({ show: false, x: 0, y: 0 });
@@ -3746,6 +3757,7 @@ const CustomVideoPlayer = ({
                   {isPlaying ? "Pause" : "Play"}
                 </div>
                 <div
+                  className="ctx-menu-item"
                   onClick={() => {
                     toggleMute();
                     setContextMenu({ show: false, x: 0, y: 0 });
@@ -3776,6 +3788,7 @@ const CustomVideoPlayer = ({
                   }}
                 />
                 <div
+                  className="ctx-menu-item"
                   onClick={() => {
                     setIsLoading(true);
                     setIframeUrl("");
