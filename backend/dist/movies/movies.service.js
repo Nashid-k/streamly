@@ -1848,13 +1848,13 @@ let MoviesService = MoviesService_1 = class MoviesService {
         const SERVERS = [
             {
                 url: (tmdbId, s, e) => s
-                    ? `https://vidlink.pro/tv/${tmdbId}/${s}/${e}`
-                    : `https://vidlink.pro/movie/${tmdbId}`,
+                    ? `https://cinesrc.st/embed/tv/${tmdbId}?s=${s}&e=${e}&color=%23FF6B00&autoplay=true&controls=false`
+                    : `https://cinesrc.st/embed/movie/${tmdbId}?color=%23FF6B00&autoplay=true&controls=false`,
             },
             {
                 url: (tmdbId, s, e) => s
-                    ? `https://vidsrc.pm/embed/tv?tmdb=${tmdbId}&season=${s}&episode=${e}`
-                    : `https://vidsrc.pm/embed/movie?tmdb=${tmdbId}`,
+                    ? `https://vidlink.pro/tv/${tmdbId}/${s}/${e}`
+                    : `https://vidlink.pro/movie/${tmdbId}`,
             },
             {
                 url: (tmdbId, s, e) => s
@@ -1863,13 +1863,64 @@ let MoviesService = MoviesService_1 = class MoviesService {
             },
             {
                 url: (tmdbId, s, e) => s
-                    ? `https://vidsrc.pro/embed/tv?tmdb=${tmdbId}&season=${s}&episode=${e}`
-                    : `https://vidsrc.pro/embed/movie?tmdb=${tmdbId}`,
+                    ? `https://vidsrcme.ru/embed/tv?tmdb=${tmdbId}&season=${s}&episode=${e}`
+                    : `https://vidsrcme.ru/embed/movie?tmdb=${tmdbId}`,
             },
         ];
         const idx = serverIndex >= 0 && serverIndex < SERVERS.length ? serverIndex : 0;
         const url = SERVERS[idx].url(numericId, season, episode);
         return { url };
+    }
+    async getAiringThisWeek(platform = "all") {
+        try {
+            await this.ensureCatalog(platform === "all" ? "netflix" : platform);
+            const all = await this.getAllMovies(platform === "all" ? "netflix" : platform);
+            const series = (Array.isArray(all) ? all : [])
+                .filter((m) => m.isSeries && m.nextEpisode?.releaseDate)
+                .sort((a, b) => new Date(a.nextEpisode.releaseDate) - new Date(b.nextEpisode.releaseDate));
+            return series.slice(0, 20);
+        }
+        catch (e) {
+            this.logger.error(`Failed to fetch airing this week`, e);
+            return [];
+        }
+    }
+    async getTrendingThisWeek(platform = "all") {
+        try {
+            const platforms = ["netflix", "prime", "hotstar", "appletv", "zee5", "sonyliv", "jio"];
+            await Promise.all(platforms.map((p) => this.ensureCatalog(p).catch(() => null)));
+            const trendingIds = ["trending-movies", "trending-series", "trending-anime"];
+            const seen = new Map();
+            const nameMap = {
+                netflix: "Netflix",
+                prime: "Prime Video",
+                hotstar: "Hotstar",
+                appletv: "Apple TV+",
+                zee5: "Zee5",
+                sonyliv: "Sony LIV",
+                jio: "JioCinema",
+            };
+            for (const p of platforms) {
+                const cats = (this.state[p] && this.state[p].categories) || [];
+                for (const cat of cats) {
+                    if (!trendingIds.includes(cat.id)) continue;
+                    for (const m of cat.movies || []) {
+                        const key = m.tmdbId || m.id;
+                        if (seen.has(key)) continue;
+                        seen.set(key, { ...this.toLightweightMovie(m), source: p, sourceName: nameMap[p] });
+                    }
+                }
+            }
+            let list = Array.from(seen.values());
+            let seed = Date.now();
+            return list
+                .sort((a, b) => seededRandom(seed++) - 0.5)
+                .slice(0, 24);
+        }
+        catch (e) {
+            this.logger.error(`Failed to fetch trending this week`, e);
+            return [];
+        }
     }
 };
 exports.MoviesService = MoviesService;

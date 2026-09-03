@@ -148,10 +148,11 @@ export default function Loader({ variant = "page", size, color }) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        minHeight: variant === "page" ? "60vh" : "auto",
+        minHeight: variant === "page" ? "calc(100vh - 56px)" : "auto",
         width: "100%",
         padding: variant === "inline" ? "2rem" : "0",
         gap: "1.25rem",
+        flex: variant === "page" ? 1 : undefined,
       }}
     >
       {spinnerCore}

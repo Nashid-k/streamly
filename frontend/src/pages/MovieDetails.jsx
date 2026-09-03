@@ -1806,6 +1806,7 @@ export default function MovieDetails() {
               gridTemplateColumns: episodeLayout === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))' : undefined,
               gap: episodeLayout === 'grid' ? '0.8rem' : '0.5rem',
             }}
+            className="episode-grid"
           >
             {episodesLoading ? (
               // Skeleton placeholders while episodes load

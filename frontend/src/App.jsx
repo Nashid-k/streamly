@@ -26,7 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 import slugify from "slugify";
 import { movieService } from "./api/movieService";
 import { PlatformAdapter } from "./api/platformAdapter";
-import { CdnImageAdapter } from "./api/cdnImageAdapter";
+import SearchResultRow from "./components/SearchResultRow";
 import { useDebounce } from "./hooks/useDebounce";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAppAuth } from "./context/AuthContext";
@@ -38,6 +38,8 @@ import BackToTop from "./components/BackToTop";
 import AuthModal from "./components/AuthModal";
 import { useScrollRestoration } from "./hooks/useScrollRestoration";
 import { useMediaQuery } from "./hooks/useMediaQuery";
+
+const APP_VERSION = __VERSION__ || "1.0.0";
 
 const HomePage = lazy(() => import("./pages/Home"));
 const MovieDetails = lazy(() => import("./pages/MovieDetails"));
@@ -229,6 +231,9 @@ function Layout({ children }) {
 
   return (
     <div className="app-container">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       {/* Top Navbar */}
       <nav
         className={`navbar${isScrolled ? ' scrolled' : ''}`}
@@ -255,7 +260,7 @@ function Layout({ children }) {
               />
             </div>
             Streamly
-            <span style={{ fontSize: '0.5rem', background: 'linear-gradient(135deg, #f43f5e, #fb923c)', color: '#fff', padding: '2px 6px', borderRadius: '6px', fontWeight: 700, marginLeft: '6px', letterSpacing: '0.05em', verticalAlign: 'super' }}>v12.0</span>
+            <span style={{ fontSize: '0.5rem', background: 'linear-gradient(135deg, #f43f5e, #fb923c)', color: '#fff', padding: '2px 6px', borderRadius: '6px', fontWeight: 700, marginLeft: '6px', letterSpacing: '0.05em', verticalAlign: 'super' }}>v{APP_VERSION}</span>
           </Link>
 
           <div
@@ -336,7 +341,7 @@ function Layout({ children }) {
                         position: "absolute",
                         top: "120%",
                         right: 0,
-                        width: isDesktop ? "450px" : "100%",
+                        width: isDesktop ? "min(450px, calc(100vw - 2rem))" : "100%",
                         background: "rgba(9, 9, 11, 0.85)",
                         backdropFilter: "blur(24px)",
                         border: "1px solid rgba(255,255,255,0.15)",
@@ -344,13 +349,16 @@ function Layout({ children }) {
                         boxShadow:
                           "0 30px 60px -12px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05)",
                         overflow: "hidden",
-                        zIndex: 200,
+                        zIndex: 10000,
                         maxHeight: "65vh",
                         overflowY: "auto",
                       }}
                     >
                       {loading ? (
                         <div
+                          role="status"
+                          aria-busy="true"
+                          aria-label="Loading search results"
                           style={{ display: "flex", flexDirection: "column" }}
                         >
                           {[1, 2, 3, 4].map((i) => (
@@ -417,13 +425,13 @@ function Layout({ children }) {
                         >
                           <div role="listbox" aria-label="Search results">
                           {results.map((r, i) => (
-                            <motion.div
+                            <SearchResultRow
                               key={`${r.id}-${i}`}
-                              role="option"
-                              aria-selected={selectedResultIndex === i}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: i * 0.05, duration: 0.2 }}
+                              r={r}
+                              i={i}
+                              selectedResultIndex={selectedResultIndex}
+                              setSelectedResultIndex={setSelectedResultIndex}
+                              roleOption
                               onClick={() => {
                                 addSearch(r.title); // Fix #21: save to history on click
                                 navigate(
@@ -433,103 +441,7 @@ function Layout({ children }) {
                                 setShowDropdown(false);
                                 setMobileMenuOpen(false);
                               }}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "1rem",
-                                padding: "0.75rem 1rem",
-                                cursor: "pointer",
-                                borderBottom:
-                                  "1px solid rgba(255,255,255,0.05)",
-                                transition: "background 0.2s",
-                                background:
-                                  selectedResultIndex === i
-                                    ? "rgba(255,255,255,0.1)"
-                                    : "transparent",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background =
-                                  "rgba(255,255,255,0.05)";
-                                setSelectedResultIndex(i);
-                              }}
-                              onMouseLeave={(e) => {
-                                if (selectedResultIndex !== i)
-                                  e.currentTarget.style.background =
-                                    "transparent";
-                              }}
-                            >
-                              <img
-                                loading="lazy"
-                                decoding="async"
-                                src={CdnImageAdapter.getSmallUrl(r.posterUrl || r.backdropUrl)}
-                                alt={r.title}
-                                style={{
-                                  width: "50px",
-                                  height: "75px",
-                                  objectFit: "cover",
-                                  borderRadius: "4px",
-                                  background: "#18181b",
-                                }}
-                              />
-                              <div
-                                style={{
-                                  flex: 1,
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: "4px",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    fontWeight: 600,
-                                    fontSize: "0.95rem",
-                                    color: "#fff",
-                                  }}
-                                >
-                                  {r.title}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: "0.8rem",
-                                    color: "#a1a1aa",
-                                    display: "flex",
-                                    gap: "8px",
-                                    alignItems: "center",
-                                  }}
-                                >
-                                  <span>{r.releaseYear}</span>
-                                  <span>•</span>
-                                  <span
-                                    className={`source-tag source-${r.source}`}
-                                    style={{
-                                      padding: "0px 6px",
-                                      fontSize: "0.6rem",
-                                    }}
-                                  >
-                                    {r.sourceName}
-                                  </span>
-                                  {r.imdbRating > 0 && (
-                                    <span
-                                      style={{
-                                        color:
-                                          r.imdbRating >= 8
-                                            ? "#4ade80"
-                                            : r.imdbRating >= 6.5
-                                              ? "#fbbf24"
-                                              : "#f87171",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "2px",
-                                        fontSize: "0.75rem",
-                                        fontWeight: 600,
-                                      }}
-                                    >
-                                      ⭐ {r.imdbRating}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </motion.div>
+                            />
                           ))}
                           </div>
                           {/* Keyboard nav hint */}
@@ -589,6 +501,8 @@ function Layout({ children }) {
                           </div>
                           {/* See all results link */}
                           <div
+                            role="button"
+                            tabIndex={0}
                             onClick={() => {
                               addSearch(query); // Fix #21: save to history on mobile see-all
                               navigate(
@@ -597,6 +511,16 @@ function Layout({ children }) {
                               setQuery("");
                               setShowDropdown(false);
                               setMobileMenuOpen(false);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                addSearch(query);
+                                navigate(`/search?q=${encodeURIComponent(query)}`);
+                                setQuery("");
+                                setShowDropdown(false);
+                                setMobileMenuOpen(false);
+                              }
                             }}
                             style={{
                               padding: "0.85rem 1rem",
@@ -748,7 +672,7 @@ function Layout({ children }) {
                       position: "absolute",
                       top: "120%",
                       right: 0,
-                      width: isDesktop ? "450px" : "100%",
+                      width: isDesktop ? "min(450px, calc(100vw - 2rem))" : "100%",
                       background: "rgba(9, 9, 11, 0.85)",
                       backdropFilter: "blur(24px)",
                       border: "1px solid rgba(255,255,255,0.15)",
@@ -756,7 +680,7 @@ function Layout({ children }) {
                       boxShadow:
                         "0 30px 60px -12px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05)",
                       overflow: "hidden",
-                      zIndex: 200,
+                      zIndex: 10000,
                       maxHeight: "65vh",
                       overflowY: "auto",
                     }}
@@ -926,11 +850,12 @@ function Layout({ children }) {
                     ) : results.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column" }}>
                         {results.map((r, i) => (
-                          <motion.div
+                          <SearchResultRow
                             key={`${r.id}-${i}`}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05, duration: 0.2 }}
+                            r={r}
+                            i={i}
+                            selectedResultIndex={selectedResultIndex}
+                            setSelectedResultIndex={setSelectedResultIndex}
                             onClick={() => {
                               addSearch(r.title); // Fix #21: save to history on desktop click
                               navigate(
@@ -940,102 +865,7 @@ function Layout({ children }) {
                               setShowDropdown(false);
                               setMobileMenuOpen(false);
                             }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "1rem",
-                              padding: "0.75rem 1rem",
-                              cursor: "pointer",
-                              borderBottom: "1px solid rgba(255,255,255,0.05)",
-                              transition: "background 0.2s",
-                              background:
-                                selectedResultIndex === i
-                                  ? "rgba(255,255,255,0.1)"
-                                  : "transparent",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background =
-                                "rgba(255,255,255,0.05)";
-                              setSelectedResultIndex(i);
-                            }}
-                            onMouseLeave={(e) => {
-                              if (selectedResultIndex !== i)
-                                e.currentTarget.style.background =
-                                  "transparent";
-                            }}
-                          >
-                            <img
-                              loading="lazy"
-                              decoding="async"
-                              src={CdnImageAdapter.getSmallUrl(r.posterUrl || r.backdropUrl)}
-                              alt={r.title}
-                              style={{
-                                width: "50px",
-                                height: "75px",
-                                objectFit: "cover",
-                                borderRadius: "4px",
-                                background: "#18181b",
-                              }}
-                            />
-                            <div
-                              style={{
-                                flex: 1,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "4px",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontWeight: 600,
-                                  fontSize: "0.95rem",
-                                  color: "#fff",
-                                }}
-                              >
-                                {r.title}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "0.8rem",
-                                  color: "#a1a1aa",
-                                  display: "flex",
-                                  gap: "8px",
-                                  alignItems: "center",
-                                }}
-                              >
-                                <span>{r.releaseYear}</span>
-                                <span>•</span>
-                                <span
-                                  className={`source-tag source-${r.source}`}
-                                  style={{
-                                    padding: "0px 6px",
-                                    fontSize: "0.6rem",
-                                  }}
-                                >
-                                  {r.sourceName}
-                                </span>
-                                {r.imdbRating > 0 && (
-                                  <span
-                                    style={{
-                                      color:
-                                        r.imdbRating >= 8
-                                          ? "#4ade80"
-                                          : r.imdbRating >= 6.5
-                                            ? "#fbbf24"
-                                            : "#f87171",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: "2px",
-                                      fontSize: "0.75rem",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    ⭐ {r.imdbRating}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </motion.div>
+                          />
                         ))}
                         {/* Keyboard nav hint */}
                         <div
@@ -1094,12 +924,24 @@ function Layout({ children }) {
                         </div>
                         {/* See all results link */}
                         <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() => {
                             addSearch(query);
                             navigate(`/search?q=${encodeURIComponent(query)}`);
                             setQuery("");
                             setShowDropdown(false);
                             setMobileMenuOpen(false);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              addSearch(query);
+                              navigate(`/search?q=${encodeURIComponent(query)}`);
+                              setQuery("");
+                              setShowDropdown(false);
+                              setMobileMenuOpen(false);
+                            }
                           }}
                           style={{
                             padding: "0.85rem 1rem",
@@ -1224,8 +1066,8 @@ function Layout({ children }) {
                     boxShadow:
                       "0 30px 60px -12px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05)",
                     padding: "8px 0",
-                    width: "320px",
-                    zIndex: 200,
+                    width: "min(320px, calc(100vw - 2rem))",
+                    zIndex: 10000,
                     maxHeight: "70vh",
                     overflowY: "auto",
                   }}
@@ -1294,9 +1136,18 @@ function Layout({ children }) {
                       return (
                         <div
                           key={n.id}
+                          role={n.link ? "button" : undefined}
+                          tabIndex={n.link ? 0 : undefined}
                           onClick={() => {
                             setShowNotifications(false);
                             if (n.link) navigate(n.link);
+                          }}
+                          onKeyDown={(e) => {
+                            if (n.link && (e.key === "Enter" || e.key === " ")) {
+                              e.preventDefault();
+                              setShowNotifications(false);
+                              navigate(n.link);
+                            }
                           }}
                           style={{
                             padding: "12px 16px",
@@ -1356,9 +1207,20 @@ function Layout({ children }) {
           <div ref={userMenuRef} style={{ position: "relative" }}>
             <div
               className="user-avatar"
+              role="button"
+              tabIndex={0}
+              aria-haspopup="menu"
+              aria-expanded={user ? showUserMenu : undefined}
+              aria-label={user ? "User menu" : "Sign In"}
               onClick={() =>
                 user ? setShowUserMenu(!showUserMenu) : setShowAuthModal(true)
               }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  user ? setShowUserMenu(!showUserMenu) : setShowAuthModal(true);
+                }
+              }}
               title={user ? user.displayName || user.email : "Sign In"}
               style={{ cursor: "pointer", position: "relative" }}
             >
@@ -1403,7 +1265,7 @@ function Layout({ children }) {
                       "0 30px 60px -12px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05)",
                     padding: "8px 0",
                     minWidth: "200px",
-                    zIndex: 200,
+                    zIndex: 10000,
                   }}
                 >
                   {/* Signed-in user info */}
@@ -1489,6 +1351,8 @@ function Layout({ children }) {
                     }}
                   />
                   <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       setShowUserMenu(false);
                       window.dispatchEvent(
@@ -1497,6 +1361,15 @@ function Layout({ children }) {
                           shiftKey: true,
                         }),
                       );
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setShowUserMenu(false);
+                        window.dispatchEvent(
+                          new KeyboardEvent("keydown", { key: "?", shiftKey: true }),
+                        );
+                      }
                     }}
                     style={{
                       display: "flex",
@@ -1527,9 +1400,18 @@ function Layout({ children }) {
                   />
                   {/* Sign Out */}
                   <div
+                    role="button"
+                    tabIndex={0}
                     onClick={async () => {
                       setShowUserMenu(false);
                       await logout();
+                    }}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setShowUserMenu(false);
+                        await logout();
+                      }
                     }}
                     style={{
                       display: "flex",
@@ -1587,7 +1469,7 @@ function Layout({ children }) {
       </nav>
 
       {/* Main Content Area with Page Transitions */}
-      <main className="main-content">
+      <main className="main-content" id="main-content">
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={location.pathname}

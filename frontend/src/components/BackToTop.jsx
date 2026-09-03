@@ -27,6 +27,7 @@ export default function BackToTop() {
           whileTap={{ scale: 0.93 }}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           aria-label="Back to top"
+          className="back-to-top-btn"
           style={{
             position: "fixed",
             bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)",

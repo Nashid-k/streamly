@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,6 +23,7 @@ const castItemVariants = {
 
 export default function CastRail({ cast }) {
   const railRef = useRef(null);
+  const [showArrows, setShowArrows] = useState(false);
   if (!cast || cast.length === 0) return null;
 
   const scroll = (dir) => {
@@ -31,6 +32,12 @@ export default function CastRail({ cast }) {
         left: dir === "left" ? -400 : 400,
         behavior: "smooth",
       });
+  };
+
+  const checkOverflow = () => {
+    if (!railRef.current) return;
+    const { scrollWidth, clientWidth } = railRef.current;
+    setShowArrows(scrollWidth > clientWidth + 10);
   };
 
   return (
@@ -44,32 +51,34 @@ export default function CastRail({ cast }) {
         }}
       >
         <h2 style={{ fontSize: "1.4rem", fontWeight: 700 }}>Cast & Crew</h2>
-        <div style={{ display: "flex", gap: "8px" }}>
-          {["left", "right"].map((dir) => (
-            <button
-              key={dir}
-              onClick={() => scroll(dir)}
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "50%",
-                width: "36px",
-                height: "36px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                color: "#fff",
-              }}
-            >
-              {dir === "left" ? (
-                <ChevronLeft size={18} />
-              ) : (
-                <ChevronRight size={18} />
-              )}
-            </button>
-          ))}
-        </div>
+        {showArrows && (
+          <div style={{ display: "flex", gap: "8px" }}>
+            {["left", "right"].map((dir) => (
+              <button
+                key={dir}
+                onClick={() => scroll(dir)}
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: "50%",
+                  width: "36px",
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: "#fff",
+                }}
+              >
+                {dir === "left" ? (
+                  <ChevronLeft size={18} />
+                ) : (
+                  <ChevronRight size={18} />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <motion.div
         ref={railRef}

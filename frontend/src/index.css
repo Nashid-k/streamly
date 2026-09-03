@@ -639,6 +639,10 @@ a {
   padding: 0 0.15rem;
 }
 
+.movie-rail-item {
+  width: 180px;
+}
+
 .movie-card {
   transform: translateZ(0);
   will-change: transform, opacity;
@@ -907,11 +911,11 @@ a {
   background: linear-gradient(
     105deg,
     transparent 0%,
-    transparent 40%,
-    rgba(255, 255, 255, 0.06) 45%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0.06) 55%,
-    transparent 60%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.08) 42%,
+    rgba(255, 255, 255, 0.16) 50%,
+    rgba(255, 255, 255, 0.08) 58%,
+    transparent 62%,
     transparent 100%
   );
   transform: translateX(-100%);
@@ -926,7 +930,12 @@ a {
 
 @keyframes skeleton-breathe {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
+  50% { opacity: 0.92; }
+}
+
+/* Skeleton shimmer boosted for visibility */
+.skeleton::after {
+  opacity: 1;
 }
 
 /* Skeleton with rounded variant */
@@ -971,11 +980,11 @@ a {
 
 .skeleton-hero {
   width: 100%;
-  height: 60vh;
-  min-height: 500px;
-  max-height: 700px;
-  border-radius: var(--radius-xl);
-  margin-bottom: var(--spacing-3xl);
+  height: min(82vh, 900px);
+  min-height: 560px;
+  max-height: 900px;
+  border-radius: 0;
+  margin-bottom: 0;
   position: relative;
 }
 
@@ -1041,9 +1050,40 @@ img {
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--accent-color);
+  outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+}
+
+/* Skip to content link */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 10001;
+  background: var(--accent-primary);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 0 0 8px 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.skip-link:focus {
+  left: 0;
+  position: fixed;
+}
+
+/* Respect reduced-motion preferences globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Off-screen rails get deferred rendering for faster initial paint */
@@ -1110,6 +1150,10 @@ input:focus-visible {
   }
   .hero-title {
     font-size: clamp(2rem, 3.5vw, 3rem);
+  }
+  /* Reduce poster size on tablet to avoid crowding */
+  .details-poster-large {
+    height: 320px;
   }
 }
 
@@ -1253,11 +1297,6 @@ input:focus-visible {
   .hero-title {
     font-size: 2.2rem !important;
   }
-  .hero-dots {
-    bottom: 10px;
-    right: 50%;
-    transform: translateX(50%);
-  }
 
   /* Typography */
   .section-title {
@@ -1290,7 +1329,7 @@ input:focus-visible {
     padding: 0 !important;
   }
   .modal-content,
-  [style*="width: 90%"] {
+  .modal-container {
     border-radius: 24px 24px 0 0 !important;
     margin: 0 !important;
     padding: 1.25rem !important;
@@ -1331,7 +1370,7 @@ input:focus-visible {
     transform: translateX(-50%) !important;
     max-width: calc(100vw - 2rem) !important;
   }
-  button[style*="bottom: '20px'"] {
+  .back-to-top-btn {
     bottom: 80px !important;
     right: 15px !important;
     width: 40px !important;
@@ -1356,7 +1395,7 @@ input:focus-visible {
   }
   .movie-rail .movie-card,
   .skeleton-card,
-  div[style*="width: 200px"] {
+  .movie-rail-item {
     width: 140px !important;
   }
   .skeleton-card {
@@ -1376,7 +1415,7 @@ input:focus-visible {
     padding-bottom: 5rem !important;
     background: linear-gradient(to bottom, transparent, #050505 8%, #050505);
   }
-  div[style*="height: '100vh'"] {
+  .details-backdrop {
     height: 50vh !important;
     position: absolute !important;
     mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
@@ -1393,7 +1432,7 @@ input:focus-visible {
   .details-text {
     text-align: left !important;
   }
-  div[style*="gap: '1rem', flexWrap: 'wrap'"] {
+  .hero-actions {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 0.75rem !important;
@@ -1405,7 +1444,7 @@ input:focus-visible {
     gap: 0.5rem;
     align-items: flex-start !important;
   }
-  div[style*="gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))'"] {
+  .episode-grid {
     grid-template-columns: 1fr !important;
   }
   .video-scaler {
@@ -1522,6 +1561,14 @@ input:focus-visible {
 
   .hero-dots {
     bottom: 5rem !important;
+    right: 50% !important;
+    transform: translateX(50%) !important;
+  }
+  .hero-dots button {
+    min-width: 20px !important;
+    min-height: 20px !important;
+    padding: 6px !important;
+    margin: 8px 4px !important;
   }
 
   /* 4. Elegant typography */
@@ -1544,14 +1591,6 @@ input:focus-visible {
 /* Global Display Utilities */
 .mobile-only {
   display: none !important;
-}
-@media (max-width: 768px) {
-  .desktop-only {
-    display: none !important;
-  }
-  .mobile-only {
-    display: block !important;
-  }
 }
 
 /* Restored Global UI Elements (Desktop + Mobile) */
@@ -1592,6 +1631,29 @@ input:focus-visible {
 /* Hide mobile bottom nav by default on desktop */
 .mobile-bottom-nav {
   display: none;
+}
+
+/* Genre filter horizontal scroll with fade edges */
+.genre-filter-scroll {
+  position: relative;
+}
+.genre-filter-scroll::before,
+.genre-filter-scroll::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  z-index: 2;
+  pointer-events: none;
+}
+.genre-filter-scroll::before {
+  left: 0;
+  background: linear-gradient(to right, #050505, transparent);
+}
+.genre-filter-scroll::after {
+  right: 0;
+  background: linear-gradient(to left, #050505, transparent);
 }
 
 
@@ -1770,13 +1832,17 @@ input:focus-visible {
 [data-tooltip] {
   position: relative;
 }
+/*
+  Default: hidden on touch so it doesn't flash on tap.
+  Only reveal on real hover (non-touch) and keyboard focus.
+*/
 [data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%) translateY(-4px);
-  padding: 4px 10px;
+  padding: 6px 12px;
   background: rgba(9, 9, 11, 0.95);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
@@ -1787,8 +1853,13 @@ input:focus-visible {
   pointer-events: none;
   transition: opacity var(--duration-fast);
   z-index: var(--z-tooltip, 9999);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
 }
-[data-tooltip]:hover::after {
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
   opacity: 1;
 }
 
@@ -1946,7 +2017,7 @@ html {
   animation: spin 0.7s linear infinite;
 }
 
-/* Loader component keyframes (moved from inline <style> tags) */
+/* Loader component keyframes */
 @keyframes loader-spin-cw { to { transform: rotate(360deg); } }
 @keyframes loader-spin-ccw { to { transform: rotate(-360deg); } }
 @keyframes loader-pulse-center {

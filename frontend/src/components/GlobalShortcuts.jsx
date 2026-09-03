@@ -97,6 +97,7 @@ export default function GlobalShortcuts() {
               padding: "2rem",
               boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
             }}
+            className="modal-container"
           >
             <div
               style={{

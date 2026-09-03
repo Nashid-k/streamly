@@ -47,6 +47,14 @@ let MoviesController = class MoviesController {
         const result = await this.moviesService.searchMovies(safeQuery, genre, platform);
         return result;
     }
+    async getAiring(res, platform = "all") {
+        setCache(res, 300);
+        return this.moviesService.getAiringThisWeek(platform);
+    }
+    async getTrending(res, platform = "all") {
+        setCache(res, 300);
+        return this.moviesService.getTrendingThisWeek(platform);
+    }
     async getPerson(res, personId) {
         setCache(res, 86400);
         return this.moviesService.getPersonDetails(personId);
@@ -77,7 +85,18 @@ let MoviesController = class MoviesController {
     async getSeasonEpisodes(res, id, seasonNumber, platform = "netflix") {
         setCache(res, 86400);
         const season = Math.min(Math.max(Number.parseInt(seasonNumber, 10) || 1, 1), 50);
-        return this.moviesService.getSeasonEpisodes(id, season, platform);
+        const episodes = await this.moviesService.getSeasonEpisodes(id, season, platform);
+        const list = Array.isArray(episodes) ? episodes : [];
+        const now = Date.now();
+        const released = list.filter((ep) => {
+            if (!ep.airDate) return true;
+            const t = Date.parse(ep.airDate);
+            return isNaN(t) ? true : t <= now;
+        });
+        res.setHeader("x-total-episodes", String(list.length));
+        res.setHeader("x-released-episodes", String(released.length));
+        res.setHeader("x-is-airing", String(released.length > 0 && released.length < list.length));
+        return list;
     }
     async getRecommendations(res, id, platform = "netflix") {
         setCache(res, 300);
@@ -137,6 +156,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String, String]),
     __metadata("design:returntype", Promise)
 ], MoviesController.prototype, "searchMovies", null);
+__decorate([
+    (0, common_1.Get)("airing"),
+    __param(0, (0, common_1.Res)({ passthrough: true })),
+    __param(1, (0, common_1.Query)("platform")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], MoviesController.prototype, "getAiring", null);
+__decorate([
+    (0, common_1.Get)("trending"),
+    __param(0, (0, common_1.Res)({ passthrough: true })),
+    __param(1, (0, common_1.Query)("platform")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], MoviesController.prototype, "getTrending", null);
 __decorate([
     (0, common_1.Get)("person/:personId"),
     __param(0, (0, common_1.Res)({ passthrough: true })),

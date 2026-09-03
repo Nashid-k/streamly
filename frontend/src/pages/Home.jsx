@@ -47,7 +47,36 @@ const FadeInSection = ({ children, delay = 0 }) => (
   </motion.div>
 );
 
-// The prompt requires me to replace the entire chunk up to line 333, but I need to make sure I don't delete MovieRail and Top10Rail. Let's write the whole chunk.
+const RailArrow = ({ dir, onClick }) => (
+  <motion.button
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    onClick={onClick}
+    aria-label={dir === "left" ? "Scroll left" : "Scroll right"}
+    style={{
+      position: "absolute",
+      [dir === "left" ? "left" : "right"]: "0px",
+      top: "calc(50% + 8px)",
+      transform: "translateY(-50%)",
+      zIndex: 10,
+      background: "rgba(5,5,5,0.9)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      color: "rgba(255,255,255,0.7)",
+      borderRadius: "50%",
+      width: "38px",
+      height: "38px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer",
+      backdropFilter: "blur(12px)",
+      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+    }}
+  >
+    {dir === "left" ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+  </motion.button>
+);
 
 const MovieRail = React.memo(
   function MovieRail({ category, railIndex = 0 }) {
@@ -169,60 +198,8 @@ const MovieRail = React.memo(
             <AnimatePresence>
               {showArrows && (
                 <>
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => scroll("left")}
-                    style={{
-                      position: "absolute",
-                      left: "-22px",
-                      top: "calc(50% + 8px)",
-                      transform: "translateY(-50%)",
-                      zIndex: 10,
-                      background: "rgba(5,5,5,0.9)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "rgba(255,255,255,0.7)",
-                      borderRadius: "50%",
-                      width: "38px",
-                      height: "38px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      backdropFilter: "blur(12px)",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
-                    }}
-                  >
-                    <ChevronLeft size={18} />
-                  </motion.button>
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => scroll("right")}
-                    style={{
-                      position: "absolute",
-                      right: "-22px",
-                      top: "calc(50% + 8px)",
-                      transform: "translateY(-50%)",
-                      zIndex: 10,
-                      background: "rgba(5,5,5,0.9)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "rgba(255,255,255,0.7)",
-                      borderRadius: "50%",
-                      width: "38px",
-                      height: "38px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      backdropFilter: "blur(12px)",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
-                    }}
-                  >
-                    <ChevronRight size={18} />
-                  </motion.button>
+                  <RailArrow dir="left" onClick={() => scroll("left")} />
+                  <RailArrow dir="right" onClick={() => scroll("right")} />
                 </>
               )}
             </AnimatePresence>
@@ -254,7 +231,7 @@ const MovieRail = React.memo(
                   }}
                   style={{ flexShrink: 0 }}
                 >
-                  <div style={{ width: "180px" }}>
+                  <div className="movie-rail-item">
                     <MovieCard movie={movie} />
                   </div>
                 </motion.div>
@@ -353,60 +330,8 @@ const Top10Rail = React.memo(
             <AnimatePresence>
               {showArrows && (
                 <>
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => scroll("left")}
-                    style={{
-                      position: "absolute",
-                      left: "-22px",
-                      top: "calc(50% + 8px)",
-                      transform: "translateY(-50%)",
-                      zIndex: 10,
-                      background: "rgba(5,5,5,0.9)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "rgba(255,255,255,0.7)",
-                      borderRadius: "50%",
-                      width: "38px",
-                      height: "38px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      backdropFilter: "blur(12px)",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
-                    }}
-                  >
-                    <ChevronLeft size={18} />
-                  </motion.button>
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => scroll("right")}
-                    style={{
-                      position: "absolute",
-                      right: "-22px",
-                      top: "calc(50% + 8px)",
-                      transform: "translateY(-50%)",
-                      zIndex: 10,
-                      background: "rgba(5,5,5,0.9)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "rgba(255,255,255,0.7)",
-                      borderRadius: "50%",
-                      width: "38px",
-                      height: "38px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      backdropFilter: "blur(12px)",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
-                    }}
-                  >
-                    <ChevronRight size={18} />
-                  </motion.button>
+                  <RailArrow dir="left" onClick={() => scroll("left")} />
+                  <RailArrow dir="right" onClick={() => scroll("right")} />
                 </>
               )}
             </AnimatePresence>
@@ -447,11 +372,12 @@ const Top10Rail = React.memo(
                     }}
                   >
                     <span
+                      className="top10-number"
                       style={{
                         position: "absolute",
                         bottom: "-8px",
                         left: "-18px",
-                        fontSize: "7rem",
+                        fontSize: "clamp(4.5rem, 8vw, 7rem)",
                         fontWeight: 900,
                         lineHeight: 1,
                         zIndex: 2,
@@ -526,6 +452,14 @@ export default function Home({
   const { data: airingData } = useQuery({
     queryKey: ["airingThisWeek"],
     queryFn: () => movieService.getAiringThisWeek("all"),
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: trendingData } = useQuery({
+    queryKey: ["trendingThisWeek"],
+    queryFn: () => movieService.getTrendingThisWeek("all"),
     staleTime: 1000 * 60 * 5,
     retry: false,
     refetchOnWindowFocus: false,
@@ -814,6 +748,38 @@ export default function Home({
     return finalTop10.slice(0, 10);
   }, [rawCategories, filter]);
 
+  // Shared predicates for the Trending/Airing rails that mirror the Top 10 filter
+  const isSeriesMovie = (m) =>
+    Boolean(
+      m.isSeries ||
+        String(m.id || "").startsWith("tmdb-tv-") ||
+        m.type === "tv" ||
+        (m.seasonsCount && m.seasonsCount > 0),
+    );
+  const isAnimeMovie = (m) =>
+    m.genres?.includes("Animation") ||
+    (m.tags && m.tags.some((t) => t.toLowerCase().includes("anime")));
+
+  const applyPageFilter = (list) => {
+    if (filter === "series" || filter === "tv shows")
+      return (list || []).filter(isSeriesMovie);
+    if (filter === "movies") return (list || []).filter((m) => !isSeriesMovie(m));
+    if (filter === "anime") return (list || []).filter(isAnimeMovie);
+    return list || [];
+  };
+
+  const trendingThisWeek = useMemo(
+    () => applyPageFilter(trendingData || EMPTY_ARRAY).slice(0, 20),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trendingData, filter],
+  );
+
+  const airingThisWeek = useMemo(
+    () => applyPageFilter(airingData || EMPTY_ARRAY).slice(0, 20),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [airingData, filter],
+  );
+
   const lastWatched =
     continueWatching && continueWatching.length > 0
       ? continueWatching[0]
@@ -998,8 +964,7 @@ export default function Home({
             exit={{ opacity: 0 }}
             className="skeleton skeleton-hero"
           />
-        ) : activeFeaturedMovie ? (
-          <motion.div
+        ) : activeFeaturedMovie ? (          <motion.div
             key={activeFeaturedMovie.id}
             ref={heroRef}
             className="hero-container"
@@ -1161,6 +1126,7 @@ export default function Home({
                 )}
 
                 <motion.div
+                  className="hero-actions"
                   style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -1251,7 +1217,34 @@ export default function Home({
               </div>
             )}
           </motion.div>
-        ) : null}
+        ) : (
+          <motion.div
+            key="empty-hero"
+            className="hero-container"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "min(82vh, 900px)",
+              background:
+                "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(244,63,94,0.08) 0%, transparent 70%), #050505",
+            }}
+          >
+            <div style={{ textAlign: "center", padding: "2rem" }}>
+              <div className="logo-icon" style={{ margin: "0 auto 1rem", width: "56px", height: "56px" }}>
+                <Play size={28} fill="currentColor" stroke="none" />
+              </div>
+              <h2 style={{ color: "#fff", marginBottom: "0.5rem" }}>
+                Welcome to Streamly
+              </h2>
+              <p style={{ color: "#a1a1aa", maxWidth: "420px", margin: "0 auto" }}>
+                Discover movies and TV shows across all your favorite streaming platforms.
+              </p>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Genre Filter Chips */}
@@ -1388,22 +1381,33 @@ export default function Home({
                 </ErrorBoundary>
               </FadeInSection>
             )}
-            {/* 5. Airing This Week */}
-            {filter === 'all' && airingData && airingData.length > 0 && (
+            {/* 5. Trending This Week */}
+            {trendingThisWeek.length > 0 && activeGenre === "All" && (
               <FadeInSection>
                 <ErrorBoundary>
                   <MovieRail
                     railIndex={4}
-                    category={{ name: 'Airing This Week', movies: airingData }}
+                    category={{ name: "Trending This Week", movies: trendingThisWeek }}
                   />
                 </ErrorBoundary>
               </FadeInSection>
             )}
-            {/* 6. Category rails */}
+            {/* 6. Airing This Week */}
+            {airingThisWeek.length > 0 && activeGenre === "All" && (
+              <FadeInSection>
+                <ErrorBoundary>
+                  <MovieRail
+                    railIndex={5}
+                    category={{ name: 'Airing This Week', movies: airingThisWeek }}
+                  />
+                </ErrorBoundary>
+              </FadeInSection>
+            )}
+            {/* 7. Category rails */}
             {categories.slice(0, visibleCatCount).map((category, catIdx) => (
               <FadeInSection key={catIdx} delay={0.1}>
                 <ErrorBoundary key={category.id || catIdx}>
-                  <MovieRail railIndex={catIdx + 4} category={category} />
+                  <MovieRail railIndex={catIdx + 6} category={category} />
                 </ErrorBoundary>
               </FadeInSection>
             ))}

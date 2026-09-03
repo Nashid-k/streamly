@@ -84,6 +84,7 @@ export function useConfirmDialog() {
                 flexDirection: "column",
                 gap: "1.25rem",
               }}
+              className="modal-container"
             >
               {/* Icon */}
               <div

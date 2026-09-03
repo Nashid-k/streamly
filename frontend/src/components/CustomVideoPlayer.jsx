@@ -342,6 +342,7 @@ const CustomVideoPlayer = ({
 
       // Only explicitly fetch IMDB ID if missing AND the current server needs it (e.g. Server 3 or 4)
       // Server 1 (CineSrc) strictly uses TMDB IDs now, so we shouldn't block its loading!
+      // (2embed and vidsrcme accept IMDb ids when available)
       if (
         !resolvedImdbId &&
         (activeServerIndex === 2 || activeServerIndex === 3)
@@ -1302,7 +1303,6 @@ const CustomVideoPlayer = ({
           ref={iframeRef}
           key={`iframe-${activeServerIndex}-${useNativeControls}`}
           src={iframeUrl}
-          sandbox="allow-scripts allow-same-origin allow-presentation"
           style={{
             width: "100%",
             height: "100%",
@@ -1525,6 +1525,7 @@ const CustomVideoPlayer = ({
                   maxWidth: "700px",
                   width: "90%",
                 }}
+                className="modal-container"
               >
                 {/* Title & Status */}
                 <div

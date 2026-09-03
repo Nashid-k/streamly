@@ -76,6 +76,7 @@ const btnVariants = {
   },
 };
 import { PrefetchAdapter } from "../api/prefetchAdapter";
+import { getRatingColor } from "../utils/ratings";
 
 import { useVirtualRenderAdapter } from "../api/virtualRenderAdapter";
 import { CdnImageAdapter } from "../api/cdnImageAdapter";
@@ -158,14 +159,7 @@ export default function MovieCard({
 
   const inList = isInList(movie.id);
   const rating = movie.imdbRating;
-  const ratingColor =
-    rating >= 8
-      ? "#4ade80"
-      : rating >= 6.5
-        ? "#fbbf24"
-        : rating > 0
-          ? "#f87171"
-          : null;
+  const ratingColor = getRatingColor(rating);
 
   return (
     <div
@@ -179,7 +173,16 @@ export default function MovieCard({
           initial="rest"
           whileHover="hover"
           animate="rest"
+          role="link"
+          tabIndex={0}
+          aria-label={`View details for ${movie.title}`}
           onClick={navigateToDetails}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigateToDetails();
+            }
+          }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           style={{
@@ -496,6 +499,7 @@ export default function MovieCard({
                     navigateToDetails();
                   }}
                   className="curtain-play-btn"
+                  aria-label={`Watch ${movie.title}`}
                   style={{
                     flex: 1,
                     display: "flex",
@@ -523,6 +527,11 @@ export default function MovieCard({
                 <button
                   onClick={handleToggleMyList}
                   title={inList ? "Remove from list" : "Add to My List"}
+                  aria-label={
+                    inList
+                      ? `Remove ${movie.title} from My List`
+                      : `Add ${movie.title} to My List`
+                  }
                   className="curtain-list-btn"
                   style={{
                     width: compact ? "26px" : "32px",

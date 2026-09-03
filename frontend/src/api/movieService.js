@@ -77,7 +77,7 @@ export const movieService = {
   },
 
   getPersonDetails: async (id) => {
-    const res = await apiClient.get(`/person/${id}`);
+    const res = await apiClient.get(`/movies/person/${id}`);
     return res.data;
   },
 
@@ -88,4 +88,11 @@ export const movieService = {
     });
     return res.data;
   },
-};
+
+  getTrendingThisWeek: async (platform = 'all') => {
+    const res = await apiClient.get('/movies/trending', {
+      params: { platform, _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
+    });
+    return res.data;
+  },};
