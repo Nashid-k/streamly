@@ -988,7 +988,7 @@ function Layout({ children }) {
                 setShowNotifications(!showNotifications);
                 if (
                   !showNotifications &&
-                  notifications.some((n) => !n.isRead)
+                  (notifications || []).some((n) => !n.isRead)
                 ) {
                   markAllAsRead();
                 }
@@ -997,7 +997,7 @@ function Layout({ children }) {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   setShowNotifications(!showNotifications);
-                  if (!showNotifications && notifications.some((n) => !n.isRead)) {
+                  if (!showNotifications && (notifications || []).some((n) => !n.isRead)) {
                     markAllAsRead();
                   }
                 }
@@ -1079,7 +1079,7 @@ function Layout({ children }) {
                     >
                       Notifications
                     </div>
-                    {notifications.length > 0 && (
+                    {(notifications || []).length > 0 && (
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -1096,7 +1096,7 @@ function Layout({ children }) {
                       </motion.button>
                     )}
                   </div>
-                  {notifications.length === 0 ? (
+                  {(notifications || []).length === 0 ? (
                     <div
                       style={{
                         padding: "2rem 1rem",
@@ -1191,9 +1191,9 @@ function Layout({ children }) {
                             </div>
                             <div style={{ fontSize: '0.68rem', color: '#71717a', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                               <span>{timeStr}</span>
-                              {n.platform && (
-                                <span style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: '4px', fontSize: '0.62rem', fontWeight: 700, color: '#d4d4d8' }}>
-                                  {n.platform}
+                              {n.platformKey && (
+                                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                  <PlatformIcon platform={n.platformKey} xs />
                                 </span>
                               )}
                               {n.detail && !n.platform && (

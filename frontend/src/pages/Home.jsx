@@ -1251,7 +1251,6 @@ export default function Home({
               }}
             >
               <PlatformIcon platform={key} xs />
-              <span className="desktop-only" style={{ marginLeft: "2px" }}>{p.shortName}</span>
             </motion.button>
           ))}
         </div>

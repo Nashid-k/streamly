@@ -47,8 +47,6 @@ import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import { normalizePlatformKey, PlatformAdapter, normalizeMovieSource, PLATFORMS } from "../api/platformAdapter";
 import { buildMovieAddedNotification } from "../utils/notificationEngine";
-import ContentWarnings from "../components/ContentWarnings";
-import RegionalAvailability from "../components/RegionalAvailability";
 import SpoilerEpisodeGuide from "../components/SpoilerEpisodeGuide";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
@@ -1235,8 +1233,7 @@ export default function TitleDetails() {
                       </div>
                     ) : movie.availablePlatforms?.length > 0 ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <PlatformIcon platform={resolvedPlatform} />
-                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d4d4d8' }}>Coming to {sourceName}</span>
+                        <PlatformIcon platform={resolvedPlatform} pill />
                       </div>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1246,8 +1243,7 @@ export default function TitleDetails() {
                   </>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <PlatformIcon platform={resolvedPlatform} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d4d4d8' }}>Streaming on {sourceName}</span>
+                    <PlatformIcon platform={resolvedPlatform} pill />
                   </div>
                 )}
               </motion.div>
@@ -1430,21 +1426,6 @@ export default function TitleDetails() {
                 </div>
               )}
 
-              {/* Content warnings — expanded with categories and sensitivity settings */}
-              {(movie.contentWarnings?.length > 0 || movie.contentRating || movie.maturityRating) && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  style={{ marginBottom: '1.25rem' }}
-                >
-                  <ContentWarnings
-                    warnings={movie.contentWarnings || []}
-                    contentRating={movie.contentRating}
-                    maturityRating={movie.maturityRating}
-                  />
-                </motion.div>
-              )}
 
               {/* Info grid: Director, Writers, Budget, Revenue, Locations, Studios */}
               <motion.div
@@ -1497,20 +1478,7 @@ export default function TitleDetails() {
                 )}
               </motion.div>
 
-              {/* Regional Availability Map */}
-              {movie.availablePlatforms && movie.availablePlatforms.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.55, duration: 0.5 }}
-                  style={{ marginBottom: '1.25rem' }}
-                >
-                  <RegionalAvailability
-                    availablePlatforms={movie.availablePlatforms}
-                    movie={movie}
-                  />
-                </motion.div>
-              )}
+
             </motion.div>
 
             {/* CTA Buttons */}
