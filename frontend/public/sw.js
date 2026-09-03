@@ -1,4 +1,4 @@
-const CACHE_NAME = 'streamly-v6';
+const CACHE_NAME = 'streamly-v7';
 
 self.addEventListener('install', (event) => {
   // Skip waiting — activate immediately
