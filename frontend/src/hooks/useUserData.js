@@ -5,16 +5,6 @@ import {
   migrateLocalStorageToFirestore,
 } from "../api/storageAdapter";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function safeJsonParse(str, fallback = []) {
-  try {
-    return JSON.parse(str) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 // ─── useAuth ──────────────────────────────────────────────────────────────────
 
 export function useAuth() {

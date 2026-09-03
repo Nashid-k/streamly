@@ -25,7 +25,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import slugify from "slugify";
 import { movieService } from "./api/movieService";
-import { PlatformAdapter } from "./api/platformAdapter";
+import { mapSource } from "./api/platformAdapter";
 import SearchResultRow from "./components/SearchResultRow";
 import { useDebounce } from "./hooks/useDebounce";
 import { AnimatePresence, motion } from "framer-motion";
@@ -121,20 +121,6 @@ function Layout({ children }) {
 
   const results = useMemo(() => {
     if (!rawResults || !rawResults.movies) return [];
-
-    const mapSource = (m) => {
-      let resolved = { id: "netflix", name: "Netflix" };
-      if (m.availablePlatforms && m.availablePlatforms.length > 0) {
-        for (const p of m.availablePlatforms) {
-          const match = PlatformAdapter.resolveFromRawName(p);
-          if (match.id !== "netflix" || p.toLowerCase().includes("netflix")) {
-            resolved = match;
-            break;
-          }
-        }
-      }
-      return { ...m, source: resolved.id, sourceName: resolved.name };
-    };
 
     const mapped = rawResults.movies.map(mapSource);
     const seen = new Set();

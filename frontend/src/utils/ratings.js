@@ -4,7 +4,3 @@ export function getRatingColor(rating) {
   if (rating > 0) return "#f87171";
   return null;
 }
-
-export function formatReleaseYear(year) {
-  return year?.toString().substring(0, 4) || "";
-}

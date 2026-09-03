@@ -4,6 +4,7 @@ export const PLATFORMS = {
     name: "Netflix",
     iconUrl:
       "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg",
+    iconHeight: "18px",
     color: "#E50914",
     rapidApiName: "netflix",
   },
@@ -12,14 +13,16 @@ export const PLATFORMS = {
     name: "Prime Video",
     iconUrl:
       "https://upload.wikimedia.org/wikipedia/commons/1/11/Amazon_Prime_Video_logo.svg",
+    iconHeight: "16px",
     color: "#00A8E1",
     rapidApiName: "prime",
   },
   hotstar: {
     id: "hotstar",
-    name: "Hotstar",
+    name: "Disney+ Hotstar",
     iconUrl:
-      "https://upload.wikimedia.org/wikipedia/commons/1/1e/Disney%2B_Hotstar_logo.svg",
+      "https://upload.wikimedia.org/wikipedia/commons/b/b6/Disney%2B_Hotstar_2024.svg",
+    iconHeight: "26px",
     color: "#0F0617",
     rapidApiName: "hotstar",
   },
@@ -28,21 +31,26 @@ export const PLATFORMS = {
     name: "Apple TV+",
     iconUrl:
       "https://upload.wikimedia.org/wikipedia/commons/2/28/Apple_TV_Plus_Logo.svg",
+    iconHeight: "18px",
+    iconFilter: "invert(1)",
     color: "#000000",
     rapidApiName: "apple",
   },
   zee5: {
     id: "zee5",
-    name: "Zee5",
+    name: "ZEE5",
     iconUrl:
-      "https://upload.wikimedia.org/wikipedia/commons/5/5a/Zee5-official-logo.jpeg",
+      "https://upload.wikimedia.org/wikipedia/commons/6/6e/ZEE5_2025.svg",
+    iconHeight: "18px",
     color: "#8230C6",
     rapidApiName: "zee5",
   },
   sonyliv: {
     id: "sonyliv",
     name: "Sony LIV",
-    iconUrl: "https://upload.wikimedia.org/wikipedia/en/2/29/Sony_LIV_logo.png",
+    iconUrl:
+      "https://upload.wikimedia.org/wikipedia/commons/f/f7/SonyLIV_2020.png",
+    iconHeight: "22px",
     color: "#F48220",
     rapidApiName: "sonyliv",
   },
@@ -50,7 +58,8 @@ export const PLATFORMS = {
     id: "jio",
     name: "JioCinema",
     iconUrl:
-      "https://upload.wikimedia.org/wikipedia/commons/5/52/JioCinema_logo.svg",
+      "https://upload.wikimedia.org/wikipedia/en/a/a4/JioCinema_Horizontal_%282024%29.svg",
+    iconHeight: "22px",
     color: "#E5007D",
     rapidApiName: "jio",
   },
@@ -95,4 +104,22 @@ export class PlatformAdapter {
 
     return { id: "netflix", name: "Netflix" }; // fallback
   }
+}
+
+/**
+ * Maps a movie's availablePlatforms into a single `source`/`sourceName`
+ * pair for display, defaulting to netflix when nothing matches.
+ */
+export function mapSource(movie) {
+  let resolved = { id: "netflix", name: "Netflix" };
+  if (movie.availablePlatforms && movie.availablePlatforms.length > 0) {
+    for (const p of movie.availablePlatforms) {
+      const match = PlatformAdapter.resolveFromRawName(p);
+      if (match.id !== "netflix" || p.toLowerCase().includes("netflix")) {
+        resolved = match;
+        break;
+      }
+    }
+  }
+  return { ...movie, source: resolved.id, sourceName: resolved.name };
 }

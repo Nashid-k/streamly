@@ -46,29 +46,9 @@ import { useToast } from "../components/Toast.jsx";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
+import { decodeUrl } from "../utils";
 import CustomVideoPlayer from "../components/CustomVideoPlayer";
 const EMPTY_ARRAY = [];
-
-const getNumericId = (id) => id.replace(/^tmdb-(tv|movie)-/, "");
-
-const decodeUrl = (encodedStr) => {
-  if (!encodedStr || encodedStr.startsWith("http")) return encodedStr;
-  try {
-    const secret = import.meta.env.VITE_URL_DECODE_KEY;
-    if (!secret) return encodedStr; // Guard: env var not set
-    const decodedB64 = atob(encodedStr);
-    return decodedB64
-      .split("")
-      .map((char, i) =>
-        String.fromCharCode(
-          char.charCodeAt(0) ^ secret.charCodeAt(i % secret.length),
-        ),
-      )
-      .join("");
-  } catch (e) {
-    return encodedStr;
-  }
-};
 
 import { VideoSourceAdapter } from "../api/videoSourceAdapter";
 

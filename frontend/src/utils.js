@@ -2,6 +2,7 @@ export const decodeUrl = (encodedStr) => {
   if (!encodedStr || encodedStr.startsWith("http")) return encodedStr;
   try {
     const secret = import.meta.env.VITE_URL_DECODE_KEY;
+    if (!secret) return encodedStr; // Guard: env var not set
     const decodedB64 = atob(encodedStr);
     return decodedB64
       .split("")
