@@ -1,14 +1,25 @@
 /**
- * searchRanking.js — Search result relevance scoring
+ * searchRanking.js — Aggressive search result relevance scoring
  *
- * Ensures exact title matches appear first, followed by
- * partial matches, then everything else.
+ * Ensures exact title matches ALWAYS appear first, followed by
+ * strong partial matches, then everything else.
+ *
+ * Scoring scale (0-100):
+ *   100 = exact match (title === query)
+ *    95 = title starts with query
+ *    90 = query starts with title (user typed more)
+ *    85 = all query words in title, correct order, adjacent
+ *    80 = all query words in title, correct order
+ *    75 = all query words in title, any order
+ *    65 = title contains query as substring
+ *    55 = majority of query words match title words
+ *    40 = some query words match
+ *    25 = partial character match
+ *     0 = no match
  */
 
 /**
  * Score a movie's relevance to a search query.
- * Higher score = more relevant.
- *
  * @param {Object} movie - Movie/show object with title
  * @param {string} query - Search query
  * @returns {number} Relevance score (0-100)
@@ -21,45 +32,78 @@ export function getSearchRelevance(movie, query) {
 
   if (!title || !q) return 0;
 
-  // Exact match (highest priority)
+  // ── TIER 1: Exact / near-exact (90-100) ──
+
+  // Exact match — the holy grail
   if (title === q) return 100;
 
-  // Title starts with query
-  if (title.startsWith(q)) return 90;
+  // Title starts with query (e.g. "sarvam maya" in "Sarvam Maya (2024)")
+  if (title.startsWith(q)) return 95;
 
   // Query starts with title (user typed more than the title)
-  if (q.startsWith(title)) return 85;
+  if (q.startsWith(title) && title.length >= 3) return 90;
 
-  // Exact word match — all query words appear in title in order
+  // ── TIER 2: Strong word matches (70-85) ──
+
   const queryWords = q.split(/\s+/).filter(Boolean);
   const titleWords = title.split(/\s+/);
 
-  if (queryWords.length > 1) {
-    // Check if all query words appear in title
-    const allWordsPresent = queryWords.every(w => titleWords.some(tw => tw.includes(w)));
-    if (allWordsPresent) {
-      // Bonus: words appear in the correct order
-      let lastIdx = -1;
-      const inOrder = queryWords.every(w => {
-        const idx = titleWords.findIndex((tw, i) => i > lastIdx && tw.includes(w));
-        if (idx >= 0) { lastIdx = idx; return true; }
-        return false;
-      });
-      if (inOrder) return 75;
-      return 65;
+  if (queryWords.length >= 2) {
+    // All query words appear in title
+    const matchedIndices = [];
+    const allMatched = queryWords.every((qw) => {
+      const idx = titleWords.findIndex(
+        (tw, i) => !matchedIndices.includes(i) && (tw === qw || tw.includes(qw) || qw.includes(tw)),
+      );
+      if (idx >= 0) { matchedIndices.push(idx); return true; }
+      return false;
+    });
+
+    if (allMatched) {
+      // Check if words are in correct order
+      const inOrder = matchedIndices.every((v, i) => i === 0 || v > matchedIndices[i - 1]);
+      if (inOrder) {
+        // Check if words are adjacent (no gaps)
+        const isConsecutive = matchedIndices.every(
+          (v, i) => i === 0 || v === matchedIndices[i - 1] + 1,
+        );
+        if (isConsecutive) return 85; // Adjacent + ordered
+        return 80; // Ordered but not adjacent
+      }
+      return 75; // All words present but wrong order
     }
   }
 
-  // Title contains query as substring
-  if (title.includes(q)) return 60;
+  // ── TIER 3: Substring / partial matches (40-65) ──
 
-  // Any query word matches a title word
-  if (queryWords.some(w => titleWords.some(tw => tw.includes(w)))) return 40;
+  // Title contains full query as substring
+  if (title.includes(q)) return 65;
 
-  // Partial character match
-  if (title.includes(q.substring(0, Math.max(3, Math.floor(q.length * 0.6))))) return 20;
+  // Majority of query words match
+  if (queryWords.length > 1) {
+    const matchCount = queryWords.filter((qw) =>
+      titleWords.some((tw) => tw.includes(qw) || qw.includes(tw)),
+    ).length;
+    const ratio = matchCount / queryWords.length;
+    if (ratio >= 0.5) return 55;
+  }
 
-  // No match at all
+  // Any single query word matches a title word (exact word match)
+  if (queryWords.some((qw) => titleWords.some((tw) => tw === qw))) return 45;
+
+  // Any query word is contained in a title word
+  if (queryWords.some((qw) => titleWords.some((tw) => tw.includes(qw) || qw.includes(tw)))) return 40;
+
+  // ── TIER 4: Weak matches (0-25) ──
+
+  // Partial character match (at least 60% of query prefix appears)
+  const minLen = Math.max(3, Math.floor(q.length * 0.6));
+  const prefix = q.substring(0, minLen);
+  if (title.includes(prefix)) return 25;
+
+  // Single character overlap
+  if (q.length >= 3 && title.includes(q[0])) return 10;
+
   return 0;
 }
 
@@ -74,15 +118,28 @@ export function getSearchRelevance(movie, query) {
 export function rankSearchResults(results, query) {
   if (!results || !query) return results || [];
 
+  const q = query.toLowerCase().trim();
+
   return results
-    .map(m => ({
+    .map((m) => ({
       ...m,
       _relevance: getSearchRelevance(m, query),
     }))
     .sort((a, b) => {
-      // Primary sort: relevance score (highest first)
+      // Primary: relevance score (highest first)
       if (b._relevance !== a._relevance) return b._relevance - a._relevance;
-      // Secondary sort: IMDb rating
+
+      // Secondary: exact title bonus — if one title exactly matches query, it wins
+      const aExact = (a.title || "").toLowerCase().trim() === q;
+      const bExact = (b.title || "").toLowerCase().trim() === q;
+      if (aExact !== bExact) return aExact ? -1 : 1;
+
+      // Tertiary: title length (shorter = more likely the intended match)
+      const aLen = (a.title || "").length;
+      const bLen = (b.title || "").length;
+      if (aLen !== bLen) return aLen - bLen;
+
+      // Quaternary: IMDb rating
       return (b.imdbRating || 0) - (a.imdbRating || 0);
     });
 }
@@ -94,7 +151,7 @@ export function rankSearchResults(results, query) {
  * @param {string} query - Search query
  * @param {Array} results - Available results
  * @param {number} threshold - Minimum similarity (0-1) to consider a suggestion
- * @returns {Array} Suggested titles
+ * @returns {Array} Suggested title strings
  */
 export function getDidYouMean(query, results = [], threshold = 0.4) {
   if (!query || !results.length) return [];
@@ -103,11 +160,10 @@ export function getDidYouMean(query, results = [], threshold = 0.4) {
   if (q.length < 2) return [];
 
   const suggestions = results
-    .map(m => {
+    .map((m) => {
       const title = (m.title || m.name || "").toLowerCase();
       if (!title) return null;
 
-      // Calculate similarity
       const similarity = getStringSimilarity(q, title);
       if (similarity >= threshold && title !== q) {
         return { title: m.title || m.name, similarity, id: m.id };
@@ -116,9 +172,16 @@ export function getDidYouMean(query, results = [], threshold = 0.4) {
     })
     .filter(Boolean)
     .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, 3);
+    .slice(0, 5);
 
-  return suggestions;
+  // Deduplicate by title
+  const seen = new Set();
+  return suggestions.filter((s) => {
+    const key = s.title.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /**

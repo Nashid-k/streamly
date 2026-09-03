@@ -95,9 +95,12 @@ export default function SearchPage() {
         (a, b) =>
           (a.releaseYear || a.year || 0) - (b.releaseYear || b.year || 0),
       );
+    else if (sortBy === "Relevance")
+      // Always re-rank to ensure correct order after filtering
+      return rankSearchResults(list, query);
 
     return list;
-  }, [results, filterType, sortBy]);
+  }, [results, filterType, sortBy, query]);
 
   const [visibleCount, setVisibleCount] = useState(20);
 
