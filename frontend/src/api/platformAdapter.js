@@ -562,7 +562,8 @@ export function mapSource(movie) {
  * 4. Return null (never default to netflix or any platform)
  */
 export function normalizeMovieSource(movie) {
-  if (!movie) return { ...movie, source: null, sourceName: null };
+  // Guard: never crash on null/undefined
+  if (!movie || typeof movie !== 'object') return { source: null, sourceName: null };
 
   // 1. If source is already a valid canonical key, use it
   if (movie.source && PLATFORMS[movie.source]) {
@@ -578,7 +579,7 @@ export function normalizeMovieSource(movie) {
   }
 
   // 3. Try availablePlatforms
-  if (movie.availablePlatforms && movie.availablePlatforms.length > 0) {
+  if (movie.availablePlatforms && Array.isArray(movie.availablePlatforms) && movie.availablePlatforms.length > 0) {
     for (const p of movie.availablePlatforms) {
       const match = PlatformAdapter.resolveFromRawName(p);
       if (match) {
@@ -587,24 +588,27 @@ export function normalizeMovieSource(movie) {
     }
     // Even if no match, return the raw first platform as sourceName (for display)
     const rawFirst = movie.availablePlatforms[0];
-    const rawKey = normalizePlatformKey(rawFirst);
-    if (rawKey) {
-      return { ...movie, source: rawKey, sourceName: PLATFORMS[rawKey].name };
+    if (rawFirst) {
+      const rawKey = normalizePlatformKey(rawFirst);
+      if (rawKey) {
+        return { ...movie, source: rawKey, sourceName: PLATFORMS[rawKey].name };
+      }
+      // Raw string didn't normalize — still show it as sourceName for transparency
+      return { ...movie, source: null, sourceName: rawFirst };
     }
-    // Raw string didn't normalize — still show it as sourceName for transparency
-    return { ...movie, source: null, sourceName: rawFirst };
   }
 
-  // 4. No platform data at all
-  return { ...movie, source: null, sourceName: null };
+  // 4. No platform data at all — keep ALL movie properties intact
+  return { ...movie, source: movie.source || null, sourceName: movie.sourceName || null };
 }
 
 /**
  * Normalize an array of movies with source/sourceName resolution.
+ * Safely handles undefined/null elements in the array.
  */
 export function normalizeMoviesSources(movies) {
   if (!Array.isArray(movies)) return [];
-  return movies.map(normalizeMovieSource);
+  return movies.filter(Boolean).map(normalizeMovieSource);
 }
 
 /**

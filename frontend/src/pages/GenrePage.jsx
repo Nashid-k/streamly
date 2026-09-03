@@ -21,9 +21,9 @@ export default function GenrePage() {
   const error = queryError ? "Failed to load genre results." : null;
 
   const results = useMemo(() => {
-    if (!rawResults || !rawResults.movies) return [];
+    if (!rawResults || !Array.isArray(rawResults.movies)) return [];
 
-    const mapped = rawResults.movies.map(mapSource);
+    const mapped = rawResults.movies.filter(Boolean).map(mapSource);
 
     // Filter to ensure the genre matches to prevent dirty search results
     const strict = mapped.filter((m) => {

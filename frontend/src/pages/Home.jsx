@@ -495,8 +495,8 @@ export default function Home({
     // 1. Collect all unique movies for dynamic rails
     const allUniqueMovies = new Map();
     for (const cat of rawCategories) {
-      for (const m of cat.movies) {
-        if (!allUniqueMovies.has(m.id)) allUniqueMovies.set(m.id, m);
+      for (const m of (cat.movies || [])) {
+        if (m && m.id && !allUniqueMovies.has(m.id)) allUniqueMovies.set(m.id, m);
       }
     }
     let allMovies = Array.from(allUniqueMovies.values());
@@ -563,7 +563,7 @@ export default function Home({
     const standardCategories = [];
     for (const cat of rawCategories) {
       // Normalize every movie's source/sourceName from availablePlatforms
-      let filtered = cat.movies.map(normalizeMovieSource);
+      let filtered = (cat.movies || []).filter(Boolean).map(normalizeMovieSource);
       let dynamicName = cat.name;
 
       if (filter === "series" || filter === "tv shows") {
@@ -755,7 +755,7 @@ export default function Home({
     if (categories.length > 0) {
       const allCategoryMovies = [];
       categories.forEach((c) => {
-        c.movies.forEach((m) => {
+        (c.movies || []).filter(Boolean).forEach((m) => {
           if (m.backdropUrl && !allCategoryMovies.find((p) => p.id === m.id)) {
             allCategoryMovies.push(m);
           }
