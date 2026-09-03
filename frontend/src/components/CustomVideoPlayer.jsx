@@ -1502,74 +1502,51 @@ const CustomVideoPlayer = ({
               </div>
             </div>
 
-            {/* TIME DISPLAY + SHOW TITLE + SEASON/EPISODE — below progress */}
+            {/* TIME + TITLE + SEASON/EPISODE — single row below progress */}
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
               padding: "2px 16px 6px", pointerEvents: "none",
+              gap: 12,
             }}>
               {/* Left: current time / duration */}
               <span style={{
                 color: V.dim, fontSize: 11, fontWeight: 600,
                 fontFamily: "monospace", letterSpacing: "0.5px",
+                flexShrink: 0,
               }}>
                 {fmt(currentTime)} / {fmt(duration)}
               </span>
-              {/* Center: title */}
-              <span style={{
-                color: "rgba(255,255,255,0.85)", fontSize: "clamp(12px, 1.4vw, 14px)",
-                fontWeight: 700, letterSpacing: "-0.01em",
-                textShadow: "0 1px 8px rgba(0,0,0,0.8)",
-                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                maxWidth: "min(320px, 50vw)",
+              {/* Center: title + season/episode + year */}
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8,
+                minWidth: 0, flex: 1, justifyContent: "center",
               }}>
-                {movie?.title || movie?.name}
-              </span>
-              {/* Right: season/episode + year */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{
+                  color: "rgba(255,255,255,0.85)", fontSize: "clamp(12px, 1.4vw, 14px)",
+                  fontWeight: 700, letterSpacing: "-0.01em",
+                  textShadow: "0 1px 8px rgba(0,0,0,0.8)",
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  maxWidth: "min(280px, 40vw)",
+                }}>
+                  {movie?.title || movie?.name}
+                </span>
                 {isTvContent && season && (
                   <span style={{
                     color: V.accent, fontSize: "clamp(10px, 1.2vw, 12px)",
                     fontWeight: 700, letterSpacing: "0.5px",
                     background: V.accentDim, padding: "2px 8px", borderRadius: 4,
                     border: `1px solid ${V.accentBorder}`,
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap", flexShrink: 0,
                   }}>
                     S{season} E{episode}
                   </span>
                 )}
                 {movie?.releaseYear && (
-                  <span style={{ color: V.dim, fontSize: 11, fontWeight: 600 }}>{movie.releaseYear}</span>
+                  <span style={{ color: V.dim, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{movie.releaseYear}</span>
                 )}
               </div>
-            </div>
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              padding: "4px 16px 6px", pointerEvents: "none",
-              gap: 12, flexWrap: "wrap",
-            }}>
-              <span style={{
-                color: "rgba(255,255,255,0.85)", fontSize: "clamp(12px, 1.4vw, 14px)",
-                fontWeight: 700, letterSpacing: "-0.01em",
-                textShadow: "0 1px 8px rgba(0,0,0,0.8)",
-                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                maxWidth: "min(320px, 50vw)",
-              }}>
-                {movie?.title || movie?.name}
-              </span>
-              {isTvContent && season && (
-                <span style={{
-                  color: V.accent, fontSize: "clamp(10px, 1.2vw, 12px)",
-                  fontWeight: 700, letterSpacing: "0.5px",
-                  background: V.accentDim, padding: "2px 8px", borderRadius: 4,
-                  border: `1px solid ${V.accentBorder}`,
-                  whiteSpace: "nowrap",
-                }}>
-                  S{season} E{episode}
-                </span>
-              )}
-              {movie?.releaseYear && (
-                <span style={{ color: V.dim, fontSize: 11, fontWeight: 600 }}>{movie.releaseYear}</span>
-              )}
+              {/* Right: spacer for symmetry */}
+              <div style={{ flexShrink: 0, minWidth: 70 }} />
             </div>
 
             {/* CONTROL ROW */}
@@ -1748,25 +1725,25 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ SETTINGS BOTTOM SHEET ══════════════════════════════════ */}
+      {/* ═══ SETTINGS PANEL ══════════════════════════════════════════ */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 350, damping: 32 }}
+            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 50,
+              position: "absolute", bottom: 52, right: 16, zIndex: 50,
+              width: 260, maxHeight: "50vh",
               background: "rgba(10,10,12,0.97)", backdropFilter: "blur(24px)",
-              borderTopLeftRadius: 16, borderTopRightRadius: 16,
-              padding: "12px 20px 20px", color: V.text,
-              maxHeight: "55vh", overflowY: "auto",
-              borderTop: `1px solid ${V.glassBorder}`,
+              border: `1px solid ${V.glassBorder}`,
+              borderRadius: 12, padding: "12px 14px", color: V.text,
+              overflowY: "auto",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
             }}
           >
-            <div style={{ width: 32, height: 3, background: "rgba(255,255,255,0.15)", borderRadius: 2, margin: "0 auto 14px" }} />
 
             {/* Speed */}
             <div style={{ marginBottom: 14 }}>
@@ -1899,25 +1876,25 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ SUBTITLES BOTTOM SHEET ══════════════════════════════════ */}
+      {/* ═══ SUBTITLES PANEL ══════════════════════════════════════════ */}
       <AnimatePresence>
         {showSubtitlesMenu && (
           <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 350, damping: 32 }}
+            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 50,
+              position: "absolute", bottom: 52, right: 56, zIndex: 50,
+              width: 240, maxHeight: "45vh",
               background: "rgba(10,10,12,0.97)", backdropFilter: "blur(24px)",
-              borderTopLeftRadius: 16, borderTopRightRadius: 16,
-              padding: "12px 20px 20px", color: V.text,
-              maxHeight: "50vh", overflowY: "auto",
-              borderTop: `1px solid ${V.glassBorder}`,
+              border: `1px solid ${V.glassBorder}`,
+              borderRadius: 12, padding: "12px 14px", color: V.text,
+              overflowY: "auto",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
             }}
           >
-            <div style={{ width: 32, height: 3, background: "rgba(255,255,255,0.15)", borderRadius: 2, margin: "0 auto 14px" }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <span style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700 }}>Subtitles</span>
               <div onClick={(e) => { e.stopPropagation(); setSubtitleEnabled(!subtitleEnabled); }}
