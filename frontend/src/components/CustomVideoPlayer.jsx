@@ -229,6 +229,15 @@ const CustomVideoPlayer = ({
     }
   }, [hasInitiallyLoaded, dynamicTips.length]);
 
+  /* ═══ Block popup ads from CineSrc iframe ═════════════════════════ */
+  useEffect(() => {
+    if (!isCineSrc) return;
+    // Override window.open to block popup ads (without sandbox)
+    const origOpen = window.open;
+    window.open = () => null;
+    return () => { window.open = origOpen; };
+  }, [isCineSrc]);
+
   /* ═══ URL Generation ════════════════════════════════════════════════ */
   useEffect(() => {
     let watchdogTimer;
@@ -253,7 +262,7 @@ const CustomVideoPlayer = ({
       if (activeServerIndex === 0) {
         if (!isNew && currentTime > 0 && !targetSeekTimeRef.current) url += `&t=${Math.floor(currentTime)}&continueprompt=false`;
         else if (isNew && startTime > 0) url += `&t=${Math.floor(startTime)}&continueprompt=false`;
-        if (useNativeControls) url = url.replace("&controls=false", "");
+
       }
       setIframeUrl(url);
       // CineSrc needs more time to initialize — use 20s watchdog
@@ -340,10 +349,11 @@ const CustomVideoPlayer = ({
       try { ({ type: t, ...d } = ev.data); } catch { return; }
       switch (t) {
         case "cinesrc:ready":
+          // Per CineSrc docs: autoplay=true in URL handles playback.
+          // Do NOT call sendCommand('play') here — it interrupts HLS loading
+          // and causes 'play() interrupted by new load request' errors.
           sendCommand("setVolume", [isMuted ? 0 : volume]);
           sendCommand("setPlaybackRate", [playbackRate]);
-          // Defer play slightly to avoid 'play() interrupted by new load' error
-          setTimeout(() => sendCommand("play"), 100);
           sendCommand("getCurrentTime");
           sendCommand("getDuration");
           sendCommand("getVolume");
@@ -806,7 +816,16 @@ const CustomVideoPlayer = ({
       {showCustomUI && isCineSrc && (
         <div
           onMouseMove={handleMouseMove}
-          onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+          onClick={(e) => {
+            // Only intercept clicks in the top 80% — bottom 20% lets CineSrc native controls through
+            const r = containerRef.current?.getBoundingClientRect();
+            if (r) {
+              const pctY = (e.clientY - r.top) / r.height;
+              if (pctY > 0.85) return; // Let CineSrc handle bottom clicks (controls area)
+            }
+            e.stopPropagation();
+            togglePlay();
+          }}
           onDoubleClick={(e) => {
             e.stopPropagation();
             const r = containerRef.current.getBoundingClientRect();
