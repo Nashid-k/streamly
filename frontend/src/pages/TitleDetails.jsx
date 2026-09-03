@@ -768,6 +768,20 @@ export default function TitleDetails() {
   const hasProgress = continueWatching?.some((m) => m.id === movie?.id);
   const progressItem = continueWatching?.find((m) => m.id === movie?.id);
   const savedTimestamp = progressItem?.timestamp || 0;
+  // Track which episode the saved timestamp belongs to — only apply it once
+  const initialEpisodeRef = useRef(null);
+  useEffect(() => {
+    if (isPlaying && initialEpisodeRef.current === null) {
+      initialEpisodeRef.current = playingEpisode;
+    }
+    if (!isPlaying) {
+      initialEpisodeRef.current = null;
+    }
+  }, [isPlaying, playingEpisode]);
+  const effectiveSavedTimestamp = (
+    initialEpisodeRef.current !== null && playingEpisode === initialEpisodeRef.current
+      ? savedTimestamp : 0
+  );
   const backdropSrc = movie?.backdropUrl || movie?.posterUrl;
   const backdropOptimized = backdropSrc ? CdnImageAdapter.getBackdropUrl(backdropSrc) : null;
 
@@ -2512,7 +2526,7 @@ export default function TitleDetails() {
                   onServerChange={setPlayingServerIndex}
                   onClose={() => setIsPlaying(false)}
                   thumbnailUrl={movie.backdropUrl || movie.posterUrl}
-                  startTime={savedTimestamp}
+                  startTime={effectiveSavedTimestamp}
                   hasNextEpisode={
                     isTvContent && playingEpisode < episodes.length
                   }

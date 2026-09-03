@@ -371,6 +371,7 @@ const CustomVideoPlayer = ({
     setSkipIntroTime(null);
     setShowSkipIntro(false);
     setUpNextCountdown(15);
+    setHasInitiallyLoaded(false);
   }, [movie?.id, season, episode]);
 
   useEffect(() => { setActiveServerIndex(preferredServerIndex); }, [preferredServerIndex]);
