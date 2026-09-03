@@ -2090,8 +2090,9 @@ html {
   transform: scale(1.4);
   box-shadow: 0 0 10px rgba(232,168,56,0.6), 0 0 0 2px rgba(232,168,56,0.3);
 }
-.void-hover { transition: background 0.12s; }
-.void-hover:hover { background: rgba(255,255,255,0.08); }
+.void-hover { transition: background 0.15s ease, transform 0.1s ease, padding-left 0.15s ease; padding-left: 14px; }
+.void-hover:hover { background: rgba(255,255,255,0.08); padding-left: 18px; }
+.void-hover:active { transform: scale(0.98); }
 .void-volume-bar {
   transition: width 0.15s ease;
 }

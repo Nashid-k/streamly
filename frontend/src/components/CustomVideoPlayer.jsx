@@ -135,6 +135,8 @@ const CustomVideoPlayer = ({
   const subtitleInputRef = useRef(null);
   const toastTimeoutRef = useRef(null);
   const volumePopupRef = useRef(null);
+  const volumeBarRef = useRef(null);
+  const isDraggingVolumeRef = useRef(false);
   const isLoopingRef = useRef(isLooping);
   useEffect(() => { isLoopingRef.current = isLooping; }, [isLooping]);
 
@@ -761,8 +763,9 @@ const CustomVideoPlayer = ({
             width: "100%", height: "100%", border: "none", background: "#000",
             pointerEvents: isCineSrc ? "auto" : (showCustomUI ? "none" : "auto"),
             opacity: isLoading && !hasInitiallyLoaded ? 0 : 1,
-            transition: "opacity 0.5s ease",
+            transition: "opacity 0.5s ease, transform 0.5s cubic-bezier(0.4,0,0.2,1)",
             filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
+            transformOrigin: "center center",
             ...ASPECT_RATIOS[aspectRatioIndex].style,
           }}
           allow="autoplay; fullscreen; picture-in-picture"
@@ -1237,6 +1240,8 @@ const CustomVideoPlayer = ({
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -8 }}
+                      whileHover={{ scale: 1.06, x: 4 }}
+                      whileTap={{ scale: 0.94 }}
                       transition={{ type: "spring", stiffness: 400, damping: 26 }}
                       onClick={(e) => { e.stopPropagation(); sendCommand("seek", [skipIntroTime]); setShowSkipIntro(false); }}
                       style={{
@@ -1423,25 +1428,42 @@ const CustomVideoPlayer = ({
                 >
                   {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" style={{ marginLeft: 2 }} />}
                 </motion.button>
-                <button onClick={(e) => { e.stopPropagation(); seekRelative(-10); }}
+                <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(-10); }}
+                  whileHover={{ scale: 1.15, background: "rgba(255,255,255,0.08)" }}
+                  whileTap={{ scale: 0.85 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   style={{ background: "transparent", border: "none", color: V.dim, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                   title="Rewind 10s"
                 >
                   <RotateCcw size={14} />
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); seekRelative(10); }}
+                </motion.button>
+                <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(10); }}
+                  whileHover={{ scale: 1.15, background: "rgba(255,255,255,0.08)" }}
+                  whileTap={{ scale: 0.85 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   style={{ background: "transparent", border: "none", color: V.dim, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                   title="Forward 10s"
                 >
                   <RotateCw size={14} />
-                </button>
+                </motion.button>
                 {/* Volume */}
                 <div onMouseEnter={() => setIsVolumeHovered(true)} onMouseLeave={() => setIsVolumeHovered(false)} style={{ display: "flex", alignItems: "center", gap: 0, position: "relative" }}>
-                  <button onClick={toggleMute}
+                  <motion.button onClick={toggleMute}
+                    whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
                     style={{ background: "transparent", border: "none", color: V.dim, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
-                    {isMuted || volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                  </button>
+                    <AnimatePresence mode="wait">
+                      <motion.div key={isMuted || volume === 0 ? "off" : "on"}
+                        initial={{ scale: 0.5, opacity: 0, rotate: -30 }}
+                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                        exit={{ scale: 0.5, opacity: 0, rotate: 30 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                      >
+                        {isMuted || volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                      </motion.div>
+                    </AnimatePresence>
+                  </motion.button>
                   {/* Volume percentage popup */}
                   <AnimatePresence>
                     {showVolumePopup && (
@@ -1471,20 +1493,63 @@ const CustomVideoPlayer = ({
                       </motion.div>
                     )}
                   </AnimatePresence>
+                  {/* Custom volume bar */}
                   <motion.div
                     initial={false}
-                    animate={{ width: isVolumeHovered ? 56 : 0, opacity: isVolumeHovered ? 1 : 0 }}
-                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                    style={{ overflow: "hidden" }}
+                    animate={{ width: isVolumeHovered ? 60 : 0, opacity: isVolumeHovered ? 1 : 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                    style={{ overflow: "hidden", position: "relative", height: 24, display: "flex", alignItems: "center" }}
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <input
-                      type="range" min="0" max="1" step="0.02"
-                      value={isMuted ? 0 : volume}
-                      onChange={(e) => { e.stopPropagation(); changeVolume(parseFloat(e.target.value)); }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="void-volume"
-                      style={{ width: 56, cursor: "pointer", height: 2 }}
-                    />
+                    <div
+                      ref={volumeBarRef}
+                      style={{
+                        width: 52, height: 4, borderRadius: 2,
+                        background: "rgba(255,255,255,0.12)", position: "relative",
+                        cursor: "pointer",
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        isDraggingVolumeRef.current = true;
+                        const r = e.currentTarget.getBoundingClientRect();
+                        const x = Math.max(0, Math.min(e.clientX - r.left, r.width));
+                        changeVolume(x / r.width);
+                        const mm = (ev) => {
+                          if (!isDraggingVolumeRef.current || !volumeBarRef.current) return;
+                          const rr = volumeBarRef.current.getBoundingClientRect();
+                          const xx = Math.max(0, Math.min(ev.clientX - rr.left, rr.width));
+                          changeVolume(xx / rr.width);
+                        };
+                        const mu = () => {
+                          isDraggingVolumeRef.current = false;
+                          window.removeEventListener("mousemove", mm);
+                          window.removeEventListener("mouseup", mu);
+                        };
+                        window.addEventListener("mousemove", mm);
+                        window.addEventListener("mouseup", mu);
+                      }}
+                    >
+                      {/* Fill */}
+                      <div style={{
+                        position: "absolute", left: 0, top: 0, bottom: 0,
+                        width: `${(isMuted ? 0 : volume) * 100}%`,
+                        background: `linear-gradient(90deg, ${V.accent}, #f0c060)`,
+                        borderRadius: 2,
+                        transition: isDraggingVolumeRef.current ? "none" : "width 0.1s ease",
+                        boxShadow: `0 0 6px ${V.accentGlow}`,
+                      }} />
+                      {/* Thumb dot */}
+                      <div style={{
+                        position: "absolute", top: "50%",
+                        left: `${(isMuted ? 0 : volume) * 100}%`,
+                        transform: "translate(-50%, -50%)",
+                        width: 10, height: 10, borderRadius: "50%",
+                        background: "#fff",
+                        boxShadow: `0 0 4px rgba(0,0,0,0.4), 0 0 0 1.5px ${V.accent}`,
+                        transition: isDraggingVolumeRef.current ? "none" : "left 0.1s ease",
+                      }} />
+                    </div>
                   </motion.div>
                 </div>
               </div>
@@ -1492,7 +1557,9 @@ const CustomVideoPlayer = ({
               {/* Right: Subtitles + Shortcuts + Settings + Fullscreen */}
               <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <input type="file" accept=".srt,.vtt" ref={subtitleInputRef} onChange={handleSubtitleUpload} style={{ display: "none" }} />
-                <button onClick={(e) => { e.stopPropagation(); setShowSubtitlesMenu(!showSubtitlesMenu); setShowSettings(false); }}
+                <motion.button onClick={(e) => { e.stopPropagation(); setShowSubtitlesMenu(!showSubtitlesMenu); setShowSettings(false); }}
+                  whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   style={{
                     background: subtitleEnabled || showSubtitlesMenu ? V.accentDim : "transparent",
                     border: subtitleEnabled || showSubtitlesMenu ? `1px solid ${V.accentBorder}` : "none",
@@ -1504,8 +1571,10 @@ const CustomVideoPlayer = ({
                 >
                   <Captions size={14} />
                   {subtitleEnabled && <div style={{ position: "absolute", top: 3, right: 3, width: 4, height: 4, background: V.accent, borderRadius: "50%" }} />}
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); setShowShortcuts((p) => !p); }}
+                </motion.button>
+                <motion.button onClick={(e) => { e.stopPropagation(); setShowShortcuts((p) => !p); }}
+                  whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   style={{
                     background: showShortcuts ? V.accentDim : "transparent",
                     border: showShortcuts ? `1px solid ${V.accentBorder}` : "none",
@@ -1515,8 +1584,10 @@ const CustomVideoPlayer = ({
                   }}
                 >
                   <Keyboard size={14} />
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setShowSubtitlesMenu(false); }}
+                </motion.button>
+                <motion.button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setShowSubtitlesMenu(false); }}
+                  whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   style={{
                     background: showSettings ? V.accentDim : "transparent",
                     border: showSettings ? `1px solid ${V.accentBorder}` : "none",
@@ -1525,13 +1596,20 @@ const CustomVideoPlayer = ({
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}
                 >
-                  <Settings size={14} style={{ transition: "transform 0.3s", transform: showSettings ? "rotate(45deg)" : "rotate(0)" }} />
-                </button>
-                <button onClick={toggleFullscreen}
+                  <motion.div
+                    animate={{ rotate: showSettings ? 90 : 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <Settings size={14} />
+                  </motion.div>
+                </motion.button>
+                <motion.button onClick={toggleFullscreen}
+                  whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   style={{ background: "transparent", border: "none", color: V.dim, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
                   {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
-                </button>
+                </motion.button>
               </div>
             </div>
           </motion.div>
@@ -1563,7 +1641,9 @@ const CustomVideoPlayer = ({
               <div style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Playback Speed</div>
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                 {[0.5, 0.75, 1, 1.25, 1.5, 2].map((r) => (
-                  <button key={r} onClick={() => { sendCommand("setPlaybackRate", [r]); setPlaybackRate(r); setShowSettings(false); }}
+                  <motion.button key={r} onClick={() => { sendCommand("setPlaybackRate", [r]); setPlaybackRate(r); setShowSettings(false); }}
+                    whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
                     style={{
                       background: playbackRate === r ? V.accentDim : "rgba(255,255,255,0.04)",
                       color: playbackRate === r ? V.accent : V.dim,
@@ -1573,7 +1653,7 @@ const CustomVideoPlayer = ({
                     }}
                   >
                     {r}x
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -1584,7 +1664,9 @@ const CustomVideoPlayer = ({
                 <div style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Quality</div>
                 <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                   {qualities.map((q, i) => (
-                    <button key={i} onClick={() => { sendCommand("setQuality", [q.id || i]); setCurrentQuality(q); setShowSettings(false); }}
+                    <motion.button key={i} onClick={() => { sendCommand("setQuality", [q.id || i]); setCurrentQuality(q); setShowSettings(false); }}
+                      whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 25 }}
                       style={{
                         background: (currentQuality?.id === q.id) ? V.accentDim : "rgba(255,255,255,0.04)",
                         color: (currentQuality?.id === q.id) ? V.accent : V.dim,
@@ -1593,7 +1675,7 @@ const CustomVideoPlayer = ({
                       }}
                     >
                       {q.name || q.height + "p" || i}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
