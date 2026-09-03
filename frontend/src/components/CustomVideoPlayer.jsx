@@ -1519,11 +1519,12 @@ const CustomVideoPlayer = ({
               </div>
             </div>
 
-            {/* TIME + TITLE + SEASON/EPISODE — single row below progress */}
+            {/* TITLE INFO ROW — below progress bar with glass backdrop */}
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "2px 16px 6px", pointerEvents: "none",
+              padding: "8px 16px 6px", pointerEvents: "none",
               gap: 12,
+              marginTop: 4,
             }}>
               {/* Left: current time / duration */}
               <span style={{
@@ -1539,27 +1540,32 @@ const CustomVideoPlayer = ({
                 minWidth: 0, flex: 1, justifyContent: "center",
               }}>
                 <span style={{
-                  color: "rgba(255,255,255,0.85)", fontSize: "clamp(12px, 1.4vw, 14px)",
+                  color: "#fff", fontSize: "clamp(13px, 1.5vw, 15px)",
                   fontWeight: 700, letterSpacing: "-0.01em",
-                  textShadow: "0 1px 8px rgba(0,0,0,0.8)",
+                  textShadow: "0 1px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)",
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                  maxWidth: "min(280px, 40vw)",
+                  maxWidth: "min(300px, 42vw)",
                 }}>
                   {movie?.title || movie?.name}
                 </span>
                 {isTvContent && season && (
                   <span style={{
                     color: V.accent, fontSize: "clamp(10px, 1.2vw, 12px)",
-                    fontWeight: 700, letterSpacing: "0.5px",
-                    background: V.accentDim, padding: "2px 8px", borderRadius: 4,
+                    fontWeight: 800, letterSpacing: "0.5px",
+                    background: `linear-gradient(135deg, ${V.accentDim}, rgba(232,168,56,0.08))`,
+                    padding: "3px 10px", borderRadius: 5,
                     border: `1px solid ${V.accentBorder}`,
                     whiteSpace: "nowrap", flexShrink: 0,
+                    textShadow: `0 0 8px ${V.accentGlow}`,
                   }}>
                     S{season} E{episode}
                   </span>
                 )}
                 {movie?.releaseYear && (
-                  <span style={{ color: V.dim, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{movie.releaseYear}</span>
+                  <span style={{
+                    color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600,
+                    flexShrink: 0, letterSpacing: "0.3px",
+                  }}>{movie.releaseYear}</span>
                 )}
               </div>
               {/* Right: spacer for symmetry */}
@@ -1567,7 +1573,7 @@ const CustomVideoPlayer = ({
             </div>
 
             {/* CONTROL ROW */}
-            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px 10px", pointerEvents: "auto" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 12px 12px", pointerEvents: "auto" }}>
               {/* Left: Play + Seek + Volume */}
               <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <motion.button
