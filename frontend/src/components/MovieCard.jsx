@@ -6,7 +6,8 @@ import PlatformIcon from "./PlatformIcon";
 import { getTMDBWeekdayShort } from "../utils/timezone";
 import { useNavigate } from "react-router-dom";
 import { movieService } from "../api/movieService";
-import { normalizePlatformKey } from "../api/platformAdapter";
+import { normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
+import { buildMovieAddedNotification } from "../utils/notificationEngine";
 import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "./Toast";
 
@@ -157,32 +158,16 @@ export default function MovieCard({
       });
       // Generate a rich notification when adding to list
       if (!wasInList && addNotification) {
-        const platformKey = movie.source ? normalizePlatformKey(movie.source) : null;
-        const platformName = platformKey ? PlatformAdapter.getName(platformKey) : (movie.sourceName || null);
-        const slug = slugify(movie.title, { lower: true, strict: true });
-        const detailUrl = `/watch/${movie.id}/${slug}`;
-        if (isTvContent) {
-          const seasons = movie.seasonsCount || movie.totalSeasons || 0;
-          addNotification({
-            title: `📺 ${movie.title}`,
-            message: platformName
-              ? `Added to your list. Series with ${seasons > 0 ? `${seasons} season${seasons > 1 ? 's' : ''}` : 'multiple seasons'} streaming on ${platformName}.${movie.nextEpisode?.releaseDate ? ` New episode airing soon.` : ''}`
-              : `Added to your list. Series${seasons > 0 ? ` with ${seasons} season${seasons > 1 ? 's' : ''}` : ''} added successfully.`,
-            link: detailUrl,
-            type: 'episode',
-            platform: platformName,
-          });
-        } else {
-          addNotification({
-            title: `🎬 ${movie.title}`,
-            message: platformName
-              ? `Added to your list. Now streaming on ${platformName}.${movie.releaseYear ? ` (${movie.releaseYear})` : ''}`
-              : `Added to your list.${movie.releaseYear ? ` (${movie.releaseYear})` : ''} Check streaming platforms for availability.`,
-            link: detailUrl,
-            type: 'movie',
-            platform: platformName,
-          });
-        }
+        const notif = buildMovieAddedNotification({
+          title: movie.title,
+          platform: movie.source || movie.sourceName,
+          year: movie.releaseYear || movie.year,
+          duration: movie.duration,
+          imageUrl: movie.backdropUrl || movie.posterUrl,
+          movieId: movie.id,
+          isSeries: isTvContent,
+        });
+        addNotification(notif);
       }
     },
     [movie, isInList, toggleMyList, toast, addNotification, isTvContent],

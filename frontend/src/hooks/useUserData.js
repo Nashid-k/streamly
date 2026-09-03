@@ -4,6 +4,7 @@ import {
   getStorageAdapter,
   migrateLocalStorageToFirestore,
 } from "../api/storageAdapter";
+import { buildWelcomeNotification, generateSmartNotifications, isNotificationTypeEnabled } from "../utils/notificationEngine";
 
 // ─── useAuth ──────────────────────────────────────────────────────────────────
 
@@ -286,18 +287,7 @@ export function useNotifications(user) {
         if (stored.length > 0) {
           setNotifications(stored);
         } else {
-          const welcomeNotif = [
-            {
-              id: "welcome-" + Date.now(),
-              title: "Welcome to Streamly!",
-              message:
-                "Discover movies and series from 7 platforms — Netflix, Prime Video, Hotstar, Apple TV+, Zee5, Sony LIV & JioCinema — all in one place.",
-              link: "/",
-              type: "welcome",
-              createdAt: Date.now(),
-              isRead: false,
-            },
-          ];
+          const welcomeNotif = [buildWelcomeNotification({ isSignedIn: true })];
           setNotifications(welcomeNotif);
           adapter.updateNotifications(welcomeNotif).catch(() => {});
         }
@@ -308,18 +298,7 @@ export function useNotifications(user) {
         if (stored && stored.length > 0) {
           setNotifications(stored);
         } else {
-          const welcomeNotif = [
-            {
-              id: "welcome-" + Date.now(),
-              title: "Welcome to Streamly!",
-              message:
-                "Sign in to sync your watch history, lists, and get personalized release notifications.",
-              link: "/",
-              type: "welcome",
-              createdAt: Date.now(),
-              isRead: false,
-            },
-          ];
+          const welcomeNotif = [buildWelcomeNotification({ isSignedIn: false })];
           setNotifications(welcomeNotif);
           adapter.updateNotifications(welcomeNotif).catch(() => {});
         }
@@ -338,8 +317,11 @@ export function useNotifications(user) {
 
   const addNotification = useCallback(
     async (notif) => {
+      // Check notification preferences before adding
+      if (notif.type && !isNotificationTypeEnabled(notif.type)) return;
+
       const newNotif = {
-        id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
+        id: notif.id || (Date.now().toString() + Math.random().toString(36).substring(2, 7)),
         createdAt: Date.now(),
         isRead: false,
         ...notif,
@@ -347,18 +329,44 @@ export function useNotifications(user) {
 
       let updatedList;
       setNotifications((prev) => {
-        updatedList = [newNotif, ...prev].slice(0, 30);
+        // Deduplicate by ID
+        if (prev.some((n) => n.id === newNotif.id)) return prev;
+        updatedList = [newNotif, ...prev].slice(0, 50);
         return updatedList;
       });
 
-      // Fix C7: Capture adapter at call-time using ref
       if (updatedList) {
         getStorageAdapter(userRef.current)
           .updateNotifications(updatedList)
           .catch(() => {});
       }
     },
-    [], // No dependencies — uses refs
+    [],
+  );
+
+  const addNotifications = useCallback(
+    async (newNotifs) => {
+      if (!newNotifs || newNotifs.length === 0) return;
+      // Only add notifications whose types are enabled
+      const enabled = newNotifs.filter((n) => !n.type || isNotificationTypeEnabled(n.type));
+      if (enabled.length === 0) return;
+
+      let updatedList;
+      setNotifications((prev) => {
+        const existingIds = new Set(prev.map((n) => n.id));
+        const fresh = enabled.filter((n) => !existingIds.has(n.id));
+        if (fresh.length === 0) return prev;
+        updatedList = [...fresh, ...prev].slice(0, 50);
+        return updatedList;
+      });
+
+      if (updatedList) {
+        getStorageAdapter(userRef.current)
+          .updateNotifications(updatedList)
+          .catch(() => {});
+      }
+    },
+    [],
   );
 
   const markAllAsRead = useCallback(async () => {
@@ -384,7 +392,6 @@ export function useNotifications(user) {
     getStorageAdapter(userRef.current)
       .updateNotifications([])
       .catch(() => {});
-  }, []); // No dependencies — uses refs
+  }, []); // No dependencies — uses refs  return { notifications, addNotification, addNotifications, markAllAsRead, clearNotifications };
 
-  return { notifications, addNotification, markAllAsRead, clearNotifications };
 }

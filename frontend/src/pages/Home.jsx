@@ -16,6 +16,7 @@ import { movieService } from "../api/movieService";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import RailArrow from "../components/RailArrow";
+import { PLATFORMS, normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
 
 const GENRE_OPTIONS = [
   "All",
@@ -389,6 +390,7 @@ export default function Home({
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [visibleCatCount, setVisibleCatCount] = useState(4);
   const [activeGenre, setActiveGenre] = useState("All");
+  const [activePlatform, setActivePlatform] = useState("all");
   const { continueWatching, myList, isInList, toggleMyList } = useAppAuth();
 
   const { scrollY } = useScroll();
@@ -488,6 +490,7 @@ export default function Home({
     // Reset visible count and featured index when filter changes (#7 fix)
     setVisibleCatCount(4);
     setActiveGenre("All");
+    setActivePlatform("all");
     setFeaturedIndex(0);
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [filter]);
@@ -619,6 +622,26 @@ export default function Home({
         });
       }
 
+      // Platform filter: match against source, availablePlatforms, or sourceName
+      if (activePlatform !== "all") {
+        const platformObj = PLATFORMS[activePlatform];
+        if (platformObj) {
+          const platformNameLC = platformObj.name.toLowerCase();
+          const shortNameLC = platformObj.shortName.toLowerCase();
+          filtered = filtered.filter((m) => {
+            if (m.source === activePlatform) return true;
+            if (m.sourceName && (m.sourceName.toLowerCase() === platformNameLC || m.sourceName.toLowerCase() === shortNameLC)) return true;
+            if (m.availablePlatforms && m.availablePlatforms.length > 0) {
+              return m.availablePlatforms.some((p) => {
+                const key = normalizePlatformKey(p);
+                return key === activePlatform;
+              });
+            }
+            return false;
+          });
+        }
+      }
+
       if (
         filter === "all" ||
         filter === "series" ||
@@ -657,7 +680,7 @@ export default function Home({
     }
 
     return finalCategories;
-  }, [rawCategories, filter, activeGenre]);
+  }, [rawCategories, filter, activeGenre, activePlatform]);
 
   // Shared predicates for the Top 10 / Trending / Airing rails
   const isSeriesMovie = (m) =>
@@ -1145,6 +1168,73 @@ export default function Home({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Platform Filter Row */}
+      {!loading && categories.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: "0.4rem",
+            WebkitOverflowScrolling: "touch",
+            overscrollBehaviorX: "contain",
+            overflowX: "auto",
+            scrollbarWidth: "none",
+            padding: "0.4rem 0 0.5rem",
+          }}
+        >
+          <motion.button
+            layout
+            onClick={() => setActivePlatform("all")}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              background: activePlatform === "all" ? "linear-gradient(135deg, #f43f5e, #fb923c)" : "rgba(255,255,255,0.08)",
+              color: "#fff",
+              border: `1px solid ${activePlatform === "all" ? "transparent" : "rgba(255,255,255,0.1)"}`,
+              padding: "6px 14px",
+              borderRadius: "100px",
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              flexShrink: 0,
+              whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            All Platforms
+          </motion.button>
+          {Object.entries(PLATFORMS).filter(([key, p]) => p.category !== "aggregator").map(([key, p]) => (
+            <motion.button
+              layout
+              key={key}
+              onClick={() => setActivePlatform(key)}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                background: activePlatform === key ? (p.gradient || p.color) : "rgba(255,255,255,0.08)",
+                color: "#fff",
+                border: `1px solid ${activePlatform === key ? "transparent" : "rgba(255,255,255,0.1)"}`,
+                padding: "5px 12px",
+                borderRadius: "100px",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                transition: "all 0.2s",
+              }}
+            >
+              <PlatformIcon platform={key} xs />
+              <span className="desktop-only" style={{ marginLeft: "2px" }}>{p.shortName}</span>
+            </motion.button>
+          ))}
+        </div>
+      )}
 
       {/* Genre Filter Chips */}
       {!loading && categories.length > 0 && (

@@ -46,6 +46,7 @@ import { useToast } from "../components/Toast.jsx";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import { normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
+import { buildMovieAddedNotification } from "../utils/notificationEngine";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
 import CustomVideoPlayer from "../components/CustomVideoPlayer";
@@ -464,30 +465,16 @@ export default function TitleDetails() {
         });
         // Generate a rich notification when adding to list
         if (addNotification && movieObj) {
-          const platformName = resolvedPlatform ? PlatformAdapter.getName(resolvedPlatform) : (movieObj.availablePlatforms?.[0] || null);
-          const seasons = normalizedSeasonCount;
-          if (isTvContent) {
-            const epCount = totalEpisodes || episodes.length || 0;
-            addNotification({
-              title: `📺 ${movieObj.title}`,
-              message: platformName
-                ? `Added to your list. ${seasons > 0 ? `${seasons} season${seasons > 1 ? 's' : ''}, ` : ''}${epCount > 0 ? `${epCount} episode${epCount > 1 ? 's' : ''}` : 'multiple episodes'} streaming on ${platformName}.${movieObj.nextEpisode?.releaseDate ? ` New episode coming soon.` : ''}`
-                : `Added to your list. ${seasons > 0 ? `${seasons} season${seasons > 1 ? 's' : ''}` : 'Series'} added successfully.`,
-              link: `/watch/${movieObj.id}`,
-              type: 'episode',
-              platform: platformName,
-            });
-          } else {
-            addNotification({
-              title: `🎬 ${movieObj.title}`,
-              message: platformName
-                ? `Added to your list. Now streaming on ${platformName}.${movieObj.releaseYear ? ` (${movieObj.releaseYear})` : ''} ${movieObj.duration ? `· ${movieObj.duration}` : ''}`
-                : `Added to your list.${movieObj.releaseYear ? ` (${movieObj.releaseYear})` : ''} Check streaming platforms for availability.`,
-              link: `/watch/${movieObj.id}`,
-              type: 'movie',
-              platform: platformName,
-            });
-          }
+          const notif = buildMovieAddedNotification({
+            title: movieObj.title,
+            platform: resolvedPlatform ? PlatformAdapter.getName(resolvedPlatform) : (movieObj.availablePlatforms?.[0] || null),
+            year: movieObj.releaseYear,
+            duration: movieObj.duration,
+            imageUrl: movieObj.backdropUrl || movieObj.posterUrl,
+            movieId: movieObj.id,
+            isSeries: isTvContent,
+          });
+          addNotification(notif);
         }
       }
     } catch {
