@@ -287,14 +287,26 @@ const CustomVideoPlayer = ({
   const [showPausedInfo, setShowPausedInfo] = useState(false);
   const pausedInfoTimerRef = useRef(null);
 
-  /* Touch swipe gesture state */
-  const [swipeSide, setSwipeSide] = useState(null); // 'left' = brightness, 'right' = volume
-  const [swipePercent, setSwipePercent] = useState(0);
-  const swipeStartRef = useRef(null);
-  const swipeSideRef = useRef(null);
-  const swipeHudTimerRef = useRef(null);
+  /* Touch gesture state — VLC/MX Player style */
+  const [gestureType, setGestureType] = useState(null); // 'brightness' | 'volume' | 'seek'
+  const [gestureValue, setGestureValue] = useState(0);
+  const [seekDelta, setSeekDelta] = useState(0);
+  const gestureStartRef = useRef(null);
+  const gestureLockRef = useRef(null); // Lock direction after first significant move
+  const gestureHudTimerRef = useRef(null);
   const pinchStartDistRef = useRef(null);
   const pinchStartFullscreenRef = useRef(false);
+  const orientationRef = useRef('portrait');
+
+  /* Track orientation */
+  useEffect(() => {
+    const check = () => {
+      orientationRef.current = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   /* Refs */
   const iframeRef = useRef(null);
@@ -933,93 +945,133 @@ const CustomVideoPlayer = ({
     return () => el.removeEventListener("wheel", h);
   }, [showCustomUI, volume, changeVolume, showSettings, showSubtitlesMenu, showShortcuts]);
 
-  /* ═══ Touch Swipe Gestures — Volume (right) & Brightness (left) ═══ */
+  /* ═══ Touch Gestures — VLC/MX Player Style ═══════════════════════════════
+     LEFT 30%:   swipe ↑↓ = brightness
+     CENTER 40%: swipe ←→ = seek, double-tap = play/pause
+     RIGHT 30%:  swipe ↑↓ = volume
+     ══════════════════════════════════════════════════════════════════════ */
   const handleTouchStart = useCallback((e) => {
     if (!isTouch || !showCustomUI) return;
     /* Pinch detection: two fingers */
     if (e.touches.length === 2) {
-      e.preventDefault(); /* Block browser pinch-to-zoom */
+      e.preventDefault();
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       pinchStartDistRef.current = Math.hypot(dx, dy);
       pinchStartFullscreenRef.current = isFullscreen;
-      swipeStartRef.current = null; /* Cancel swipe */
+      gestureStartRef.current = null;
       return;
     }
-    /* Single finger: swipe for volume/brightness */
+    /* Single finger: record start position */
     const touch = e.touches[0];
     const r = containerRef.current?.getBoundingClientRect();
     if (!r) return;
     const relX = (touch.clientX - r.left) / r.width;
-    const side = relX < 0.4 ? 'left' : relX > 0.6 ? 'right' : null;
-    if (!side) return;
-    swipeStartRef.current = { y: touch.clientY, side };
-    swipeSideRef.current = side;
+    gestureStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+      relX,
+      zone: relX < 0.3 ? 'left' : relX > 0.7 ? 'right' : 'center',
+    };
+    gestureLockRef.current = null;
   }, [isTouch, showCustomUI, isFullscreen]);
 
   const handleTouchMove = useCallback((e) => {
     if (!isTouch || !showCustomUI) return;
     /* Pinch to fullscreen */
     if (e.touches.length === 2 && pinchStartDistRef.current) {
-      e.preventDefault(); /* Block browser pinch-to-zoom during our gesture */
+      e.preventDefault();
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const dist = Math.hypot(dx, dy);
       const ratio = dist / pinchStartDistRef.current;
-      /* Pinch out: ratio > 1.2 = enter fullscreen */
-      if (ratio > 1.2 && !pinchStartFullscreenRef.current) {
+      if (ratio > 1.15 && !pinchStartFullscreenRef.current) {
         toggleFullscreen();
         pinchStartDistRef.current = null;
       }
-      /* Pinch in: ratio < 0.8 = exit fullscreen */
-      if (ratio < 0.8 && pinchStartFullscreenRef.current) {
+      if (ratio < 0.85 && pinchStartFullscreenRef.current) {
         toggleFullscreen();
         pinchStartDistRef.current = null;
       }
       return;
     }
-    /* Single finger swipe */
-    if (!swipeStartRef.current) return;
+    if (!gestureStartRef.current) return;
     const touch = e.touches[0];
-    const dy = swipeStartRef.current.y - touch.clientY;
+    const dx = touch.clientX - gestureStartRef.current.x;
+    const dy = gestureStartRef.current.y - touch.clientY; /* positive = up */
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
     const r = containerRef.current?.getBoundingClientRect();
     if (!r) return;
-    const sensitivity = r.height * 0.4;
-    const pct = Math.max(-1, Math.min(1, dy / sensitivity));
-    const side = swipeStartRef.current.side;
-    if (side === 'right') {
-      const newVol = Math.max(0, Math.min(1, volume + pct * 0.5));
-      setVolume(newVol);
-      localStorage.setItem('streamly_volume', newVol.toString());
-      sendCommand('setVolume', [newVol]);
-      if (newVol > 0 && isMuted) {
-        setIsMuted(false);
-        localStorage.setItem('streamly_muted', 'false');
+    /* Lock gesture direction after 15px of movement */
+    if (!gestureLockRef.current && (absDx > 15 || absDy > 15)) {
+      if (absDx > absDy) {
+        gestureLockRef.current = 'horizontal'; /* seek */
+      } else {
+        gestureLockRef.current = 'vertical'; /* brightness or volume */
       }
-    } else if (side === 'left') {
-      const newBright = Math.max(0.2, Math.min(1.5, brightness + pct * 0.3));
-      setBrightness(newBright);
     }
-    setSwipeSide(side);
-    setSwipePercent(Math.abs(pct));
-    swipeStartRef.current = { y: touch.clientY, side };
-    if (swipeHudTimerRef.current) clearTimeout(swipeHudTimerRef.current);
-    swipeHudTimerRef.current = setTimeout(() => {
-      setSwipeSide(null);
-      setSwipePercent(0);
-    }, 1000);
+    if (!gestureLockRef.current) return;
+    e.preventDefault(); /* Prevent scrolling */
+    if (gestureLockRef.current === 'vertical') {
+      const zone = gestureStartRef.current.zone;
+      const sensitivity = r.height * 0.35;
+      const pct = Math.max(-1, Math.min(1, dy / sensitivity));
+      if (zone === 'right') {
+        /* Volume */
+        const newVol = Math.max(0, Math.min(1, volume + pct * 0.5));
+        setVolume(newVol);
+        localStorage.setItem('streamly_volume', newVol.toString());
+        sendCommand('setVolume', [newVol]);
+        if (newVol > 0 && isMuted) {
+          setIsMuted(false);
+          localStorage.setItem('streamly_muted', 'false');
+        }
+        setGestureType('volume');
+        setGestureValue(newVol);
+      } else if (zone === 'left') {
+        /* Brightness */
+        const newBright = Math.max(0.2, Math.min(1.5, brightness + pct * 0.3));
+        setBrightness(newBright);
+        setGestureType('brightness');
+        setGestureValue(newBright / 1.5);
+      }
+    } else if (gestureLockRef.current === 'horizontal') {
+      /* Seek — swipe right = forward, left = backward */
+      const seekSensitivity = r.width * 0.3;
+      const seekAmount = (dx / seekSensitivity) * 30; /* 30s per 30% screen width */
+      setGestureType('seek');
+      setSeekDelta(seekAmount);
+    }
+    if (gestureHudTimerRef.current) clearTimeout(gestureHudTimerRef.current);
+    gestureHudTimerRef.current = setTimeout(() => {
+      setGestureType(null);
+      setSeekDelta(0);
+    }, 800);
   }, [isTouch, showCustomUI, volume, isMuted, brightness, sendCommand, toggleFullscreen]);
 
-  const handleTouchEnd = useCallback(() => {
-    swipeStartRef.current = null;
-    swipeSideRef.current = null;
+  const handleTouchEnd = useCallback((e) => {
+    if (gestureLockRef.current === 'horizontal' && gestureStartRef.current) {
+      /* Apply seek on release */
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - gestureStartRef.current.x;
+      const r = containerRef.current?.getBoundingClientRect();
+      if (r) {
+        const seekSensitivity = r.width * 0.3;
+        const seekAmount = (dx / seekSensitivity) * 30;
+        if (Math.abs(seekAmount) > 2) seekRelative(Math.round(seekAmount));
+      }
+    }
+    gestureStartRef.current = null;
+    gestureLockRef.current = null;
     pinchStartDistRef.current = null;
-    if (swipeHudTimerRef.current) clearTimeout(swipeHudTimerRef.current);
-    swipeHudTimerRef.current = setTimeout(() => {
-      setSwipeSide(null);
-      setSwipePercent(0);
+    if (gestureHudTimerRef.current) clearTimeout(gestureHudTimerRef.current);
+    gestureHudTimerRef.current = setTimeout(() => {
+      setGestureType(null);
+      setSeekDelta(0);
     }, 600);
-  }, []);
+  }, [seekRelative]);
 
   /* Auto-hide controls — longer on touch (5s), always show when paused */
   const handleMouseMove = useCallback(() => {
@@ -1097,7 +1149,9 @@ const CustomVideoPlayer = ({
 
   const pp = duration > 0 ? Math.max(0, Math.min((currentTime / duration) * 100, 100)) : 0;
   const bp = duration > 0 ? Math.max(0, Math.min((buffered / duration) * 100, 100)) : 0;
-  const controlsVisible = showControls || !isPlaying || isScrubbing;
+  /* On mobile portrait: controls always visible. On landscape: auto-hide */
+  const isPortrait = orientationRef.current === 'portrait';
+  const controlsVisible = isTouch && isPortrait ? true : (showControls || !isPlaying || isScrubbing);
   const effVolume = isMuted ? 0 : volume;
 
   /* ═══════════════════════════════════════════════════════════════
@@ -1681,85 +1735,173 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ TOUCH SWIPE HUDS — Volume (right) & Brightness (left) ═══ */}
+      {/* ═══ TOUCH GESTURE HUDS — VLC/MX Player Style ═══════════════════════ */}
+      {/* Brightness vertical bar — left edge */}
       <AnimatePresence>
-        {swipeSide && isTouch && (
+        {gestureType === 'brightness' && isTouch && (
           <motion.div
-            key={`swipe-${swipeSide}`}
-            initial={{ opacity: 0, scale: 0.7 }}
+            key="brightness-bar"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={SPRING_SNAPPY}
+            style={{
+              position: 'absolute', left: 'clamp(12px, 3vw, 20px)',
+              top: '15%', bottom: '15%', width: 36,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              zIndex: 65, pointerEvents: 'none',
+              background: 'rgba(0,0,0,0.55)',
+              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              borderRadius: 18, border: '1px solid rgba(255,255,255,0.06)',
+              overflow: 'hidden',
+            }}>
+            {/* Track */}
+            <div style={{
+              position: 'relative', width: 4, height: '70%',
+              background: 'rgba(255,255,255,0.08)', borderRadius: 2,
+            }}>
+              {/* Fill */}
+              <motion.div
+                animate={{ height: `${gestureValue * 100}%` }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                  background: '#FBBF24', borderRadius: 2,
+                }}
+              />
+              {/* Thumb */}
+              <motion.div
+                animate={{ bottom: `${gestureValue * 100}%` }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                style={{
+                  position: 'absolute', left: '50%',
+                  transform: 'translate(-50%, 50%)',
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: '#FBBF24',
+                  boxShadow: '0 0 8px rgba(251,191,36,0.5)',
+                }}
+              />
+            </div>
+            {/* Sun icon at bottom */}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" style={{ marginTop: 6 }}>
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+            </svg>
+            <span style={{ color: '#FBBF24', fontSize: 9, fontWeight: 700, marginTop: 2,
+              fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
+              {Math.round(brightness * 100)}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Volume vertical bar — right edge */}
+      <AnimatePresence>
+        {gestureType === 'volume' && isTouch && (
+          <motion.div
+            key="volume-bar"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={SPRING_SNAPPY}
+            style={{
+              position: 'absolute', right: 'clamp(12px, 3vw, 20px)',
+              top: '15%', bottom: '15%', width: 36,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              zIndex: 65, pointerEvents: 'none',
+              background: 'rgba(0,0,0,0.55)',
+              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              borderRadius: 18, border: '1px solid rgba(255,255,255,0.06)',
+              overflow: 'hidden',
+            }}>
+            {/* Track */}
+            <div style={{
+              position: 'relative', width: 4, height: '70%',
+              background: 'rgba(255,255,255,0.08)', borderRadius: 2,
+            }}>
+              <motion.div
+                animate={{ height: `${gestureValue * 100}%` }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                  background: (isMuted || volume === 0) ? '#ff453a' : '#fff',
+                  borderRadius: 2,
+                }}
+              />
+              <motion.div
+                animate={{ bottom: `${gestureValue * 100}%` }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                style={{
+                  position: 'absolute', left: '50%',
+                  transform: 'translate(-50%, 50%)',
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: (isMuted || volume === 0) ? '#ff453a' : '#fff',
+                  boxShadow: '0 0 8px rgba(0,0,0,0.5)',
+                }}
+              />
+            </div>
+            {/* Speaker icon at bottom */}
+            <motion.div
+              key={isMuted || volume === 0 ? 'off' : 'on'}
+              initial={{ scale: 0.5 }} animate={{ scale: 1 }}
+              transition={SPRING_FAST}
+              style={{ marginTop: 6 }}
+            >
+              {isMuted || volume === 0 ? (
+                <VolumeX size={14} color="#ff453a" strokeWidth={2} />
+              ) : (
+                <Volume2 size={14} color="#fff" strokeWidth={2} />
+              )}
+            </motion.div>
+            <span style={{ color: (isMuted || volume === 0) ? '#ff453a' : '#fff', fontSize: 9, fontWeight: 700, marginTop: 2,
+              fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
+              {Math.round((isMuted ? 0 : volume) * 100)}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Seek indicator — center */}
+      <AnimatePresence>
+        {gestureType === 'seek' && isTouch && (
+          <motion.div
+            key="seek-indicator"
+            initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.85 }}
             transition={SPRING_SNAPPY}
             style={{
-              position: "absolute",
-              top: "50%",
-              [swipeSide === 'left' ? 'left' : 'right']: 'clamp(16px, 4vw, 32px)',
-              transform: 'translateY(-50%)',
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
               zIndex: 65, pointerEvents: 'none',
-            }}
-          >
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-              background: 'rgba(28,28,30,0.82)',
-              backdropFilter: 'blur(40px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 18,
-              padding: 'clamp(8px, 2vw, 14px) clamp(10px, 2.5vw, 18px)',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.05)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              borderRadius: 14, padding: '12px 20px',
+              border: '1px solid rgba(255,255,255,0.06)',
             }}>
-              <ArcRing
-                progress={swipeSide === 'right' ? (isMuted ? 0 : volume) : brightness / 1.5}
-                size={40}
-                strokeWidth={2.5}
-                color={swipeSide === 'left' ? '#FBBF24' : (swipeSide === 'right' && (isMuted || volume === 0)) ? '#ff453a' : '#fff'}
-                bgColor="rgba(255,255,255,0.06)"
-                glowColor={swipeSide === 'left' ? 'rgba(251,191,36,0.3)' : undefined}
-              >
-                {swipeSide === 'left' ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="5"/>
-                    <line x1="12" y1="1" x2="12" y2="3"/>
-                    <line x1="12" y1="21" x2="12" y2="23"/>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                    <line x1="1" y1="12" x2="3" y2="12"/>
-                    <line x1="21" y1="12" x2="23" y2="12"/>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                  </svg>
-                ) : (
-                  <motion.div
-                    key={isMuted || volume === 0 ? 'off' : volume < 0.3 ? 'low' : 'high'}
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={SPRING_FAST}
-                  >
-                    {isMuted || volume === 0 ? (
-                      <VolumeX size={16} color="#ff453a" strokeWidth={2.2} />
-                    ) : (
-                      <Volume2 size={16} color="#fff" strokeWidth={2.2} />
-                    )}
-                  </motion.div>
-                )}
-              </ArcRing>
-              <motion.span
-                key={swipeSide === 'right' ? Math.round((isMuted ? 0 : volume) * 100) : Math.round(brightness * 100)}
-                initial={{ y: -4, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={SPRING_FAST}
-                style={{
-                  color: swipeSide === 'left' ? '#FBBF24' : (swipeSide === 'right' && (isMuted || volume === 0)) ? '#ff453a' : '#fff',
-                  fontSize: R.fontLarge, fontWeight: 700,
-                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
-                  fontVariantNumeric: 'tabular-nums',
-                  letterSpacing: '-0.02em',
-                  minWidth: 32, textAlign: 'center',
-                }}
-              >
-                {swipeSide === 'right' ? Math.round((isMuted ? 0 : volume) * 100) + '%' : Math.round(brightness * 100) + '%'}
-              </motion.span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {seekDelta > 0 ? (
+                <FastForward size={16} color="#fff" strokeWidth={2} />
+              ) : (
+                <Rewind size={16} color="#fff" strokeWidth={2} />
+              )}
+              <span style={{ color: '#fff', fontSize: 16, fontWeight: 700,
+                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                fontVariantNumeric: 'tabular-nums' }}>
+                {seekDelta > 0 ? '+' : ''}{Math.round(seekDelta)}s
+              </span>
             </div>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 600 }}>
+              {fmt(Math.max(0, currentTime + seekDelta))} / {fmt(duration)}
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
