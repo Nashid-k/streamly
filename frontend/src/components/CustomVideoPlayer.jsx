@@ -54,14 +54,51 @@ const SPRING = { type: "spring", stiffness: 400, damping: 30, mass: 0.8 };
 const SPRING_FAST = { type: "spring", stiffness: 600, damping: 35 };
 const SPRING_SNAPPY = { type: "spring", stiffness: 500, damping: 28 };
 
+/* Responsive design tokens — scale with viewport, never break */
+const R = {
+  /* Sizes scale via vmin so they work on phones through ultrawide */
+  btnSmall: 'clamp(24px, 4vw, 34px)',
+  btnMedium: 'clamp(32px, 5vw, 42px)',
+  btnPlay: 'clamp(36px, 6vw, 46px)',
+  /* Arc HUD sizes */
+  arcSmall: 32,
+  arcVolume: 'clamp(36px, 6vw, 48px)',
+  arcSeek: 'clamp(48px, 8vw, 68px)',
+  arcLoading: 'clamp(44px, 8vw, 60px)',
+  /* Panel widths */
+  panelSettings: 'clamp(240px, 40vw, 300px)',
+  panelSubtitles: 'clamp(220px, 38vw, 280px)',
+  panelShortcuts: 'clamp(240px, 42vw, 300px)',
+  /* Fonts */
+  fontTiny: 'clamp(8px, 1.5vw, 10px)',
+  fontSmall: 'clamp(10px, 1.8vw, 12px)',
+  fontMedium: 'clamp(11px, 2vw, 14px)',
+  fontLarge: 'clamp(13px, 2.5vw, 16px)',
+  fontHero: 'clamp(1.1rem, 3.5vw, 2.2rem)',
+  /* Padding */
+  padTiny: 'clamp(4px, 1vw, 8px)',
+  padSmall: 'clamp(6px, 1.2vw, 12px)',
+  padMedium: 'clamp(8px, 1.5vw, 16px)',
+  padLarge: 'clamp(12px, 2vw, 24px)',
+  /* Border radius */
+  radiusSmall: 'clamp(6px, 1.2vw, 10px)',
+  radiusMedium: 'clamp(8px, 1.5vw, 14px)',
+  radiusPill: 100,
+  /* Container */
+  controlRowPad: 'clamp(4px, 1vw, 14px)',
+  progressBarPad: 'clamp(8px, 2vw, 20px)',
+  /* HUD top offset */
+  hudTop: 'clamp(8px, 2vw, 20px)',
+};
+
 /* Circular Arc Component — the core Apple TV+ motif
    Used for: volume HUD, seek indicators, loading, up-next countdown */
-const ArcRing = ({ progress = 0, size = 48, strokeWidth = 3, color = "#fff", bgColor = "rgba(255,255,255,0.08)", glowColor, children, className }) => {
+const ArcRing = ({ progress = 0, size = 48, strokeWidth = 3, color = "#fff", bgColor = "rgba(255,255,255,0.08)", glowColor, children, className, responsive }) => {
   const r = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - Math.max(0, Math.min(progress, 1)));
   return (
-    <div style={{ position: "relative", width: size, height: size }} className={className}>
+    <div style={{ position: "relative", width: responsive || size, height: responsive || size, flexShrink: 0 }} className={className}>
       <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={bgColor} strokeWidth={strokeWidth} />
         <circle
@@ -861,7 +898,7 @@ const CustomVideoPlayer = ({
         position: "relative", width: "100%",
         aspectRatio: isFullscreen ? undefined : "16/9",
         height: isFullscreen ? "100vh" : "auto",
-        maxHeight: isFullscreen ? "100vh" : "calc(100vh - 120px)",
+        maxHeight: isFullscreen ? "100vh" : "min(calc(100vh - 120px), 80vw)",
         background: "#000",
         borderRadius: isFullscreen ? 0 : 12,
         overflow: "hidden",
@@ -869,6 +906,8 @@ const CustomVideoPlayer = ({
         minHeight: isFullscreen ? "100vh" : undefined,
         userSelect: "none",
         WebkitUserSelect: "none",
+        touchAction: "none",
+        WebkitTouchCallout: "none",
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => {
@@ -944,13 +983,13 @@ const CustomVideoPlayer = ({
       {/* Subtitles */}
       {showCustomUI && subtitleEnabled && hasSubtitles && activeSubtitleCue && (
         <div style={{
-          position: "absolute", bottom: controlsVisible ? "100px" : "36px",
+          position: "absolute", bottom: controlsVisible ? "clamp(60px, 12vw, 100px)" : "clamp(20px, 4vw, 36px)",
           left: 0, right: 0, display: "flex", justifyContent: "center",
           pointerEvents: "none", zIndex: 15,
           transition: "bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
         }}>
           <div style={{
-            color: "#fff", padding: "6px 20px",
+            color: "#fff", padding: `${R.padSmall} ${R.padLarge}`,
             fontSize: "clamp(15px, 2.5vw, 26px)", lineHeight: 1.4, fontWeight: 500,
             textShadow: "0 1px 8px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.8)",
             textAlign: "center", maxWidth: "85%", whiteSpace: "pre-wrap",
@@ -994,7 +1033,7 @@ const CustomVideoPlayer = ({
                   exit={{ opacity: 0, scale: 1.5 }}
                   transition={SPRING_SNAPPY}
                   style={{
-                    width: 72, height: 72, borderRadius: "50%",
+                    width: "clamp(56px, 10vw, 76px)", height: "clamp(56px, 10vw, 76px)", borderRadius: "50%",
                     background: "rgba(0,0,0,0.35)", backdropFilter: "blur(24px)",
                     WebkitBackdropFilter: "blur(24px)",
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -1025,7 +1064,7 @@ const CustomVideoPlayer = ({
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={SPRING}
                   style={{
-                    width: 64, height: 64, borderRadius: "50%",
+                    width: "clamp(52px, 9vw, 68px)", height: "clamp(52px, 9vw, 68px)", borderRadius: "50%",
                     background: "rgba(0,0,0,0.35)", backdropFilter: "blur(20px)",
                     WebkitBackdropFilter: "blur(20px)",
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -1063,7 +1102,7 @@ const CustomVideoPlayer = ({
               transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 display: "flex", gap: "clamp(20px, 4vw, 36px)",
-                alignItems: "center", maxWidth: "min(640px, 88%)", padding: "0 24px",
+                alignItems: "center", maxWidth: "min(640px, 88%)", padding: `0 ${R.padLarge}`,
               }}
             >
               {(movie?.posterUrl || thumbnailUrl) && (
@@ -1087,9 +1126,9 @@ const CustomVideoPlayer = ({
                 </motion.div>
               )}
               <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "clamp(6px, 1.5vw, 10px)", marginBottom: 10 }}>
                   <div style={{
-                    width: 28, height: 28, borderRadius: "50%",
+                    width: "clamp(22px, 4vw, 28px)", height: "clamp(22px, 4vw, 28px)", borderRadius: "50%",
                     background: "rgba(255,255,255,0.06)", display: "flex",
                     alignItems: "center", justifyContent: "center",
                     border: "1px solid rgba(255,255,255,0.08)",
@@ -1097,7 +1136,7 @@ const CustomVideoPlayer = ({
                     <Pause size={12} fill="rgba(255,255,255,0.8)" color="rgba(255,255,255,0.8)" />
                   </div>
                   <span style={{
-                    color: "rgba(255,255,255,0.5)", fontSize: 10, fontWeight: 700,
+                    color: "rgba(255,255,255,0.5)", fontSize: R.fontTiny, fontWeight: 700,
                     letterSpacing: "2.5px", textTransform: "uppercase",
                     fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                   }}>Paused</span>
@@ -1123,13 +1162,13 @@ const CustomVideoPlayer = ({
                 }}>
                   {movie?.title || movie?.name}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-                  {movie?.releaseYear && <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{movie.releaseYear}</span>}
-                  {movie?.imdbRating > 0 && <span style={{ color: "#FBBF24", fontSize: 13, fontWeight: 700 }}>★ {movie.imdbRating}</span>}
-                  {isTvContent && season && <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>S{season} E{episode}</span>}
-                  {movie?.duration && <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{movie.duration}</span>}
+                <div style={{ display: "flex", alignItems: "center", gap: "clamp(6px, 1.5vw, 10px)", marginBottom: 12, flexWrap: "wrap" }}>
+                  {movie?.releaseYear && <span style={{ color: "rgba(255,255,255,0.5)", fontSize: R.fontLarge, fontWeight: 600, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{movie.releaseYear}</span>}
+                  {movie?.imdbRating > 0 && <span style={{ color: "#FBBF24", fontSize: R.fontLarge, fontWeight: 700 }}>★ {movie.imdbRating}</span>}
+                  {isTvContent && season && <span style={{ color: "rgba(255,255,255,0.7)", fontSize: R.fontLarge, fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>S{season} E{episode}</span>}
+                  {movie?.duration && <span style={{ color: "rgba(255,255,255,0.4)", fontSize: R.fontLarge, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{movie.duration}</span>}
                   {movie?.genres?.slice(0, 3).map((g, i) => (
-                    <span key={i} style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, background: "rgba(255,255,255,0.04)", padding: "2px 8px", borderRadius: 6, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{g}</span>
+                    <span key={i} style={{ color: "rgba(255,255,255,0.4)", fontSize: R.fontSmall, fontWeight: 600, background: "rgba(255,255,255,0.04)", padding: "2px 8px", borderRadius: 6, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{g}</span>
                   ))}
                 </div>
                 {(movie?.longDescription || movie?.description || movie?.overview) && (
@@ -1159,10 +1198,10 @@ const CustomVideoPlayer = ({
                 : "#000",
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
-              gap: 20,
+              gap: "clamp(12px, 3vw, 20px)",
             }}
           >
-            <LoadingArc size={56} strokeWidth={2.5} progress={loadProgress} />
+            <LoadingArc size={56} responsive="clamp(44px, 8vw, 60px)" strokeWidth={2.5} progress={loadProgress} />
             {!hasInitiallyLoaded && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
                 style={{ textAlign: "center" }}>
@@ -1173,7 +1212,7 @@ const CustomVideoPlayer = ({
                   {movie?.title || movie?.name || "Loading"}
                 </div>
                 <div style={{
-                  color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 600,
+                  color: "rgba(255,255,255,0.45)", fontSize: R.fontSmall, fontWeight: 600,
                   letterSpacing: "0.5px",
                   fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                 }}>
@@ -1193,10 +1232,10 @@ const CustomVideoPlayer = ({
             style={{
               position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)",
               background: "rgba(255,69,58,0.85)", color: "#fff",
-              padding: "6px 16px", borderRadius: 100,
+              padding: `${R.padSmall} clamp(10px, 2vw, 16px)`, borderRadius: 100,
               backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-              display: "flex", alignItems: "center", gap: 6,
-              zIndex: 60, fontWeight: 600, fontSize: 11,
+              display: "flex", alignItems: "center", gap: "clamp(4px, 1vw, 6px)",
+              zIndex: 60, fontWeight: 600, fontSize: R.fontSmall,
               fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
             }}
           >
@@ -1215,11 +1254,11 @@ const CustomVideoPlayer = ({
             style={{
               position: "absolute", top: 16, left: "50%",
               background: "rgba(28,28,30,0.78)", color: "#fff",
-              padding: "6px 16px", borderRadius: 100,
+              padding: `${R.padSmall} clamp(10px, 2vw, 16px)`, borderRadius: 100,
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
               border: "1px solid rgba(255,255,255,0.08)",
-              zIndex: 62, fontWeight: 600, fontSize: 11, pointerEvents: "none",
+              zIndex: 62, fontWeight: 600, fontSize: R.fontSmall, pointerEvents: "none",
               fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
             }}
           >
@@ -1238,24 +1277,24 @@ const CustomVideoPlayer = ({
             exit={{ opacity: 0, scale: 0.85, y: -6 }}
             transition={SPRING_SNAPPY}
             style={{
-              position: "absolute", top: 20, left: "50%", x: "-50%",
+              position: "absolute", top: R.hudTop, left: "50%", x: "-50%",
               zIndex: 65, pointerEvents: "none",
             }}
           >
             <div style={{
-              display: "flex", alignItems: "center", gap: 14,
+              display: "flex", alignItems: "center", gap: "clamp(8px, 2vw, 14px)",
               background: "rgba(28,28,30,0.82)",
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
               border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 18, padding: "10px 20px",
+              borderRadius: R.radiusMedium, padding: `${R.padMedium} ${R.padLarge}`,
               boxShadow: "0 8px 40px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.05)",
             }}>
               {/* Circular arc volume indicator */}
               <div style={{ position: "relative" }}>
                 <ArcRing
                   progress={effVolume}
-                  size={44}
+                  size={44} responsive="clamp(36px, 6vw, 48px)"
                   strokeWidth={3}
                   color={isMuted || volume === 0 ? "#ff453a" : "rgba(255,255,255,0.9)"}
                   bgColor="rgba(255,255,255,0.06)"
@@ -1287,7 +1326,7 @@ const CustomVideoPlayer = ({
                 transition={SPRING_FAST}
                 style={{
                   color: isMuted || volume === 0 ? "#ff453a" : "#fff",
-                  fontSize: 15, fontWeight: 700,
+                  fontSize: R.fontLarge, fontWeight: 700,
                   fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
                   minWidth: 36, textAlign: "right",
                   fontVariantNumeric: "tabular-nums",
@@ -1311,22 +1350,22 @@ const CustomVideoPlayer = ({
             exit={{ opacity: 0, scale: 0.85, y: -6 }}
             transition={SPRING_SNAPPY}
             style={{
-              position: "absolute", top: 20, left: "50%", x: "-50%",
+              position: "absolute", top: R.hudTop, left: "50%", x: "-50%",
               zIndex: 65, pointerEvents: "none",
             }}
           >
             <div style={{
-              display: "flex", alignItems: "center", gap: 12,
+              display: "flex", alignItems: "center", gap: "clamp(8px, 2vw, 12px)",
               background: "rgba(28,28,30,0.82)",
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
               border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 18, padding: "10px 20px",
+              borderRadius: R.radiusMedium, padding: `${R.padMedium} ${R.padLarge}`,
               boxShadow: "0 8px 40px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.05)",
             }}>
               <ArcRing
                 progress={(aspectRatioIndex + 1) / ASPECT_RATIOS.length}
-                size={36} strokeWidth={2.5}
+                size={36} responsive="clamp(28px, 5vw, 40px)" strokeWidth={2.5}
                 color="#fff" bgColor="rgba(255,255,255,0.06)"
               >
                 <Maximize size={14} color="#fff" strokeWidth={2} />
@@ -1338,14 +1377,14 @@ const CustomVideoPlayer = ({
                   animate={{ y: 0, opacity: 1 }}
                   transition={SPRING_FAST}
                   style={{
-                    color: "#fff", fontSize: 13, fontWeight: 700, lineHeight: 1.2,
+                    color: "#fff", fontSize: R.fontLarge, fontWeight: 700, lineHeight: 1.2,
                     fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                   }}
                 >
                   {ASPECT_RATIOS[aspectRatioIndex].name}
                 </motion.span>
                 <span style={{
-                  color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 600,
+                  color: "rgba(255,255,255,0.4)", fontSize: R.fontTiny, fontWeight: 600,
                   fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                 }}>
                   {aspectRatioIndex + 1} / {ASPECT_RATIOS.length}
@@ -1378,14 +1417,14 @@ const CustomVideoPlayer = ({
               style={{
                 background: "rgba(18,18,20,0.95)",
                 border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: 16, padding: "22px 26px", width: 280,
+                borderRadius: R.radiusMedium, padding: `${R.padLarge} clamp(16px, 3vw, 26px)`, width: R.panelShortcuts,
                 color: "#fff", boxShadow: "0 40px 80px rgba(0,0,0,0.8)",
                 backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
                 <span style={{
-                  fontWeight: 700, fontSize: 14,
+                  fontWeight: 700, fontSize: R.fontLarge,
                   fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
                 }}>Shortcuts</span>
                 <button onClick={() => setShowShortcuts(false)} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", display: "flex" }}>
@@ -1396,14 +1435,14 @@ const CustomVideoPlayer = ({
                 {KEYBOARD_SHORTCUTS.map(({ key, action }) => (
                   <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{
-                      color: "rgba(255,255,255,0.5)", fontSize: 12,
+                      color: "rgba(255,255,255,0.5)", fontSize: R.fontMedium,
                       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                     }}>{action}</span>
                     <span style={{
                       background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
                       padding: "3px 10px", borderRadius: 6,
                       fontFamily: "SF Mono, Menlo, monospace",
-                      fontWeight: 700, fontSize: 10, color: "rgba(255,255,255,0.7)",
+                      fontWeight: 700, fontSize: R.fontTiny, color: "rgba(255,255,255,0.7)",
                     }}>
                       {key}
                     </span>
@@ -1437,7 +1476,7 @@ const CustomVideoPlayer = ({
                   >
                     <ArcRing
                       progress={0.4}
-                      size={64} strokeWidth={2.5}
+                      size={64} responsive="clamp(48px, 8vw, 68px)" strokeWidth={2.5}
                       color="rgba(255,255,255,0.8)"
                       bgColor="rgba(255,255,255,0.04)"
                       glowColor="rgba(255,255,255,0.12)"
@@ -1457,7 +1496,7 @@ const CustomVideoPlayer = ({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15, ...SPRING_FAST }}
                   style={{
-                    fontSize: 12, fontWeight: 700, color: "#fff",
+                    fontSize: R.fontMedium, fontWeight: 700, color: "#fff",
                     fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                     textShadow: "0 1px 12px rgba(0,0,0,0.9)",
                     fontVariantNumeric: "tabular-nums",
@@ -1486,7 +1525,7 @@ const CustomVideoPlayer = ({
                   >
                     <ArcRing
                       progress={0.4}
-                      size={64} strokeWidth={2.5}
+                      size={64} responsive="clamp(48px, 8vw, 68px)" strokeWidth={2.5}
                       color="rgba(255,255,255,0.8)"
                       bgColor="rgba(255,255,255,0.04)"
                       glowColor="rgba(255,255,255,0.12)"
@@ -1506,7 +1545,7 @@ const CustomVideoPlayer = ({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15, ...SPRING_FAST }}
                   style={{
-                    fontSize: 12, fontWeight: 700, color: "#fff",
+                    fontSize: R.fontMedium, fontWeight: 700, color: "#fff",
                     fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                     textShadow: "0 1px 12px rgba(0,0,0,0.9)",
                     fontVariantNumeric: "tabular-nums",
@@ -1548,7 +1587,7 @@ const CustomVideoPlayer = ({
             style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 20, pointerEvents: "none" }}
           >
             {/* Skip Intro / Up Next */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", marginBottom: 8, pointerEvents: "none" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: `0 ${R.progressBarPad}`, marginBottom: 8, pointerEvents: "none" }}>
               <div style={{ pointerEvents: "auto" }}>
                 <AnimatePresence>
                   {showSkipIntro && skipIntroTime != null && (
@@ -1563,10 +1602,10 @@ const CustomVideoPlayer = ({
                       style={{
                         background: "rgba(28,28,30,0.7)", color: "#fff",
                         border: "1px solid rgba(255,255,255,0.08)",
-                        padding: "8px 16px", borderRadius: 100, cursor: "pointer",
+                        padding: `${R.padMedium} ${R.padMedium}`, borderRadius: 100, cursor: "pointer",
                         fontWeight: 700, backdropFilter: "blur(24px)",
                         WebkitBackdropFilter: "blur(24px)",
-                        display: "flex", alignItems: "center", gap: 6, fontSize: 12,
+                        display: "flex", alignItems: "center", gap: "clamp(4px, 1vw, 6px)", fontSize: R.fontMedium,
                         fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                       }}
                     >
@@ -1575,7 +1614,7 @@ const CustomVideoPlayer = ({
                   )}
                 </AnimatePresence>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, pointerEvents: "auto" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "clamp(4px, 1vw, 6px)", pointerEvents: "auto" }}>
                 <AnimatePresence>
                   {showUpNext && hasNextEpisode && (
                     <motion.div
@@ -1585,18 +1624,18 @@ const CustomVideoPlayer = ({
                       transition={SPRING}
                       style={{
                         background: "rgba(28,28,30,0.7)", border: "1px solid rgba(255,255,255,0.06)",
-                        borderRadius: 12, padding: "8px 12px",
-                        display: "flex", alignItems: "center", gap: 10,
+                        borderRadius: 12, padding: `${R.padMedium} ${R.padSmall}`,
+                        display: "flex", alignItems: "center", gap: "clamp(6px, 1.5vw, 10px)",
                         backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>Up Next</div>
-                        <div style={{ fontSize: 12, color: "#fff", fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>Ep {(episode || 0) + 1}</div>
+                        <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.35)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>Up Next</div>
+                        <div style={{ fontSize: R.fontMedium, color: "#fff", fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>Ep {(episode || 0) + 1}</div>
                       </div>
                       {/* Countdown arc */}
                       <ArcRing progress={upNextCountdown / 15} size={32} strokeWidth={2} color="rgba(255,255,255,0.8)" bgColor="rgba(255,255,255,0.06)">
-                        <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{upNextCountdown}</span>
+                        <span style={{ fontSize: R.fontTiny, fontWeight: 800, color: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>{upNextCountdown}</span>
                       </ArcRing>
                       <button onClick={(e) => { e.stopPropagation(); dismissUpNext(); }}
                         style={{
@@ -1614,8 +1653,8 @@ const CustomVideoPlayer = ({
                   <button onClick={(e) => { e.stopPropagation(); onNextEpisode?.(); }}
                     style={{
                       background: "rgba(255,255,255,0.12)", color: "#fff", border: "1px solid rgba(255,255,255,0.08)",
-                      padding: "6px 14px", borderRadius: 100, cursor: "pointer",
-                      fontWeight: 700, display: "flex", alignItems: "center", gap: 5, fontSize: 11,
+                      padding: `${R.padSmall} ${R.padMedium}`, borderRadius: 100, cursor: "pointer",
+                      fontWeight: 700, display: "flex", alignItems: "center", gap: "clamp(3px, 0.8vw, 5px)", fontSize: R.fontSmall,
                       backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
                       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                     }}
@@ -1635,7 +1674,7 @@ const CustomVideoPlayer = ({
               style={{
                 position: "relative", height: 32, display: "flex",
                 alignItems: "center", cursor: "pointer",
-                padding: "0 20px", pointerEvents: "auto",
+                padding: `0 ${R.progressBarPad}`, pointerEvents: "auto",
               }}
             >
               {/* Hover time tooltip */}
@@ -1657,8 +1696,8 @@ const CustomVideoPlayer = ({
                       backdropFilter: "blur(24px) saturate(160%)",
                       WebkitBackdropFilter: "blur(24px) saturate(160%)",
                       color: "#fff",
-                      padding: "4px 12px", borderRadius: 10,
-                      fontSize: 13, fontWeight: 600,
+                      padding: `${R.padTiny} ${R.padSmall}`, borderRadius: R.radiusSmall,
+                      fontSize: R.fontLarge, fontWeight: 600,
                       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                       fontVariantNumeric: "tabular-nums",
                       border: "1px solid rgba(255,255,255,0.06)",
@@ -1715,10 +1754,10 @@ const CustomVideoPlayer = ({
             {/* TITLE ROW */}
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "4px 20px 2px", pointerEvents: "none", gap: 12,
+              padding: `${R.padTiny} ${R.progressBarPad} 2px`, pointerEvents: "none", gap: "clamp(8px, 2vw, 12px)",
             }}>
               <span style={{
-                color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600,
+                color: "rgba(255,255,255,0.4)", fontSize: R.fontSmall, fontWeight: 600,
                 fontFamily: "SF Mono, Menlo, monospace",
                 fontVariantNumeric: "tabular-nums", letterSpacing: "0.3px",
                 flexShrink: 0,
@@ -1726,7 +1765,7 @@ const CustomVideoPlayer = ({
                 {fmt(currentTime)} / {fmt(duration)}
               </span>
               <div style={{
-                display: "flex", alignItems: "center", gap: 10,
+                display: "flex", alignItems: "center", gap: "clamp(6px, 1.5vw, 10px)",
                 minWidth: 0, flex: 1, justifyContent: "center",
               }}>
                 <span style={{
@@ -1754,17 +1793,17 @@ const CustomVideoPlayer = ({
                 )}
                 {movie?.releaseYear && (
                   <span style={{
-                    color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 600,
+                    color: "rgba(255,255,255,0.35)", fontSize: R.fontSmall, fontWeight: 600,
                     flexShrink: 0, letterSpacing: "0.3px",
                     fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                   }}>{movie.releaseYear}</span>
                 )}
               </div>
-              <div style={{ flexShrink: 0, minWidth: 70 }} />
+              <div style={{ flexShrink: 0, minWidth: "clamp(50px, 10vw, 70px)" }} />
             </div>
 
             {/* ═══ CONTROL ROW ════════════════════════════════════ */}
-            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 14px 16px", pointerEvents: "auto" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${R.controlRowPad} ${R.padMedium} ${R.padMedium}`, pointerEvents: "auto" }}>
               {/* Left: Play + Seek + Volume */}
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <motion.button
@@ -1774,7 +1813,7 @@ const CustomVideoPlayer = ({
                   transition={SPRING}
                   style={{
                     background: "rgba(255,255,255,0.12)", border: "none", color: "#fff",
-                    cursor: "pointer", width: 42, height: 42, borderRadius: "50%",
+                    cursor: "pointer", width: R.btnMedium, height: R.btnMedium, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
                     boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
@@ -1785,14 +1824,14 @@ const CustomVideoPlayer = ({
                 <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(-10); }}
                   whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                   transition={SPRING}
-                  style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
                   <RotateCcw size={15} />
                 </motion.button>
                 <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(10); }}
                   whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                   transition={SPRING}
-                  style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
                   <RotateCw size={15} />
                 </motion.button>
@@ -1801,7 +1840,7 @@ const CustomVideoPlayer = ({
                   <motion.button onClick={toggleMute}
                     whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                     transition={SPRING}
-                    style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
                     <AnimatePresence mode="wait">
                       <motion.div key={isMuted || volume === 0 ? "off" : "on"}
@@ -1824,7 +1863,7 @@ const CustomVideoPlayer = ({
                     <div
                       ref={volumeBarRef}
                       style={{
-                        width: 56, height: 4, borderRadius: 2,
+                        width: "clamp(44px, 8vw, 56px)", height: 4, borderRadius: 2,
                         background: "rgba(255,255,255,0.1)", position: "relative",
                         cursor: "pointer",
                       }}
@@ -1880,13 +1919,13 @@ const CustomVideoPlayer = ({
                     background: subtitleEnabled || showSubtitlesMenu ? "rgba(255,255,255,0.08)" : "transparent",
                     border: subtitleEnabled || showSubtitlesMenu ? "1px solid rgba(255,255,255,0.08)" : "none",
                     color: subtitleEnabled || showSubtitlesMenu ? "#fff" : "rgba(255,255,255,0.6)",
-                    cursor: "pointer", width: 34, height: 34, borderRadius: "50%",
+                    cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     position: "relative",
                   }}
                 >
                   <Captions size={15} />
-                  {subtitleEnabled && <div style={{ position: "absolute", top: 4, right: 4, width: 4, height: 4, background: "#fff", borderRadius: "50%" }} />}
+                  {subtitleEnabled && <div style={{ position: "absolute", top: 4, right: 4, width: "clamp(3px, 0.5vw, 4px)", height: "clamp(3px, 0.5vw, 4px)", background: "#fff", borderRadius: "50%" }} />}
                 </motion.button>
                 <motion.button onClick={(e) => { e.stopPropagation(); setShowShortcuts((p) => !p); }}
                   whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
@@ -1895,7 +1934,7 @@ const CustomVideoPlayer = ({
                     background: showShortcuts ? "rgba(255,255,255,0.08)" : "transparent",
                     border: showShortcuts ? "1px solid rgba(255,255,255,0.08)" : "none",
                     color: showShortcuts ? "#fff" : "rgba(255,255,255,0.6)",
-                    cursor: "pointer", width: 34, height: 34, borderRadius: "50%",
+                    cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}
                 >
@@ -1908,7 +1947,7 @@ const CustomVideoPlayer = ({
                     background: showSettings ? "rgba(255,255,255,0.08)" : "transparent",
                     border: showSettings ? "1px solid rgba(255,255,255,0.08)" : "none",
                     color: showSettings ? "#fff" : "rgba(255,255,255,0.6)",
-                    cursor: "pointer", width: 34, height: 34, borderRadius: "50%",
+                    cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}
                 >
@@ -1919,7 +1958,7 @@ const CustomVideoPlayer = ({
                 <motion.button onClick={toggleFullscreen}
                   whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                   transition={SPRING}
-                  style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
                   {isFullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
                 </motion.button>
@@ -1939,21 +1978,21 @@ const CustomVideoPlayer = ({
             transition={SPRING}
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", bottom: 60, right: 16, zIndex: 50,
-              width: 280, maxHeight: "50vh",
+              position: "absolute", bottom: "clamp(40px, 8vw, 60px)", right: "clamp(8px, 2vw, 16px)", zIndex: 50,
+              width: R.panelSettings, maxHeight: "50vh",
               background: "rgba(18,18,20,0.88)",
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
               border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 16, padding: "16px 18px", color: "#fff",
+              borderRadius: R.radiusMedium, padding: `${R.padMedium} ${R.padMedium}`, color: "#fff",
               overflowY: "auto",
               boxShadow: "0 16px 56px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.04)",
             }}
           >
             {/* Speed */}
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Playback Speed</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Playback Speed</div>
+              <div style={{ display: "flex", gap: "clamp(4px, 1vw, 6px)", flexWrap: "wrap" }}>
                 {[0.5, 0.75, 1, 1.25, 1.5, 2].map((r) => (
                   <motion.button key={r} onClick={() => { sendCommand("setPlaybackRate", [r]); setPlaybackRate(r); setShowSettings(false); }}
                     whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
@@ -1962,8 +2001,8 @@ const CustomVideoPlayer = ({
                       background: playbackRate === r ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.02)",
                       color: playbackRate === r ? "#fff" : "rgba(255,255,255,0.5)",
                       border: playbackRate === r ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.04)",
-                      padding: "6px 12px", borderRadius: 100, cursor: "pointer",
-                      fontSize: 11, fontWeight: 700,
+                      padding: `${R.padSmall} ${R.padSmall}`, borderRadius: 100, cursor: "pointer",
+                      fontSize: R.fontSmall, fontWeight: 700,
                       fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                     }}
                   >
@@ -1976,8 +2015,8 @@ const CustomVideoPlayer = ({
             {/* Quality */}
             {qualities?.length > 0 && (
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Quality</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Quality</div>
+                <div style={{ display: "flex", gap: "clamp(4px, 1vw, 6px)", flexWrap: "wrap" }}>
                   {qualities.map((q, i) => (
                     <motion.button key={i} onClick={() => { sendCommand("setQuality", [q.id || i]); setCurrentQuality(q); setShowSettings(false); }}
                       whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
@@ -1986,7 +2025,7 @@ const CustomVideoPlayer = ({
                         background: (currentQuality?.id === q.id) ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.02)",
                         color: (currentQuality?.id === q.id) ? "#fff" : "rgba(255,255,255,0.5)",
                         border: (currentQuality?.id === q.id) ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.04)",
-                        padding: "6px 12px", borderRadius: 100, cursor: "pointer", fontSize: 11, fontWeight: 700,
+                        padding: `${R.padSmall} ${R.padSmall}`, borderRadius: 100, cursor: "pointer", fontSize: R.fontSmall, fontWeight: 700,
                         fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                       }}
                     >
@@ -2000,15 +2039,15 @@ const CustomVideoPlayer = ({
             {/* Audio */}
             {audioTracks?.length > 0 && (
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Audio</div>
+                <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Audio</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {audioTracks.map((t, i) => (
                     <button key={i} onClick={() => { sendCommand("setAudioTrack", [t.id || i]); setCurrentAudioTrack(t); setShowSettings(false); }}
                       style={{
                         background: (currentAudioTrack?.id === t.id) ? "rgba(255,255,255,0.06)" : "transparent",
                         color: (currentAudioTrack?.id === t.id) ? "#fff" : "rgba(255,255,255,0.5)",
-                        border: "none", padding: "7px 12px", borderRadius: 10,
-                        cursor: "pointer", fontSize: 12, fontWeight: 600, textAlign: "left",
+                        border: "none", padding: `${R.padSmall} ${R.padSmall}`, borderRadius: 10,
+                        cursor: "pointer", fontSize: R.fontMedium, fontWeight: 600, textAlign: "left",
                         fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                       }}
                     >
@@ -2021,7 +2060,7 @@ const CustomVideoPlayer = ({
 
             {/* Aspect Ratio */}
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Aspect Ratio</div>
+              <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Aspect Ratio</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {ASPECT_RATIOS.map((ar, i) => (
                   <button key={ar.name} onClick={() => { setAspectRatioIndex(i); setShowSettings(false); setShowAspectRatioArc(true); if (aspectRatioArcTimerRef.current) clearTimeout(aspectRatioArcTimerRef.current); aspectRatioArcTimerRef.current = setTimeout(() => setShowAspectRatioArc(false), 1200); }}
@@ -2029,8 +2068,8 @@ const CustomVideoPlayer = ({
                       background: aspectRatioIndex === i ? "rgba(255,255,255,0.06)" : "transparent",
                       color: aspectRatioIndex === i ? "#fff" : "rgba(255,255,255,0.5)",
                       border: aspectRatioIndex === i ? "1px solid rgba(255,255,255,0.08)" : "none",
-                      padding: "7px 12px", borderRadius: 10, cursor: "pointer",
-                      fontSize: 12, fontWeight: 600, display: "flex", justifyContent: "space-between",
+                      padding: `${R.padSmall} ${R.padSmall}`, borderRadius: 10, cursor: "pointer",
+                      fontSize: R.fontMedium, fontWeight: 600, display: "flex", justifyContent: "space-between",
                       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                     }}
                   >
@@ -2042,14 +2081,14 @@ const CustomVideoPlayer = ({
 
             {/* Automations */}
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Automations</div>
+              <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Automations</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {[
                   { label: "Auto-Skip Intro", val: autoSkipIntro, set: setAutoSkipIntro, key: "streamly_autoSkip" },
                   ...(movie?.isSeries ? [{ label: "Auto-Play Next", val: autoPlayNext, set: setAutoPlayNext, key: "streamly_autoNext" }] : []),
                 ].map((item, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>{item.label}</span>
+                    <span style={{ fontSize: R.fontMedium, fontWeight: 600, color: "rgba(255,255,255,0.6)", fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>{item.label}</span>
                     <div onClick={() => { const v = !item.val; item.set(v); localStorage.setItem(item.key, String(v)); }}
                       style={{
                         width: 36, height: 20,
@@ -2075,8 +2114,8 @@ const CustomVideoPlayer = ({
               style={{
                 width: "100%", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.7)",
                 border: "1px solid rgba(255,255,255,0.06)", padding: 10, borderRadius: 12,
-                cursor: "pointer", fontSize: 12, fontWeight: 700,
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                cursor: "pointer", fontSize: R.fontMedium, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "clamp(4px, 1vw, 6px)",
                 fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
               }}
             >
@@ -2096,19 +2135,19 @@ const CustomVideoPlayer = ({
             transition={SPRING}
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", bottom: 60, right: 56, zIndex: 50,
-              width: 260, maxHeight: "45vh",
+              position: "absolute", bottom: "clamp(40px, 8vw, 60px)", right: "clamp(36px, 8vw, 56px)", zIndex: 50,
+              width: R.panelSubtitles, maxHeight: "45vh",
               background: "rgba(18,18,20,0.88)",
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
               border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 16, padding: "16px 18px", color: "#fff",
+              borderRadius: R.radiusMedium, padding: `${R.padMedium} ${R.padMedium}`, color: "#fff",
               overflowY: "auto",
               boxShadow: "0 16px 56px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.04)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Subtitles</span>
+              <span style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Subtitles</span>
               <div onClick={(e) => { e.stopPropagation(); setSubtitleEnabled(!subtitleEnabled); }}
                 style={{
                   width: 36, height: 20,
@@ -2136,8 +2175,8 @@ const CustomVideoPlayer = ({
                     style={{
                       display: "block", width: "100%", background: "transparent",
                       color: "rgba(255,255,255,0.75)", border: "none",
-                      padding: "8px 12px", borderRadius: 8, cursor: "pointer",
-                      fontSize: 12, fontWeight: 600, textAlign: "left", transition: "background 0.12s",
+                      padding: `${R.padMedium} ${R.padSmall}`, borderRadius: 8, cursor: "pointer",
+                      fontSize: R.fontMedium, fontWeight: 600, textAlign: "left", transition: "background 0.12s",
                       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
@@ -2147,7 +2186,7 @@ const CustomVideoPlayer = ({
                   </button>
                 ))
               ) : (
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "center", padding: 12, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>
+                <div style={{ fontSize: R.fontSmall, color: "rgba(255,255,255,0.3)", textAlign: "center", padding: 12, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>
                   {isFetchingSubtitles ? "Searching..." : "No subtitles found"}
                 </div>
               )}
@@ -2156,8 +2195,8 @@ const CustomVideoPlayer = ({
               style={{
                 width: "100%", background: "rgba(255,255,255,0.02)", color: "rgba(255,255,255,0.7)",
                 border: "1px dashed rgba(255,255,255,0.08)", padding: 12, borderRadius: 12,
-                cursor: "pointer", fontSize: 12, fontWeight: 600,
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                cursor: "pointer", fontSize: R.fontMedium, fontWeight: 600,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "clamp(4px, 1vw, 6px)",
                 fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
               }}
             >
@@ -2180,7 +2219,7 @@ const CustomVideoPlayer = ({
               background: "rgba(12,12,14,0.94)", backdropFilter: "blur(24px)",
               WebkitBackdropFilter: "blur(24px)",
               border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12,
-              padding: "4px 0", minWidth: 180,
+              padding: "4px 0", minWidth: "clamp(140px, 30vw, 180px)",
               boxShadow: "0 16px 48px rgba(0,0,0,0.6)", pointerEvents: "auto",
             }}
             onClick={(e) => e.stopPropagation()}
@@ -2194,9 +2233,9 @@ const CustomVideoPlayer = ({
             ].map(({ icon, label, action }, i) => (
               <button key={i} onClick={action}
                 style={{
-                  display: "flex", alignItems: "center", gap: 10, width: "100%",
+                  display: "flex", alignItems: "center", gap: "clamp(6px, 1.5vw, 10px)", width: "100%",
                   background: "transparent", border: "none", color: "rgba(255,255,255,0.8)",
-                  padding: "8px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                  padding: "8px 14px", cursor: "pointer", fontSize: R.fontMedium, fontWeight: 600,
                   textAlign: "left", transition: "background 0.1s",
                   fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                 }}
