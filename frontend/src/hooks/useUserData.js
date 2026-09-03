@@ -410,6 +410,7 @@ export function useNotifications(user) {
     getStorageAdapter(userRef.current)
       .updateNotifications([])
       .catch(() => {});
-  }, []); // No dependencies — uses refs  return { notifications, addNotification, addNotifications, markAllAsRead, clearNotifications };
+  }, []); // No dependencies — uses refs
 
+  return { notifications, addNotification, addNotifications, markAllAsRead, clearNotifications };
 }

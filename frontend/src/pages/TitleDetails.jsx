@@ -672,6 +672,17 @@ export default function TitleDetails() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [isPlaying]);
 
+  // Track which episode the saved timestamp belongs to — only apply it once
+  const initialEpisodeRef = useRef(null);
+  useEffect(() => {
+    if (isPlaying && initialEpisodeRef.current === null) {
+      initialEpisodeRef.current = playingEpisode;
+    }
+    if (!isPlaying) {
+      initialEpisodeRef.current = null;
+    }
+  }, [isPlaying, playingEpisode]);
+
   if (loading) {
     return <MovieDetailsSkeleton />;
   }
@@ -770,15 +781,6 @@ export default function TitleDetails() {
   const progressItem = continueWatching?.find((m) => m.id === movie?.id);
   const savedTimestamp = progressItem?.timestamp || 0;
   // Track which episode the saved timestamp belongs to — only apply it once
-  const initialEpisodeRef = useRef(null);
-  useEffect(() => {
-    if (isPlaying && initialEpisodeRef.current === null) {
-      initialEpisodeRef.current = playingEpisode;
-    }
-    if (!isPlaying) {
-      initialEpisodeRef.current = null;
-    }
-  }, [isPlaying, playingEpisode]);
   const effectiveSavedTimestamp = (
     initialEpisodeRef.current !== null && playingEpisode === initialEpisodeRef.current
       ? savedTimestamp : 0
