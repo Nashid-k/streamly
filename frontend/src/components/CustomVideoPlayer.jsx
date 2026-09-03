@@ -36,12 +36,19 @@ const KEYBOARD_SHORTCUTS = [
   { key: "?", action: "Shortcuts" },
 ];
 
-const LOADING_TIPS = [
+const LOADING_TIPS_DESKTOP = [
   { text: "Double-tap center for fullscreen", icon: Keyboard },
   { text: "Arrow keys to seek 10 seconds", icon: Keyboard },
   { text: "Scroll to adjust volume", icon: Keyboard },
   { text: "Press ? for all shortcuts", icon: Keyboard },
   { text: "Right-click for more options", icon: Settings },
+];
+const LOADING_TIPS_TOUCH = [
+  { text: "Double-tap sides to seek 10s", icon: Keyboard },
+  { text: "Swipe right side for volume", icon: Volume2 },
+  { text: "Swipe left side for brightness", icon: Volume2 },
+  { text: "Pinch to enter fullscreen", icon: Maximize },
+  { text: "Tap center to play / pause", icon: Play },
 ];
 
 /* ═══ Apple Design Language ═══════════════════════════════════════
@@ -374,7 +381,7 @@ const CustomVideoPlayer = ({
   }, []);
 
   const contentSignatureRef = useRef("");
-  const [dynamicTips, setDynamicTips] = useState(LOADING_TIPS);
+  const [dynamicTips, setDynamicTips] = useState(LOADING_TIPS_DESKTOP);
 
   useEffect(() => {
     if (!isLoading && !hasInitiallyLoaded) setHasInitiallyLoaded(true);
@@ -400,7 +407,8 @@ const CustomVideoPlayer = ({
       movieService.getSimilarMovies(movie.id, movie.platform || "tmdb").then((data) => {
         if (data?.length > 0) {
           const recs = data.slice(0, 3).map((m) => ({ text: m.title || m.name, icon: Film }));
-          const s = [...LOADING_TIPS, ...recs];
+          const baseTips = isTouch ? LOADING_TIPS_TOUCH : LOADING_TIPS_DESKTOP;
+          const s = [...baseTips, ...recs];
           for (let i = s.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [s[i], s[j]] = [s[j], s[i]];
@@ -410,6 +418,16 @@ const CustomVideoPlayer = ({
       }).catch(() => {});
     }
   }, [movie]);
+
+  /* Switch tips when device type is known */
+  useEffect(() => {
+    const baseTips = isTouch ? LOADING_TIPS_TOUCH : LOADING_TIPS_DESKTOP;
+    setDynamicTips((prev) => {
+      /* Only update if we're still on the default tips (not enriched with recs) */
+      const isDefault = prev.length <= 5 && prev.every(t => LOADING_TIPS_DESKTOP.includes(t) || LOADING_TIPS_TOUCH.includes(t));
+      return isDefault ? baseTips : prev;
+    });
+  }, [isTouch]);
 
   useEffect(() => {
     if (!hasInitiallyLoaded) {
@@ -980,14 +998,51 @@ const CustomVideoPlayer = ({
     }, 600);
   }, []);
 
-  /* Auto-hide controls */
+  /* Auto-hide controls — longer on touch (5s), always show when paused */
   const handleMouseMove = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     if (isPlaying && !showSettings && !showSubtitlesMenu && !isLoading && !isScrubbing) {
-      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
+      const hideDelay = isTouch ? 5000 : 3000;
+      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), hideDelay);
+    }
+  }, [isPlaying, showSettings, showSubtitlesMenu, isLoading, isScrubbing, isTouch]);
+  const handleTouchInteraction = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    if (isPlaying && !showSettings && !showSubtitlesMenu && !isLoading && !isScrubbing) {
+      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 5000);
     }
   }, [isPlaying, showSettings, showSubtitlesMenu, isLoading, isScrubbing]);
+
+  /* Touch double-tap to seek — uses touchend with preventDefault to block browser zoom */
+  const lastTapRef = useRef(0);
+  const handleTouchOverlay = useCallback((e) => {
+    if (isLoading) return;
+    const now = Date.now();
+    const tapGap = now - lastTapRef.current;
+    lastTapRef.current = now;
+    if (tapGap < 300 && tapGap > 0) {
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const r = containerRef.current.getBoundingClientRect();
+      const pct = (touch.clientX - r.left) / r.width;
+      if (pct < 0.35) {
+        seekRelative(-10);
+        setDoubleTapRipple({ side: "left", id: now });
+        setTimeout(() => setDoubleTapRipple(null), 500);
+      } else if (pct > 0.65) {
+        seekRelative(10);
+        setDoubleTapRipple({ side: "right", id: now });
+        setTimeout(() => setDoubleTapRipple(null), 500);
+      } else {
+        togglePlay();
+      }
+    } else {
+      /* Single tap: toggle controls visibility */
+      setShowControls((p) => !p);
+    }
+  }, [isLoading, seekRelative, togglePlay]);
 
   const handleOverlayClick = (e) => {
     if (contextMenu.show) { setContextMenu({ show: false, x: 0, y: 0 }); return; }
@@ -995,6 +1050,7 @@ const CustomVideoPlayer = ({
     if (showSubtitlesMenu) { setShowSubtitlesMenu(false); return; }
     if (showShortcuts) { setShowShortcuts(false); return; }
     if (isLoading) return;
+    /* Desktop: click to play/pause, double-click to seek/fullscreen */
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
       clickTimeoutRef.current = null;
@@ -1041,6 +1097,9 @@ const CustomVideoPlayer = ({
         WebkitUserSelect: "none",
         touchAction: "none",
         WebkitTouchCallout: "none",
+        /* Safe area insets for notched phones */
+        paddingBottom: isFullscreen ? 'env(safe-area-inset-bottom, 0px)' : undefined,
+        paddingTop: isFullscreen ? 'env(safe-area-inset-top, 0px)' : undefined,
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => {
@@ -1088,7 +1147,7 @@ const CustomVideoPlayer = ({
         />
       )}
 
-      {/* CineSrc interaction overlay */}
+      {/* CineSrc interaction overlay — handles mouse (desktop) and touch (mobile) */}
       {showCustomUI && isCineSrc && (
         <div
           onMouseMove={handleMouseMove}
@@ -1112,6 +1171,7 @@ const CustomVideoPlayer = ({
               toggleFullscreen();
             }
           }}
+          onTouchEnd={handleTouchOverlay}
           style={{ position: "absolute", inset: 0, zIndex: 9, cursor: controlsVisible ? "default" : "none" }}
         />
       )}
@@ -1954,8 +2014,23 @@ const CustomVideoPlayer = ({
               onMouseDown={onProgressMouseDown}
               onMouseMove={handleProgressHover}
               onMouseLeave={() => setHoverTime(null)}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                setIsScrubbing(true);
+                const touch = e.touches[0];
+                handleProgressScrub({ clientX: touch.clientX });
+              }}
+              onTouchMove={(e) => {
+                e.stopPropagation();
+                const touch = e.touches[0];
+                handleProgressScrub({ clientX: touch.clientX });
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                setIsScrubbing(false);
+              }}
               style={{
-                position: "relative", height: 32, display: "flex",
+                position: "relative", height: isTouch ? 44 : 32, display: "flex",
                 alignItems: "center", cursor: "pointer",
                 padding: `0 ${R.progressBarPad}`, pointerEvents: "auto",
               }}
@@ -2426,16 +2501,16 @@ const CustomVideoPlayer = ({
                     <span style={{ fontSize: R.fontMedium, fontWeight: 600, color: "rgba(255,255,255,0.6)", fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>{item.label}</span>
                     <div onClick={() => { const v = !item.val; item.set(v); localStorage.setItem(item.key, String(v)); }}
                       style={{
-                        width: 36, height: 20,
+                        width: isTouch ? 44 : 36, height: isTouch ? 24 : 20,
                         background: item.val ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)",
                         borderRadius: 100, position: "relative", cursor: "pointer",
                         transition: "background 0.25s",
                       }}
                     >
                       <div style={{
-                        width: 16, height: 16, background: item.val ? "#000" : "rgba(255,255,255,0.6)", borderRadius: "50%",
+                        width: isTouch ? 20 : 16, height: isTouch ? 20 : 16, background: item.val ? "#000" : "rgba(255,255,255,0.6)", borderRadius: "50%",
                         position: "absolute", top: 2,
-                        left: item.val ? 18 : 2,
+                        left: item.val ? (isTouch ? 22 : 18) : 2,
                         transition: "left 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s",
                       }} />
                     </div>
@@ -2485,16 +2560,16 @@ const CustomVideoPlayer = ({
               <span style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Subtitles</span>
               <div onClick={(e) => { e.stopPropagation(); setSubtitleEnabled(!subtitleEnabled); }}
                 style={{
-                  width: 36, height: 20,
+                  width: isTouch ? 44 : 36, height: isTouch ? 24 : 20,
                   background: subtitleEnabled ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)",
                   borderRadius: 100, position: "relative", cursor: "pointer",
                   transition: "background 0.25s",
                 }}
               >
                 <div style={{
-                  width: 16, height: 16, background: subtitleEnabled ? "#000" : "rgba(255,255,255,0.6)", borderRadius: "50%",
+                  width: isTouch ? 20 : 16, height: isTouch ? 20 : 16, background: subtitleEnabled ? "#000" : "rgba(255,255,255,0.6)", borderRadius: "50%",
                   position: "absolute", top: 2,
-                  left: subtitleEnabled ? 18 : 2,
+                  left: subtitleEnabled ? (isTouch ? 22 : 18) : 2,
                   transition: "left 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s",
                 }} />
               </div>
@@ -2570,7 +2645,7 @@ const CustomVideoPlayer = ({
                 style={{
                   display: "flex", alignItems: "center", gap: "clamp(6px, 1.5vw, 10px)", width: "100%",
                   background: "transparent", border: "none", color: "rgba(255,255,255,0.8)",
-                  padding: "8px 14px", cursor: "pointer", fontSize: R.fontMedium, fontWeight: 600,
+                  padding: `${isTouch ? "12px" : "8px"} 14px`, cursor: "pointer", fontSize: R.fontMedium, fontWeight: 600,
                   textAlign: "left", transition: "background 0.1s",
                   fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                 }}
