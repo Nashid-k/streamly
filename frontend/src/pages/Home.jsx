@@ -432,10 +432,16 @@ export default function Home({
 
   const rawCategories = categoriesData || EMPTY_ARRAY;
   const featuredMovies = useMemo(
-    () =>
-      featuredData
-        ? featuredData.map(normalizeMovieSource)
-        : EMPTY_ARRAY,
+    () => {
+      try {
+        return featuredData
+          ? (featuredData || []).filter(Boolean).map(normalizeMovieSource)
+          : EMPTY_ARRAY;
+      } catch (e) {
+        console.error('featuredMovies useMemo error:', e);
+        return EMPTY_ARRAY;
+      }
+    },
     [featuredData],
   );
   const loading = featuredLoading || catsLoading;
@@ -492,9 +498,10 @@ export default function Home({
   }, [filter]);
 
   const categories = useMemo(() => {
+    try {
     // 1. Collect all unique movies for dynamic rails
     const allUniqueMovies = new Map();
-    for (const cat of rawCategories) {
+    for (const cat of (rawCategories || [])) {
       for (const m of (cat.movies || [])) {
         if (m && m.id && !allUniqueMovies.has(m.id)) allUniqueMovies.set(m.id, m);
       }
@@ -677,6 +684,10 @@ export default function Home({
     }
 
     return finalCategories;
+    } catch (e) {
+      console.error('categories useMemo error:', e);
+      return [];
+    }
   }, [rawCategories, filter, activeGenre, activePlatform]);
 
   // Shared predicates for the Top 10 / Trending / Airing rails
@@ -734,6 +745,7 @@ export default function Home({
   });
 
   const finalPool = useMemo(() => {
+    try {
     let globalPool = [];
     let regionalPool = [];
     let recommendedPool = [];
@@ -841,6 +853,10 @@ export default function Home({
     }
 
     return pool;
+    } catch (e) {
+      console.error('finalPool useMemo error:', e);
+      return [];
+    }
   }, [featuredMovies, categories, filter, lastWatched]);
 
   const totalFeatured = finalPool.length;

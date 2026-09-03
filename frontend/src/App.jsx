@@ -101,7 +101,7 @@ function Layout({ children }) {
     clearNotifications,
   } = useAppAuth();
 
-  const unreadCount = useMemo(() => notifications.filter((n) => !n.isRead).length, [notifications]);
+  const unreadCount = useMemo(() => (notifications || []).filter((n) => !n.isRead).length, [notifications]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
