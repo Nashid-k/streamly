@@ -15,7 +15,7 @@ export default function WatchlistPage() {
   const [sortBy, setSortBy] = useState("Date Added");
 
   const filteredAndSortedList = useMemo(() => {
-    let list = [...myList];
+    let list = [...(myList || [])];
     if (filterType === "Movies") list = list.filter((m) => !m.isSeries);
     else if (filterType === "TV Shows") list = list.filter((m) => m.isSeries);
 

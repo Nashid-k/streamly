@@ -52,7 +52,7 @@ export default function SearchPage() {
   const error = queryError ? "Failed to load search results." : null;
 
   const filteredAndSortedList = useMemo(() => {
-    let list = [...results];
+    let list = [...(results || [])];
 
     if (filterType === "Movies") list = list.filter((m) => !m.isSeries);
     else if (filterType === "TV Shows") list = list.filter((m) => m.isSeries);

@@ -53,7 +53,7 @@ export default function GenrePage() {
   }, [rawResults, genre]);
 
   const filteredAndSortedList = useMemo(() => {
-    let list = [...results];
+    let list = [...(results || [])];
 
     if (filterType === "Movies") list = list.filter((m) => !m.isSeries);
     else if (filterType === "TV Shows") list = list.filter((m) => m.isSeries);
