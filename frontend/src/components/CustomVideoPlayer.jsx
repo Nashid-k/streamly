@@ -148,8 +148,8 @@ const CustomVideoPlayer = ({
   /* Auto-hide paused info */
   useEffect(() => {
     if (pausedInfoTimerRef.current) clearTimeout(pausedInfoTimerRef.current);
-    if (!isPlaying && !isLoading && showCustomUI && hasInitiallyLoaded) {
-      pausedInfoTimerRef.current = setTimeout(() => setShowPausedInfo(true), 2000);
+    if (!isPlaying && !isLoading && showCustomUI && hasInitiallyLoaded && duration > 0) {
+      pausedInfoTimerRef.current = setTimeout(() => setShowPausedInfo(true), 1500);
     } else {
       setShowPausedInfo(false);
     }
@@ -718,8 +718,8 @@ const CustomVideoPlayer = ({
     }
   };
 
-  const pp = duration ? (currentTime / duration) * 100 : 0;
-  const bp = duration ? (buffered / duration) * 100 : 0;
+  const pp = duration > 0 ? Math.max(0, Math.min((currentTime / duration) * 100, 100)) : 0;
+  const bp = duration > 0 ? Math.max(0, Math.min((buffered / duration) * 100, 100)) : 0;
   const controlsVisible = showControls || !isPlaying || isScrubbing;
 
   /* ════════════════════════════════════════════════════════════════════
@@ -948,10 +948,27 @@ const CustomVideoPlayer = ({
                   <Pause size={14} fill={V.accent} color={V.accent} />
                   <span style={{ color: V.accent, fontSize: 11, fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase" }}>Paused</span>
                 </div>
+                {/* Show actual title logo image if available, otherwise text */}
+                {movie?.logoUrl ? (
+                  <img
+                    src={movie.logoUrl}
+                    alt={movie?.title}
+                    style={{
+                      maxHeight: "clamp(40px, 8vw, 70px)",
+                      width: "auto",
+                      maxWidth: "min(360px, 70vw)",
+                      objectFit: "contain",
+                      filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.9))",
+                      marginBottom: 6,
+                    }}
+                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = 'block'); }}
+                  />
+                ) : null}
                 <div style={{
                   color: "#fff", fontWeight: 800,
                   fontSize: "clamp(1.2rem, 3vw, 2rem)", lineHeight: 1.1,
                   marginBottom: 6, letterSpacing: "-0.02em",
+                  display: movie?.logoUrl ? 'none' : 'block',
                 }}>
                   {movie?.title || movie?.name}
                 </div>
@@ -1476,17 +1493,17 @@ const CustomVideoPlayer = ({
                 borderRadius: 3,
                 transition: "height 0.25s cubic-bezier(0.4,0,0.2,1)",
               }}>
-                <div style={{ position: "absolute", inset: 0, width: `${bp}%`, background: "rgba(255,255,255,0.1)", borderRadius: 3, transition: "width 0.3s" }} />
-                <div style={{
-                  position: "absolute", inset: 0, width: `${pp}%`,
+                {duration > 0 && <div style={{ position: "absolute", inset: 0, width: `${Math.min(bp, 100)}%`, background: "rgba(255,255,255,0.1)", borderRadius: 3, transition: "width 0.3s" }} />}
+                {duration > 0 && <div style={{
+                  position: "absolute", inset: 0, width: `${Math.min(pp, 100)}%`,
                   background: `linear-gradient(90deg, ${V.accent}, #f0c060)`,
                   borderRadius: 3,
                   boxShadow: `0 0 10px ${V.accentGlow}`,
-                }} />
-                {/* Scrubber dot — hidden when at 0 and not playing, grows on hover */}
-                {!(currentTime === 0 && !isPlaying && !isScrubbing) && (
+                }} />}
+                {/* Scrubber dot — hidden when at 0 or no duration, grows on hover */}
+                {duration > 0 && !(currentTime === 0 && !isPlaying && !isScrubbing) && (
                 <div className="void-scrubber" style={{
-                  position: "absolute", left: `${pp}%`, top: "50%",
+                  position: "absolute", left: `${Math.max(0, Math.min(pp, 100))}%`, top: "50%",
                   transform: "translate(-50%,-50%)",
                   width: hoverTime != null || isScrubbing ? 14 : 8,
                   height: hoverTime != null || isScrubbing ? 14 : 8,
