@@ -32,16 +32,24 @@ export function getSearchRelevance(movie, query) {
 
   if (!title || !q) return 0;
 
-  // ── TIER 1: Exact / near-exact (90-100) ──
+  // ── TIER 1: Exact / near-exact (88-100) ──
 
   // Exact match — the holy grail
   if (title === q) return 100;
 
-  // Title starts with query (e.g. "sarvam maya" in "Sarvam Maya (2024)")
-  if (title.startsWith(q)) return 95;
+  // Title starts with query
+  if (title.startsWith(q)) {
+    // Word boundary check: is the query a complete word in the title?
+    // e.g. "hi" in "Hi Nanna" = word boundary (followed by space)
+    //      "hi" in "HIM" = NOT a word boundary (followed by letter)
+    const afterChar = title[q.length] || '';
+    const isWordBoundary = !afterChar || /[^a-z0-9]/i.test(afterChar);
+    if (isWordBoundary) return 98; // "Hi Nanna" when searching "hi"
+    return 95; // "HIM", "Hit Man" when searching "hi"
+  }
 
   // Query starts with title (user typed more than the title)
-  if (q.startsWith(title) && title.length >= 3) return 90;
+  if (q.startsWith(title) && title.length >= 3) return 88;
 
   // ── TIER 2: Strong word matches (70-85) ──
 
