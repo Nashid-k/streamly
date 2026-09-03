@@ -28,6 +28,7 @@ import { useQuery } from "@tanstack/react-query";
 import slugify from "slugify";
 import { movieService } from "./api/movieService";
 import { mapSource } from "./api/platformAdapter";
+import { rankSearchResults } from "./utils/searchRanking";
 import SearchResultRow from "./components/SearchResultRow";
 import { useDebounce } from "./hooks/useDebounce";
 import { AnimatePresence, motion } from "framer-motion";
@@ -133,8 +134,9 @@ function Layout({ children }) {
       return true;
     });
 
-    return unique.slice(0, 10);
-  }, [rawResults]);
+    // Rank by relevance — exact title matches first
+    return rankSearchResults(unique, debouncedQuery).slice(0, 10);
+  }, [rawResults, debouncedQuery]);
 
   const error = queryError
     ? "Failed to reach server. Please try again later."
