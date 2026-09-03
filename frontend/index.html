@@ -24,18 +24,16 @@
     <script>
       // Clear stale SW caches on new deploy (no reload — let ErrorBoundary handle it)
       (function() {
-        var V = 'v13.1';
+        var V = 'v14.0';
         var prev = null;
         try { prev = localStorage.getItem('_sv'); } catch(e) {}
         if (prev !== V) {
           try {
             localStorage.setItem('_sv', V);
-            // Clear all caches
-            if ('caches' in window) caches.keys().then(function(n) { n.forEach(function(k) { caches.delete(k); }); });
-            // Unregister all service workers
-            if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function(r) { r.forEach(function(x) { x.unregister(); }); });
-            // Force reload to load fresh code
-            window.location.reload();
+            var tasks = [];
+            if ('caches' in window) tasks.push(caches.keys().then(function(n) { n.forEach(function(k) { caches.delete(k); }); }));
+            if ('serviceWorker' in navigator) tasks.push(navigator.serviceWorker.getRegistrations().then(function(r) { r.forEach(function(x) { x.unregister(); }); }));
+            Promise.all(tasks).then(function() { window.location.reload(); });
           } catch(e) {}
         }
       })();
