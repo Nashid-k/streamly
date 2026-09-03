@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { movieService } from "../api/movieService";
 import { mapSource } from "../api/platformAdapter";
+import { rankSearchResults, getDidYouMean } from "../utils/searchRanking";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, Film, Tv, Flame, Sparkles, Star } from "lucide-react";
@@ -34,22 +35,45 @@ export default function SearchPage() {
   });
 
   // Suggestions from backend ("did you mean")
-  const suggestions = rawResults?.suggestions || [];
+  const backendSuggestions = rawResults?.suggestions || [];
 
   const results = useMemo(() => {
     if (!rawResults || !Array.isArray(rawResults.movies)) return [];
 
     const mapped = rawResults.movies.filter(Boolean).map(mapSource);
     const seen = new Set();
-    return mapped.filter((m) => {
+    const unique = mapped.filter((m) => {
       const key = m.tmdbId || m.id;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [rawResults]);
+
+    // Rank by relevance — exact title matches first
+    return rankSearchResults(unique, query);
+  }, [rawResults, query]);
 
   const error = queryError ? "Failed to load search results." : null;
+
+  // "Did you mean" suggestions — combine backend suggestions + fuzzy match
+  const didYouMean = useMemo(() => {
+    if (!query) return [];
+    const hasExactMatch = results?.some(m =>
+      (m.title || '').toLowerCase().trim() === query.toLowerCase().trim()
+    );
+    if (hasExactMatch) return [];
+
+    // Fuzzy-match from results
+    const fuzzy = getDidYouMean(query, results || [], 0.35);
+    const fuzzyTitles = fuzzy.map(s => s.title);
+
+    // Merge: backend suggestions first, then fuzzy matches not already in backend
+    const merged = [
+      ...backendSuggestions.filter(s => !fuzzyTitles.includes(s)),
+      ...fuzzyTitles,
+    ].slice(0, 5);
+    return merged;
+  }, [query, results, backendSuggestions]);
 
   const filteredAndSortedList = useMemo(() => {
     let list = [...(results || [])];
@@ -338,7 +362,7 @@ export default function SearchPage() {
             actions={
               <>
                 {/* Did you mean suggestions */}
-                {suggestions.length > 0 && (
+                {didYouMean.length > 0 && (
                   <div
                     style={{
                       display: "flex",
@@ -349,11 +373,11 @@ export default function SearchPage() {
                       width: "100%",
                     }}
                   >
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+                    <span style={{ fontSize: "0.85rem", color: "#a1a1aa" }}>
                       Did you mean:
                     </span>
                     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
-                      {suggestions.map((s) => (
+                      {didYouMean.map((s) => (
                         <Button
                           key={s}
                           variant="accent"
