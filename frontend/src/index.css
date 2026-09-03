@@ -2039,9 +2039,8 @@ html {
 }
 
 /* ═══ Void Player ════════════════════════════════════════ */
-.void-scrubber:hover {
-  transform: translate(-50%, -50%) scale(1.5) !important;
-  box-shadow: 0 0 14px rgba(232,168,56,0.5), 0 0 0 3px rgba(232,168,56,0.3), 0 0 24px rgba(232,168,56,0.3) !important;
+.void-scrubber {
+  transition: width 0.2s ease, height 0.2s ease, box-shadow 0.2s ease, left 0.1s ease;
 }
 .void-scrubber:active {
   cursor: grabbing;
@@ -2093,3 +2092,6 @@ html {
 }
 .void-hover { transition: background 0.12s; }
 .void-hover:hover { background: rgba(255,255,255,0.08); }
+.void-volume-bar {
+  transition: width 0.15s ease;
+}

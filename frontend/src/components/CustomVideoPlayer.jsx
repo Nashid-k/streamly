@@ -79,6 +79,7 @@ const CustomVideoPlayer = ({
   const [volume, setVolume] = useState(1);
   const [isVolumeHovered, setIsVolumeHovered] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [showVolumePopup, setShowVolumePopup] = useState(false);
   const [autoSkipIntro, setAutoSkipIntro] = useState(() => localStorage.getItem("streamly_autoSkip") === "true");
   const [autoPlayNext, setAutoPlayNext] = useState(() => localStorage.getItem("streamly_autoNext") !== "false");
   const [doubleTapRipple, setDoubleTapRipple] = useState(null);
@@ -133,6 +134,7 @@ const CustomVideoPlayer = ({
   const centerIconKeyRef = useRef(0);
   const subtitleInputRef = useRef(null);
   const toastTimeoutRef = useRef(null);
+  const volumePopupRef = useRef(null);
   const isLoopingRef = useRef(isLooping);
   useEffect(() => { isLoopingRef.current = isLooping; }, [isLooping]);
 
@@ -485,6 +487,10 @@ const CustomVideoPlayer = ({
       setIsMuted(false);
       localStorage.setItem("streamly_muted", "false");
     }
+    // Show volume popup briefly
+    setShowVolumePopup(true);
+    if (volumePopupRef.current) clearTimeout(volumePopupRef.current);
+    volumePopupRef.current = setTimeout(() => setShowVolumePopup(false), 800);
   }, [isMuted, sendCommand]);
 
   const toggleMute = useCallback((e) => {
@@ -937,14 +943,17 @@ const CustomVideoPlayer = ({
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                   {movie?.releaseYear && <span style={{ color: V.dim, fontSize: 12, fontWeight: 600 }}>{movie.releaseYear}</span>}
                   {movie?.imdbRating > 0 && <span style={{ color: "#FBBF24", fontSize: 12, fontWeight: 700 }}>★ {movie.imdbRating}</span>}
-                  {isTvContent && season && <span style={{ color: V.dim, fontSize: 12 }}>S{season} E{episode}</span>}
+                  {isTvContent && season && <span style={{ color: V.accent, fontSize: 12, fontWeight: 700 }}>S{season} E{episode}</span>}
                   {movie?.duration && <span style={{ color: V.dim, fontSize: 12 }}>{movie.duration}</span>}
+                  {movie?.genres?.slice(0, 3).map((g, i) => (
+                    <span key={i} style={{ color: V.faint, fontSize: 10, fontWeight: 600, background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 4 }}>{g}</span>
+                  ))}
                 </div>
                 {movie?.overview && (
                   <div style={{
-                    color: "rgba(255,255,255,0.6)",
-                    fontSize: "clamp(0.75rem, 1.3vw, 0.9rem)", lineHeight: 1.5,
-                    display: "-webkit-box", WebkitLineClamp: 3,
+                    color: "rgba(255,255,255,0.65)",
+                    fontSize: "clamp(0.75rem, 1.3vw, 0.9rem)", lineHeight: 1.6,
+                    display: "-webkit-box", WebkitLineClamp: 4,
                     WebkitBoxOrient: "vertical", overflow: "hidden",
                   }}>
                     {movie.overview}
@@ -1110,19 +1119,38 @@ const CustomVideoPlayer = ({
             {sideIcon?.type === "backward" && (
               <motion.div
                 key="bwd"
-                initial={{ opacity: 0, scale: 0.5 }}
+                initial={{ opacity: 0, scale: 0.4 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.2 }}
-                transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                  width: 68, height: 68, borderRadius: "50%",
-                  background: "rgba(0,0,0,0.5)", backdropFilter: "blur(16px)",
-                  border: `1px solid ${V.glassBorder}`,
-                }}
+                exit={{ opacity: 0, scale: 1.3 }}
+                transition={{ type: "spring", stiffness: 500, damping: 22 }}
+                style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
               >
-                <Rewind size={22} color={V.accent} strokeWidth={2.5} fill="rgba(232,168,56,0.15)" />
-                <span style={{ fontSize: 10, fontWeight: 800, color: V.accent, fontFamily: "monospace" }}>{sideIcon.text}</span>
+                {/* Outer ripple ring */}
+                <motion.div
+                  initial={{ opacity: 0.4, scale: 0.6 }}
+                  animate={{ opacity: 0, scale: 1.8 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  style={{
+                    position: "absolute", width: 64, height: 64, top: -8, left: -8,
+                    borderRadius: "50%", border: `2px solid ${V.accent}`,
+                    pointerEvents: "none",
+                  }}
+                />
+                {/* Main circle */}
+                <div style={{
+                  width: 56, height: 56, borderRadius: "50%",
+                  background: "rgba(0,0,0,0.55)", backdropFilter: "blur(20px)",
+                  border: `1.5px solid ${V.accentBorder}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: `0 0 24px ${V.accentGlow}, inset 0 0 12px rgba(0,0,0,0.3)`,
+                }}>
+                  <Rewind size={24} color={V.accent} strokeWidth={2.5} fill="rgba(232,168,56,0.2)" />
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 800, color: V.accent,
+                  fontFamily: "monospace", textShadow: "0 0 10px rgba(0,0,0,0.8)",
+                  marginTop: 4,
+                }}>{sideIcon.text}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1132,19 +1160,38 @@ const CustomVideoPlayer = ({
             {sideIcon?.type === "forward" && (
               <motion.div
                 key="fwd"
-                initial={{ opacity: 0, scale: 0.5 }}
+                initial={{ opacity: 0, scale: 0.4 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.2 }}
-                transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                  width: 68, height: 68, borderRadius: "50%",
-                  background: "rgba(0,0,0,0.5)", backdropFilter: "blur(16px)",
-                  border: `1px solid ${V.glassBorder}`,
-                }}
+                exit={{ opacity: 0, scale: 1.3 }}
+                transition={{ type: "spring", stiffness: 500, damping: 22 }}
+                style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
               >
-                <FastForward size={22} color={V.accent} strokeWidth={2.5} fill="rgba(232,168,56,0.15)" />
-                <span style={{ fontSize: 10, fontWeight: 800, color: V.accent, fontFamily: "monospace" }}>{sideIcon.text}</span>
+                {/* Outer ripple ring */}
+                <motion.div
+                  initial={{ opacity: 0.4, scale: 0.6 }}
+                  animate={{ opacity: 0, scale: 1.8 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  style={{
+                    position: "absolute", width: 64, height: 64, top: -8, left: -8,
+                    borderRadius: "50%", border: `2px solid ${V.accent}`,
+                    pointerEvents: "none",
+                  }}
+                />
+                {/* Main circle */}
+                <div style={{
+                  width: 56, height: 56, borderRadius: "50%",
+                  background: "rgba(0,0,0,0.55)", backdropFilter: "blur(20px)",
+                  border: `1.5px solid ${V.accentBorder}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: `0 0 24px ${V.accentGlow}, inset 0 0 12px rgba(0,0,0,0.3)`,
+                }}>
+                  <FastForward size={24} color={V.accent} strokeWidth={2.5} fill="rgba(232,168,56,0.2)" />
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 800, color: V.accent,
+                  fontFamily: "monospace", textShadow: "0 0 10px rgba(0,0,0,0.8)",
+                  marginTop: 4,
+                }}>{sideIcon.text}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1299,26 +1346,64 @@ const CustomVideoPlayer = ({
               </AnimatePresence>
               <div style={{
                 position: "relative", width: "100%",
-                height: hoverTime != null || isScrubbing ? 4 : 2,
+                height: hoverTime != null || isScrubbing ? 6 : 3,
                 background: "rgba(255,255,255,0.08)",
-                transition: "height 0.2s cubic-bezier(0.4,0,0.2,1)",
+                borderRadius: 3,
+                transition: "height 0.25s cubic-bezier(0.4,0,0.2,1)",
               }}>
-                <div style={{ position: "absolute", inset: 0, width: `${bp}%`, background: "rgba(255,255,255,0.1)", transition: "width 0.3s" }} />
+                <div style={{ position: "absolute", inset: 0, width: `${bp}%`, background: "rgba(255,255,255,0.1)", borderRadius: 3, transition: "width 0.3s" }} />
                 <div style={{
                   position: "absolute", inset: 0, width: `${pp}%`,
                   background: `linear-gradient(90deg, ${V.accent}, #f0c060)`,
-                  boxShadow: `0 0 8px ${V.accentGlow}`,
+                  borderRadius: 3,
+                  boxShadow: `0 0 10px ${V.accentGlow}`,
                 }} />
+                {/* Scrubber dot — always visible, grows on hover */}
                 <div className="void-scrubber" style={{
                   position: "absolute", left: `${pp}%`, top: "50%",
                   transform: "translate(-50%,-50%)",
-                  width: 12, height: 12, borderRadius: "50%",
+                  width: hoverTime != null || isScrubbing ? 14 : 8,
+                  height: hoverTime != null || isScrubbing ? 14 : 8,
+                  borderRadius: "50%",
                   background: "#fff",
-                  boxShadow: `0 0 8px rgba(0,0,0,0.5), 0 0 0 2px ${V.accent}`,
-                  opacity: hoverTime != null || isScrubbing ? 1 : 0,
-                  transition: "opacity 0.15s, transform 0.15s", cursor: "grab",
+                  boxShadow: hoverTime != null || isScrubbing
+                    ? `0 0 12px rgba(0,0,0,0.5), 0 0 0 3px ${V.accent}, 0 0 20px ${V.accentGlow}`
+                    : `0 0 6px rgba(0,0,0,0.4), 0 0 0 2px ${V.accent}`,
+                  transition: "width 0.2s, height 0.2s, box-shadow 0.2s, left 0.1s",
+                  cursor: "grab",
                 }} />
               </div>
+            </div>
+
+            {/* SHOW TITLE + SEASON/EPISODE — centered below progress */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "4px 16px 6px", pointerEvents: "none",
+              gap: 12, flexWrap: "wrap",
+            }}>
+              <span style={{
+                color: "rgba(255,255,255,0.85)", fontSize: "clamp(12px, 1.4vw, 14px)",
+                fontWeight: 700, letterSpacing: "-0.01em",
+                textShadow: "0 1px 8px rgba(0,0,0,0.8)",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                maxWidth: "min(320px, 50vw)",
+              }}>
+                {movie?.title || movie?.name}
+              </span>
+              {isTvContent && season && (
+                <span style={{
+                  color: V.accent, fontSize: "clamp(10px, 1.2vw, 12px)",
+                  fontWeight: 700, letterSpacing: "0.5px",
+                  background: V.accentDim, padding: "2px 8px", borderRadius: 4,
+                  border: `1px solid ${V.accentBorder}`,
+                  whiteSpace: "nowrap",
+                }}>
+                  S{season} E{episode}
+                </span>
+              )}
+              {movie?.releaseYear && (
+                <span style={{ color: V.dim, fontSize: 11, fontWeight: 600 }}>{movie.releaseYear}</span>
+              )}
             </div>
 
             {/* CONTROL ROW */}
@@ -1351,12 +1436,41 @@ const CustomVideoPlayer = ({
                   <RotateCw size={14} />
                 </button>
                 {/* Volume */}
-                <div onMouseEnter={() => setIsVolumeHovered(true)} onMouseLeave={() => setIsVolumeHovered(false)} style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                <div onMouseEnter={() => setIsVolumeHovered(true)} onMouseLeave={() => setIsVolumeHovered(false)} style={{ display: "flex", alignItems: "center", gap: 0, position: "relative" }}>
                   <button onClick={toggleMute}
                     style={{ background: "transparent", border: "none", color: V.dim, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
                     {isMuted || volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
                   </button>
+                  {/* Volume percentage popup */}
+                  <AnimatePresence>
+                    {showVolumePopup && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        style={{
+                          position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)",
+                          background: V.glass, border: `1px solid ${V.glassBorder}`,
+                          borderRadius: 6, padding: "3px 8px", backdropFilter: "blur(12px)",
+                          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <div style={{ width: 28, height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden" }}>
+                          <div style={{
+                            width: `${(isMuted ? 0 : volume) * 100}%`, height: "100%",
+                            background: V.accent, borderRadius: 2,
+                            transition: "width 0.15s ease",
+                          }} />
+                        </div>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: V.accent, fontFamily: "monospace" }}>
+                          {Math.round((isMuted ? 0 : volume) * 100)}%
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <motion.div
                     initial={false}
                     animate={{ width: isVolumeHovered ? 56 : 0, opacity: isVolumeHovered ? 1 : 0 }}
