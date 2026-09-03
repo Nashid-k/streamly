@@ -102,22 +102,65 @@ const ArcRing = ({ progress = 0, size = 48, strokeWidth = 3, color = "#fff", bgC
   );
 };
 
-/* Spinning Arc — for loading states (like subtitle download) */
-const SpinningArc = ({ size = 48, strokeWidth = 2.5, color = "#fff" }) => (
-  <motion.svg
-    width={size} height={size}
-    animate={{ rotate: 360 }}
-    transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-    style={{ display: "block" }}
-  >
-    <circle cx={size/2} cy={size/2} r={(size - strokeWidth) / 2} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeWidth} />
-    <circle
-      cx={size/2} cy={size/2} r={(size - strokeWidth) / 2}
-      fill="none" stroke={color} strokeWidth={strokeWidth}
-      strokeLinecap="round" strokeDasharray={`${size * 0.4} ${size * 2.4}`}
-    />
-  </motion.svg>
-);
+/* Apple-style animated progress arc for loading states */
+const LoadingArc = ({ size = 56, strokeWidth = 2.5, progress = 0 }) => {
+  const r = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const trackGap = circ * 0.15; /* small gap at bottom like Apple */
+  return (
+    <div style={{ position: "relative", width: size, height: size }}>
+      {/* Track ring with gap */}
+      <svg width={size} height={size} style={{ position: "absolute", inset: 0 }}>
+        <circle
+          cx={size/2} cy={size/2} r={r}
+          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth}
+          strokeDasharray={`${circ - trackGap} ${trackGap}`}
+          strokeLinecap="round"
+          transform={`rotate(90 ${size/2} ${size/2})`} /* gap at bottom */
+        />
+      </svg>
+      {/* Spinning progress arc */}
+      <motion.svg
+        width={size} height={size}
+        style={{ position: "absolute", inset: 0 }}
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 1.8, ease: "linear" }}
+      >
+        <circle
+          cx={size/2} cy={size/2} r={r}
+          fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={`${circ * 0.3} ${circ * 0.7}`}
+        />
+      </motion.svg>
+      {/* Inner progress ring — fills over time */}
+      {progress > 0 && (
+        <svg width={size} height={size} style={{ position: "absolute", inset: 0 }}>
+          <circle
+            cx={size/2} cy={size/2} r={r - strokeWidth * 2}
+            fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={strokeWidth * 0.6}
+            strokeDasharray={2 * Math.PI * (r - strokeWidth * 2)}
+            strokeDashoffset={2 * Math.PI * (r - strokeWidth * 2) * (1 - progress)}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}
+            transform={`rotate(-90 ${size/2} ${size/2})`}
+          />
+        </svg>
+      )}
+      {/* Center dot */}
+      <motion.div
+        animate={{ opacity: [0.4, 1, 0.4] }}
+        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+        style={{
+          position: "absolute",
+          top: size/2 - 2, left: size/2 - 2,
+          width: 4, height: 4, borderRadius: "50%",
+          background: "rgba(255,255,255,0.7)",
+        }}
+      />
+    </div>
+  );
+};
 
 /* ═══ Main Player ═══════════════════════════════════════════════ */
 const CustomVideoPlayer = ({
@@ -132,6 +175,7 @@ const CustomVideoPlayer = ({
   const [iframeUrl, setIframeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
@@ -266,6 +310,21 @@ const CustomVideoPlayer = ({
   useEffect(() => {
     if (!isLoading && !hasInitiallyLoaded) setHasInitiallyLoaded(true);
   }, [isLoading, hasInitiallyLoaded]);
+
+  /* Animate loading progress bar while waiting */
+  useEffect(() => {
+    if (!isLoading) { setLoadProgress(0); return; }
+    setLoadProgress(0.05);
+    const steps = [
+      { t: 800, v: 0.25 },
+      { t: 2000, v: 0.55 },
+      { t: 5000, v: 0.75 },
+      { t: 10000, v: 0.88 },
+      { t: 18000, v: 0.95 },
+    ];
+    const timers = steps.map(({ t, v }) => setTimeout(() => setLoadProgress(v), t));
+    return () => timers.forEach(clearTimeout);
+  }, [isLoading]);
 
   useEffect(() => {
     if (movie?.id) {
@@ -836,7 +895,7 @@ const CustomVideoPlayer = ({
           style={{
             width: "100%", height: "100%", border: "none", background: "#000",
             pointerEvents: isCineSrc ? "auto" : (showCustomUI ? "none" : "auto"),
-            opacity: isLoading && !hasInitiallyLoaded ? 0 : 1,
+            opacity: hasInitiallyLoaded ? 1 : 0,
             transition: "opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
             filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
             transformOrigin: "center center",
@@ -845,7 +904,8 @@ const CustomVideoPlayer = ({
           allow="autoplay; fullscreen; picture-in-picture"
           onLoad={() => {
             if (isCineSrc) {
-              setTimeout(() => setIsLoading(false), 3000);
+              /* Do NOT set isLoading=false here — wait for cinesrc:playing
+                 so CineSrc's own spinner stays hidden behind our overlay */
             } else {
               setIsLoading(false);
             }
@@ -1087,33 +1147,22 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* Loading background blur */}
-      <AnimatePresence>
-        {isLoading && !hasInitiallyLoaded && thumbnailUrl && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{
-              position: "absolute", inset: 0, zIndex: 4,
-              backgroundImage: `url(${thumbnailUrl})`,
-              backgroundSize: "cover", backgroundPosition: "center",
-              filter: "blur(40px) brightness(0.12)", transform: "scale(1.2)",
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ═══ LOADING STATE — Spinning arc (like subtitle download) ═══ */}
+      {/* Loading — fully opaque cover to hide CineSrc's own spinner */}
       <AnimatePresence>
         {isLoading && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{
               position: "absolute", inset: 0, zIndex: 5,
+              background: thumbnailUrl
+                ? `linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(8,8,12,0.98) 100%)`
+                : "#000",
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
-              pointerEvents: "none", gap: 20,
+              gap: 20,
             }}
           >
-            <SpinningArc size={52} strokeWidth={2.5} color="rgba(255,255,255,0.85)" />
+            <LoadingArc size={56} strokeWidth={2.5} progress={loadProgress} />
             {!hasInitiallyLoaded && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
                 style={{ textAlign: "center" }}>
