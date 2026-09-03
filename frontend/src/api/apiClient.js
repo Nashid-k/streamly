@@ -9,6 +9,7 @@ export const apiClient = axios.create({
 let inflightCount = 0;
 let wakeupTimer = null;
 let wakeupFired = false;
+let wakeupSafetyTimer = null;
 
 // Request interceptor
 apiClient.interceptors.request.use(
@@ -19,6 +20,9 @@ apiClient.interceptors.request.use(
       wakeupTimer = setTimeout(() => {
         wakeupFired = true;
         window.dispatchEvent(new Event("server-wakeup"));
+        // Safety: reset wakeupFired after 30s so it can fire again
+        // even if inflightCount never reaches 0 (e.g. error leak)
+        wakeupSafetyTimer = setTimeout(() => { wakeupFired = false; }, 30000);
       }, 5000);
     }
     return config;
@@ -47,10 +51,10 @@ function decrementInflight() {
       clearTimeout(wakeupTimer);
       wakeupTimer = null;
     }
-    // Only dispatch wakeup-done if wakeup was actually dispatched,
-    // and only if we haven't already dispatched it for this cycle.
-    // This prevents the race where a slow response arrives after
-    // the wakeup timer fires — we still need to clean up properly.
+    if (wakeupSafetyTimer) {
+      clearTimeout(wakeupSafetyTimer);
+      wakeupSafetyTimer = null;
+    }
     if (wakeupFired) {
       wakeupFired = false;
       window.dispatchEvent(new Event("server-wakeup-done"));

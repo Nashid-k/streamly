@@ -254,7 +254,7 @@ export function buildLeavingSoonNotification(item) {
     message: daysLeft <= 1
       ? `"${item.title}" is leaving ${platformName} tomorrow! Watch it before it's gone.`
       : `"${item.title}" will leave ${platformName} in ${daysLeft} days (${item.formattedLeaveDate}).`,
-    detail: `Leaveing ${item.formattedLeaveDate} · ${platformName}`,
+    detail: `Leaving ${item.formattedLeaveDate} · ${platformName}`,
     link: `/watch/${item.id}`,
     platform: platformName,
     platformKey,

@@ -230,7 +230,7 @@ const useIsTouch = () => {
 
 const CustomVideoPlayer = ({
   movie, season, episode, preferredServerIndex = 0, onServerChange,
-  hasNextEpisode, onNextEpisode, thumbnailUrl, startTime = 0, onProgressUpdate,
+  hasNextEpisode, onNextEpisode, onClose, thumbnailUrl, startTime = 0, onProgressUpdate,
 }) => {
   /* State */
   const [activeServerIndex, setActiveServerIndex] = useState(preferredServerIndex);
@@ -323,6 +323,8 @@ const CustomVideoPlayer = ({
   const skipIntroTimeoutRef = useRef(null);
   const upNextIntervalRef = useRef(null);
   const upNextShownRef = useRef(false);
+  const lastProgressWriteRef = useRef(0);
+  const lastTouchEndRef = useRef(0);
   const centerIconKeyRef = useRef(0);
   const subtitleInputRef = useRef(null);
   const toastTimeoutRef = useRef(null);
@@ -351,6 +353,8 @@ const CustomVideoPlayer = ({
 
   const autoPlayNextRef = useRef(autoPlayNext);
   useEffect(() => { autoPlayNextRef.current = autoPlayNext; }, [autoPlayNext]);
+  const isLoadingRef = useRef(isLoading);
+  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
 
   const subtitleEngineRef = useRef(new SubtitleEngine());
   const [activeSubtitleCue, setActiveSubtitleCue] = useState(null);
@@ -373,6 +377,12 @@ const CustomVideoPlayer = ({
     setUpNextCountdown(15);
     setHasInitiallyLoaded(false);
   }, [movie?.id, season, episode]);
+
+  // Reset next-episode trigger on mount (player opened) and on unmount (player closed)
+  useEffect(() => {
+    hasTriggeredNextRef.current = false;
+    upNextShownRef.current = false;
+  }, []);
 
   useEffect(() => { setActiveServerIndex(preferredServerIndex); }, [preferredServerIndex]);
 
@@ -512,7 +522,7 @@ const CustomVideoPlayer = ({
     };
     gen();
     return () => { if (watchdogTimer) clearTimeout(watchdogTimer); };
-  }, [activeServerIndex, movie, season, episode, useNativeControls]);
+  }, [activeServerIndex, movie, season, episode, startTime, useNativeControls]);
 
   const sendCommand = useCallback((c, a = []) => {
     try {
@@ -593,10 +603,15 @@ const CustomVideoPlayer = ({
           case "cinesrc:playing": setIsLoading(false); setIsPlaying(true); break;
           case "cinesrc:progress": if (d.buffered !== undefined) setBuffered(d.buffered); break;
           case "cinesrc:timeupdate":
-            if (isLoading) setIsLoading(false);
+            if (isLoadingRef.current) setIsLoading(false);
             if (!isScrubbing && !targetSeekTimeRef.current) {
               setCurrentTime(d.currentTime);
-              onProgressUpdate?.(d.currentTime, d.duration);
+              // Debounce progress writes to Firestore — max once per 10 seconds
+              const now = Date.now();
+              if (now - lastProgressWriteRef.current > 10000) {
+                lastProgressWriteRef.current = now;
+                onProgressUpdate?.(d.currentTime, d.duration);
+              }
               if (hasSubtitlesRef.current) {
                 const cue = subtitleEngineRef.current.getActiveCue(d.currentTime);
                 setActiveSubtitleCue((p) => p?.start === cue?.start && p?.end === cue?.end ? p : cue);
@@ -655,7 +670,7 @@ const CustomVideoPlayer = ({
             if (d.volume !== undefined) setVolume(d.volume);
             if (d.muted !== undefined) setIsMuted(d.muted);
             break;
-          case "cinesrc:close": navigate(-1); break;
+          case "cinesrc:close": onClose ? onClose() : window.history.back(); break;
           case "cinesrc:error":
             setIsLoading(false);
             const errType = d.error?.type || d.error?.details || 'unknown';
@@ -684,7 +699,7 @@ const CustomVideoPlayer = ({
     };
     window.addEventListener("message", h);
     return () => window.removeEventListener("message", h);
-  }, [isCineSrc, isScrubbing, volume, isMuted, playbackRate, sendCommand, hasNextEpisode, onNextEpisode, activeServerIndex, startUpNextCountdown, isLoading, onProgressUpdate]);
+  }, [isCineSrc, isScrubbing, volume, isMuted, playbackRate, sendCommand, hasNextEpisode, onNextEpisode, activeServerIndex, startUpNextCountdown, onProgressUpdate]);
 
   /* Actions */
   const triggerCenterIcon = useCallback((type) => {
@@ -1096,6 +1111,7 @@ const CustomVideoPlayer = ({
   const handleTouchOverlay = useCallback((e) => {
     if (isLoading) return;
     const now = Date.now();
+    lastTouchEndRef.current = now; // Prevent onClick from double-firing
     const tapGap = now - lastTapRef.current;
     lastTapRef.current = now;
     if (tapGap < 300 && tapGap > 0) {
@@ -1118,37 +1134,7 @@ const CustomVideoPlayer = ({
       /* Single tap: toggle controls visibility */
       setShowControls((p) => !p);
     }
-  }, [isLoading, seekRelative, togglePlay]);
-
-  const handleOverlayClick = (e) => {
-    if (contextMenu.show) { setContextMenu({ show: false, x: 0, y: 0 }); return; }
-    if (showSettings) { setShowSettings(false); return; }
-    if (showSubtitlesMenu) { setShowSubtitlesMenu(false); return; }
-    if (showShortcuts) { setShowShortcuts(false); return; }
-    if (isLoading) return;
-    /* Desktop: click to play/pause, double-click to seek/fullscreen */
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-      clickTimeoutRef.current = null;
-      const r = containerRef.current.getBoundingClientRect();
-      const pct = (e.clientX - r.left) / r.width;
-      if (pct < 0.3) {
-        seekRelative(-10);
-        setDoubleTapRipple({ side: "left", id: Date.now() });
-        setTimeout(() => setDoubleTapRipple(null), 500);
-      } else if (pct > 0.7) {
-        seekRelative(10);
-        setDoubleTapRipple({ side: "right", id: Date.now() });
-        setTimeout(() => setDoubleTapRipple(null), 500);
-      } else {
-        toggleFullscreen();
-      }
-    } else {
-      clickTimeoutRef.current = setTimeout(() => { clickTimeoutRef.current = null; togglePlay(); }, 250);
-    }
-  };
-
-  const pp = duration > 0 ? Math.max(0, Math.min((currentTime / duration) * 100, 100)) : 0;
+  }, [isLoading, seekRelative, togglePlay]);  const pp = duration > 0 ? Math.max(0, Math.min((currentTime / duration) * 100, 100)) : 0;
   const bp = duration > 0 ? Math.max(0, Math.min((buffered / duration) * 100, 100)) : 0;
   /* On mobile portrait: controls always visible. On landscape: auto-hide */
   const isPortrait = orientationRef.current === 'portrait';
@@ -1242,22 +1228,30 @@ const CustomVideoPlayer = ({
           onMouseMove={handleMouseMove}
           onClick={(e) => {
             e.stopPropagation();
-            togglePlay();
-          }}
-          onDoubleClick={(e) => {
-            e.stopPropagation();
-            const r = containerRef.current.getBoundingClientRect();
-            const pct = (e.clientX - r.left) / r.width;
-            if (pct < 0.3) {
-              seekRelative(-10);
-              setDoubleTapRipple({ side: "left", id: Date.now() });
-              setTimeout(() => setDoubleTapRipple(null), 500);
-            } else if (pct > 0.7) {
-              seekRelative(10);
-              setDoubleTapRipple({ side: "right", id: Date.now() });
-              setTimeout(() => setDoubleTapRipple(null), 500);
+            // Skip if a touch just handled this (prevents double-fire on mobile)
+            if (Date.now() - lastTouchEndRef.current < 300) return;
+            // Desktop: click to play/pause, double-click to seek/fullscreen
+            if (clickTimeoutRef.current) {
+              clearTimeout(clickTimeoutRef.current);
+              clickTimeoutRef.current = null;
+              const r = containerRef.current.getBoundingClientRect();
+              const pct = (e.clientX - r.left) / r.width;
+              if (pct < 0.3) {
+                seekRelative(-10);
+                setDoubleTapRipple({ side: "left", id: Date.now() });
+                setTimeout(() => setDoubleTapRipple(null), 500);
+              } else if (pct > 0.7) {
+                seekRelative(10);
+                setDoubleTapRipple({ side: "right", id: Date.now() });
+                setTimeout(() => setDoubleTapRipple(null), 500);
+              } else {
+                toggleFullscreen();
+              }
             } else {
-              toggleFullscreen();
+              clickTimeoutRef.current = setTimeout(() => {
+                clickTimeoutRef.current = null;
+                togglePlay();
+              }, 250);
             }
           }}
           onTouchEnd={handleTouchOverlay}

@@ -128,11 +128,32 @@ export function useContinueWatching(user) {
     }
   }, [user]);
 
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (cwWriteTimerRef.current) {
+        clearTimeout(cwWriteTimerRef.current);
+        flushCW(); // Flush any pending writes
+      }
+    };
+  }, [flushCW]);
+
+  // Debounced Firestore write — prevents race conditions from rapid updates
+  const cwWriteTimerRef = useRef(null);
+  const cwPendingRef = useRef(null);
+
+  const flushCW = useCallback(() => {
+    if (cwPendingRef.current) {
+      const list = cwPendingRef.current;
+      cwPendingRef.current = null;
+      getStorageAdapter(userRef.current)
+        .updateContinueWatching(list)
+        .catch(() => {});
+    }
+  }, []);
+
   const updateProgress = useCallback(
     async (movie, season = null, episode = null, timestamp = null) => {
-      let updatedList;
-
-      // Compute new list outside setState (pure logic)
       setContinueWatching((prev) => {
         const existing = prev.find((m) => m.id === movie.id);
         const finalTimestamp =
@@ -145,18 +166,15 @@ export function useContinueWatching(user) {
           timestamp: finalTimestamp,
         };
         const filtered = prev.filter((m) => m.id !== movie.id);
-        updatedList = [newItem, ...filtered].slice(0, 20);
+        const updatedList = [newItem, ...filtered].slice(0, 20);
+        // Queue Firestore write (debounced — latest list wins)
+        cwPendingRef.current = updatedList;
+        if (cwWriteTimerRef.current) clearTimeout(cwWriteTimerRef.current);
+        cwWriteTimerRef.current = setTimeout(flushCW, 3000);
         return updatedList;
       });
-
-      // Fix C3: Capture adapter at call-time using ref
-      if (updatedList) {
-        getStorageAdapter(userRef.current)
-          .updateContinueWatching(updatedList)
-          .catch(() => {});
-      }
     },
-    [], // No dependencies — uses refs
+    [flushCW],
   );
 
   const removeFromContinueWatching = useCallback(

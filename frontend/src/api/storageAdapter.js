@@ -4,8 +4,6 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  arrayUnion,
-  arrayRemove,
   onSnapshot,
 } from "firebase/firestore";
 
@@ -142,14 +140,12 @@ export class CloudStorageAdapter {
   }
   async addToList(movie) {
     try {
-      await updateDoc(this.ref, { myList: arrayUnion(movie) });
-      // Update cache safely — only add if not already present
-      if (this._cache) {
-        const existing = this._cache.myList || [];
-        if (!existing.some((m) => m.id === movie.id)) {
-          this._cache.myList = [...existing, movie];
-        }
-      }
+      // Read current list to avoid arrayUnion deep-equality issues with complex objects
+      const current = (this._cache?.myList) ?? (await this.getMyList());
+      if (current.some((m) => m.id === movie.id)) return; // Already in list
+      const updated = [...current, movie];
+      await updateDoc(this.ref, { myList: updated });
+      if (this._cache) this._cache.myList = updated;
     } catch (e) {
       // Doc might not exist yet
       await setDoc(this.ref, { myList: [movie] }, { merge: true });
@@ -157,13 +153,11 @@ export class CloudStorageAdapter {
   }
   async removeFromList(movie) {
     try {
-      await updateDoc(this.ref, { myList: arrayRemove(movie) });
-      // Keep cache in sync (#18 fix)
-      if (this._cache) {
-        this._cache.myList = (this._cache.myList || []).filter(
-          (m) => m.id !== movie.id,
-        );
-      }
+      // Read current list to avoid arrayRemove deep-equality issues
+      const current = (this._cache?.myList) ?? (await this.getMyList());
+      const updated = current.filter((m) => m.id !== movie.id);
+      await updateDoc(this.ref, { myList: updated });
+      if (this._cache) this._cache.myList = updated;
     } catch {}
   }
 
