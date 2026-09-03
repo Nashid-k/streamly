@@ -198,6 +198,18 @@ const LoadingArc = ({ size = 56, strokeWidth = 2.5, progress = 0 }) => {
 };
 
 /* ═══ Main Player ═══════════════════════════════════════════════ */
+/* Detect mobile: no physical keyboard, so shortcuts button is useless */
+const useIsMobile = (breakpoint = 640) => {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+};
+
 const CustomVideoPlayer = ({
   movie, season, episode, preferredServerIndex = 0, onServerChange,
   hasNextEpisode, onNextEpisode, thumbnailUrl, startTime = 0, onProgressUpdate,
@@ -282,6 +294,7 @@ const CustomVideoPlayer = ({
   const isLoopingRef = useRef(isLooping);
   useEffect(() => { isLoopingRef.current = isLooping; }, [isLooping]);
 
+  const isMobile = useIsMobile();
   const isCineSrc = iframeUrl.includes("cinesrc.st");
   const showCustomUI = isCineSrc && !useNativeControls;
 
@@ -1989,19 +2002,49 @@ const CustomVideoPlayer = ({
                   <Captions size={15} />
                   {subtitleEnabled && <div style={{ position: "absolute", top: 4, right: 4, width: "clamp(3px, 0.5vw, 4px)", height: "clamp(3px, 0.5vw, 4px)", background: "#fff", borderRadius: "50%" }} />}
                 </motion.button>
-                <motion.button onClick={(e) => { e.stopPropagation(); setShowShortcuts((p) => !p); }}
-                  whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
-                  transition={SPRING}
-                  style={{
-                    background: showShortcuts ? "rgba(255,255,255,0.08)" : "transparent",
-                    border: showShortcuts ? "1px solid rgba(255,255,255,0.08)" : "none",
-                    color: showShortcuts ? "#fff" : "rgba(255,255,255,0.6)",
-                    cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%",
-                    display: "flex", alignItems: "center", justifyContent: "center",
+                {isMobile ? (
+                  /* Mobile: aspect ratio button (no keyboard shortcuts needed) */
+                  <motion.button onClick={(e) => {
+                    e.stopPropagation();
+                    setAspectRatioIndex((p) => (p + 1) % ASPECT_RATIOS.length);
+                    setShowAspectRatioArc(true);
+                    if (aspectRatioArcTimerRef.current) clearTimeout(aspectRatioArcTimerRef.current);
+                    aspectRatioArcTimerRef.current = setTimeout(() => setShowAspectRatioArc(false), 1200);
                   }}
-                >
-                  <Keyboard size={15} />
-                </motion.button>
+                    whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                    transition={SPRING}
+                    style={{
+                      background: "transparent",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      color: "rgba(255,255,255,0.6)",
+                      cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      position: "relative",
+                    }}
+                  >
+                    <Maximize size={14} />
+                    <span style={{
+                      position: "absolute", bottom: -1, right: -1,
+                      fontSize: "7px", fontWeight: 800, color: "rgba(255,255,255,0.5)",
+                      lineHeight: 1, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                    }}>{aspectRatioIndex + 1}</span>
+                  </motion.button>
+                ) : (
+                  /* Desktop: keyboard shortcuts button */
+                  <motion.button onClick={(e) => { e.stopPropagation(); setShowShortcuts((p) => !p); }}
+                    whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                    transition={SPRING}
+                    style={{
+                      background: showShortcuts ? "rgba(255,255,255,0.08)" : "transparent",
+                      border: showShortcuts ? "1px solid rgba(255,255,255,0.08)" : "none",
+                      color: showShortcuts ? "#fff" : "rgba(255,255,255,0.6)",
+                      cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <Keyboard size={15} />
+                  </motion.button>
+                )}
                 <motion.button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setShowSubtitlesMenu(false); }}
                   whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                   transition={SPRING}
