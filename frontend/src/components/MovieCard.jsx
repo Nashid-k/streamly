@@ -6,6 +6,7 @@ import PlatformIcon from "./PlatformIcon";
 import { getTMDBWeekdayShort } from "../utils/timezone";
 import { useNavigate } from "react-router-dom";
 import { movieService } from "../api/movieService";
+import { normalizePlatformKey } from "../api/platformAdapter";
 import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "./Toast";
 
@@ -86,6 +87,7 @@ export default function MovieCard({
   showProgress = false,
   progressValue = 0,
   compact = false,
+  platformBadge = "sm",
 }) {
   const navigate = useNavigate();
   const { isInList, toggleMyList } = useAppAuth();
@@ -228,11 +230,32 @@ export default function MovieCard({
 
             {/* Platform Badge */}
             {(() => {
-              const platformKey = movie.source || (movie.availablePlatforms?.[0]?.toLowerCase().includes('hotstar') ? 'hotstar' : movie.availablePlatforms?.[0]?.toLowerCase().includes('prime') ? 'prime' : movie.availablePlatforms?.[0]?.toLowerCase().includes('apple') ? 'appletv' : movie.availablePlatforms?.[0]?.toLowerCase().includes('zee') ? 'zee5' : movie.availablePlatforms?.[0]?.toLowerCase().includes('sony') ? 'sonyliv' : movie.availablePlatforms?.[0]?.toLowerCase().includes('jio') ? 'jio' : 'netflix');
+              const platformKey =
+                (movie.source && normalizePlatformKey(movie.source)) ||
+                (movie.availablePlatforms &&
+                  movie.availablePlatforms.length &&
+                  normalizePlatformKey(movie.availablePlatforms[0]));
               if (!platformKey) return null;
+              const iconXs = platformBadge === "xs";
               return (
-                <div style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 10 }}>
-                  <PlatformIcon platform={platformKey} small={true} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: iconXs ? '6px' : '8px',
+                    right: iconXs ? '6px' : '8px',
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.55)',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                    borderRadius: '6px',
+                    padding: iconXs ? '3px' : '4px',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <PlatformIcon platform={platformKey} xs={iconXs} small={!iconXs} />
                 </div>
               );
             })()}

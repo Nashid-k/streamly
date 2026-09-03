@@ -37,13 +37,16 @@ const getNumericId = (idString) => {
   return match ? match[0] : null; // Fix C14: return null instead of non-numeric fallback
 };
 
+// Aspect-ratio presets. The source is assumed 16:9; each "Crop" preset zooms the
+// iframe uniformly so the frame shows the narrower/standard cut without warping.
+// Zoom factors are derived from the ratio delta vs the 16:9 source (1.777).
 const ASPECT_RATIOS = [
-  { name: "Default", style: { transform: "scale(1)" } },
-  { name: "Crop to Fit (16:10)", style: { transform: "scale(1.11)" } },
-  { name: "Crop to Fit (2.35:1)", style: { transform: "scale(1.33)" } },
-  { name: "Stretch to 16:9", style: { transform: "scale(1.33, 1)" } },
-  { name: "Force 4:3", style: { transform: "scale(0.75, 1)" } },
-  { name: "Force 16:10", style: { transform: "scale(0.9, 1)" } },
+  { name: "Fit (16:9)",   style: { transform: "scale(1)" } },
+  { name: "Crop 16:10",   style: { transform: "scale(1.111)" } },
+  { name: "Crop 2.35:1",  style: { transform: "scale(1.322)" } },
+  { name: "Crop 2.39:1",  style: { transform: "scale(1.344)" } },
+  { name: "Crop 4:3",     style: { transform: "scale(1.333)" } },
+  { name: "Extra Zoom",   style: { transform: "scale(1.18)" } },
 ];
 
 const KEYBOARD_SHORTCUTS = [
@@ -155,6 +158,8 @@ const CustomVideoPlayer = ({
   const [currentQuality, setCurrentQuality] = useState(null);
   const [audioTracks, setAudioTracks] = useState([]);
   const [currentAudioTrack, setCurrentAudioTrack] = useState(null);
+  const [showPausedInfo, setShowPausedInfo] = useState(false);
+  const pausedInfoTimerRef = useRef(null);
 
   const iframeRef = useRef(null);
   const containerRef = useRef(null);
@@ -180,6 +185,19 @@ const CustomVideoPlayer = ({
   useEffect(() => {
     isLoopingRef.current = isLooping;
   }, [isLooping]);
+
+  // Show title + short description overlay after the player has been paused a few seconds
+  useEffect(() => {
+    if (pausedInfoTimerRef.current) clearTimeout(pausedInfoTimerRef.current);
+    if (!isPlaying && !isLoading && showCustomUI && hasInitiallyLoaded) {
+      pausedInfoTimerRef.current = setTimeout(() => setShowPausedInfo(true), 2500);
+    } else {
+      setShowPausedInfo(false);
+    }
+    return () => {
+      if (pausedInfoTimerRef.current) clearTimeout(pausedInfoTimerRef.current);
+    };
+  }, [isPlaying, isLoading, showCustomUI, hasInitiallyLoaded]);
 
   const autoPlayNextRef = useRef(autoPlayNext);
   useEffect(() => {
@@ -1212,7 +1230,9 @@ const CustomVideoPlayer = ({
       style={{
         position: "relative",
         width: "100%",
-        height: "min(calc(100vw * 9/16), calc(100vh - 120px))",
+        aspectRatio: isFullscreen ? undefined : "16 / 9",
+        height: isFullscreen ? "100vh" : "auto",
+        maxHeight: isFullscreen ? "100vh" : "calc(100vh - 120px)",
         background: "#050505",
         borderRadius: isFullscreen ? "0" : "14px",
         overflow: "hidden",
@@ -1861,6 +1881,51 @@ const CustomVideoPlayer = ({
               )}
             </AnimatePresence>
           </div>
+
+          {/* ── PAUSED INFO (title + short synopsis) ─────────── */}
+          {showPausedInfo && showCustomUI && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "96px",
+                left: "24px",
+                zIndex: 15,
+                maxWidth: "min(460px, 72%)",
+                pointerEvents: "none",
+                textAlign: "left",
+                animation: "paused-info-fade 0.4s ease both",
+              }}
+            >
+              <div
+                style={{
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: "clamp(1.05rem, 2.4vw, 1.55rem)",
+                  lineHeight: 1.15,
+                  textShadow: "0 2px 14px rgba(0,0,0,0.85)",
+                  marginBottom: "5px",
+                }}
+              >
+                {movie?.title || movie?.name}
+              </div>
+              {movie?.overview && (
+                <div
+                  style={{
+                    color: "rgba(255,255,255,0.82)",
+                    fontSize: "clamp(0.75rem, 1.4vw, 0.95rem)",
+                    lineHeight: 1.45,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    textShadow: "0 1px 8px rgba(0,0,0,0.85)",
+                  }}
+                >
+                  {movie?.overview}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── DOUBLE TAP RIPPLE ───────────────────────────── */}
           <div

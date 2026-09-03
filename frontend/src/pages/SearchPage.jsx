@@ -410,7 +410,7 @@ export default function SearchPage() {
                   ease: "easeOut",
                 }}
               >
-                <MovieCard movie={movie} />
+                <MovieCard movie={movie} platformBadge="xs" />
               </motion.div>
             ))}
           </div>

@@ -45,6 +45,7 @@ import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast.jsx";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
+import { normalizePlatformKey } from "../api/platformAdapter";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
 import CustomVideoPlayer from "../components/CustomVideoPlayer";
@@ -528,16 +529,27 @@ export default function TitleDetails() {
 
   // Resolve the actual platform from movie's availablePlatforms (fully dynamic)
   const effectivePlatform = useMemo(() => {
-    if (!movie?.availablePlatforms?.length) return 'unknown';
-    const ap = movie.availablePlatforms[0].toLowerCase();
-    if (ap.includes('netflix')) return 'netflix';
-    if (ap.includes('prime')) return 'prime';
-    if (ap.includes('hotstar') || ap.includes('disney')) return 'hotstar';
-    if (ap.includes('apple')) return 'appletv';
-    if (ap.includes('zee5')) return 'zee5';
-    if (ap.includes('sony')) return 'sonyliv';
-    if (ap.includes('jio')) return 'jio';
-    return 'netflix';
+    if (!movie?.availablePlatforms?.length) return undefined;
+    for (const p of movie.availablePlatforms) {
+      const key = normalizePlatformKey(p);
+      if (key) return key;
+    }
+    return undefined;
+  }, [movie?.availablePlatforms]);
+
+  // All unique platform keys available for this title (for logo row display)
+  const availablePlatformKeys = useMemo(() => {
+    if (!movie?.availablePlatforms?.length) return [];
+    const seen = new Set();
+    const keys = [];
+    for (const p of movie.availablePlatforms) {
+      const key = normalizePlatformKey(p);
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        keys.push(key);
+      }
+    }
+    return keys;
   }, [movie?.availablePlatforms]);
 
   const { data: similarData } = useQuery({
@@ -2205,12 +2217,26 @@ export default function TitleDetails() {
             </span>
           </div>
         )}
-        {movie.availablePlatforms && movie.availablePlatforms.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Globe size={16} color="#a78bfa" />
-            <span style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
-              Available on <strong style={{ color: '#a78bfa' }}>{movie.availablePlatforms.slice(0, 3).join(', ')}</strong>
-            </span>
+        {availablePlatformKeys.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>Available on</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+              {availablePlatformKeys.map((key) => (
+                <div
+                  key={key}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '3px 6px',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '6px',
+                  }}
+                >
+                  <PlatformIcon platform={key} small />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </motion.div>

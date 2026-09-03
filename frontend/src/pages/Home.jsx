@@ -1223,7 +1223,37 @@ export default function Home({
           </h3>
         ) : (
           <>
-            {/* 1. Top 10 Today — first */}
+            {/* 1. Continue Watching — resume-first (highest intent, Netflix surfaces near top) */}
+            {continueWatching &&
+              continueWatching.length > 0 &&
+              filter === "all" && (
+                <FadeInSection>
+                  <ErrorBoundary>
+                    <MovieRail
+                      railIndex={0}
+                      category={{
+                        name: "Continue Watching",
+                        movies: continueWatching,
+                      }}
+                    />
+                  </ErrorBoundary>
+                </FadeInSection>
+              )}
+            {/* 2. Because you watched — personalized discovery ranker */}
+            {filter === "all" && lastWatched && recommendations?.length > 0 && (
+              <FadeInSection>
+                <ErrorBoundary>
+                  <MovieRail
+                    railIndex={1}
+                    category={{
+                      name: `Because you watched ${lastWatched.title}`,
+                      movies: recommendations,
+                    }}
+                  />
+                </ErrorBoundary>
+              </FadeInSection>
+            )}
+            {/* 3. Top 10 — social proof & fresh discovery */}
             {(filter === "all" ||
               filter === "series" ||
               filter === "tv shows" ||
@@ -1233,60 +1263,30 @@ export default function Home({
               activeGenre === "All" && (
                 <FadeInSection>
                   <Top10Rail
-                    railIndex={0}
+                    railIndex={2}
                     movies={top10Movies}
                     filter={filter}
                   />
                 </FadeInSection>
               )}
-            {/* 2. Trending This Week */}
+            {/* 4. Trending This Week */}
             {trendingThisWeek.length > 0 && activeGenre === "All" && (
               <FadeInSection>
                 <ErrorBoundary>
                   <MovieRail
-                    railIndex={1}
+                    railIndex={3}
                     category={{ name: "Trending This Week", movies: trendingThisWeek }}
                   />
                 </ErrorBoundary>
               </FadeInSection>
             )}
-            {/* 3. Airing This Week */}
+            {/* 5. Airing This Week */}
             {filter !== "movies" && filter !== "anime" && airingThisWeek.length > 0 && activeGenre === "All" && (
               <FadeInSection>
                 <ErrorBoundary>
                   <MovieRail
-                    railIndex={2}
-                    category={{ name: 'Airing This Week', movies: airingThisWeek }}
-                  />
-                </ErrorBoundary>
-              </FadeInSection>
-            )}
-            {/* 4. Continue Watching */}
-            {continueWatching &&
-              continueWatching.length > 0 &&
-              filter === "all" && (
-                <FadeInSection>
-                  <ErrorBoundary>
-                    <MovieRail
-                      railIndex={3}
-                      category={{
-                        name: "Continue Watching",
-                        movies: continueWatching,
-                      }}
-                    />
-                  </ErrorBoundary>
-                </FadeInSection>
-              )}
-            {/* 5. Because you watched */}
-            {filter === "all" && lastWatched && recommendations?.length > 0 && (
-              <FadeInSection>
-                <ErrorBoundary>
-                  <MovieRail
                     railIndex={4}
-                    category={{
-                      name: `Because you watched ${lastWatched.title}`,
-                      movies: recommendations,
-                    }}
+                    category={{ name: 'Airing This Week', movies: airingThisWeek }}
                   />
                 </ErrorBoundary>
               </FadeInSection>

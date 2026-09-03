@@ -1,11 +1,10 @@
 import React from "react";
-import { PLATFORMS } from "../api/platformAdapter";
+import { PLATFORMS, normalizePlatformKey } from "../api/platformAdapter";
 
-export default function PlatformIcon({ platform, style = {}, small = false }) {
+export default function PlatformIcon({ platform, style = {}, small = false, xs = false }) {
   if (!platform) return null;
 
-  const normalizedPlatform = platform.toLowerCase().trim();
-  const p = PLATFORMS[normalizedPlatform];
+  const p = PLATFORMS[normalizePlatformKey(platform)];
 
   // 10x Graceful Adapter: If we don't have the logo, render a beautiful text badge instead of nothing
   if (!p) {
@@ -14,10 +13,10 @@ export default function PlatformIcon({ platform, style = {}, small = false }) {
         style={{
           display: "inline-flex",
           alignItems: "center",
-          padding: small ? "2px 6px" : "4px 8px",
+          padding: xs ? "1px 5px" : small ? "2px 6px" : "4px 8px",
           background: "rgba(255,255,255,0.15)",
           borderRadius: "6px",
-          fontSize: small ? "0.65rem" : "0.75rem",
+          fontSize: xs ? "0.55rem" : small ? "0.65rem" : "0.75rem",
           fontWeight: 800,
           color: "#f4f4f5",
           textTransform: "uppercase",
@@ -44,7 +43,7 @@ export default function PlatformIcon({ platform, style = {}, small = false }) {
         alt={p.name}
         title={p.name}
         style={{
-          height: small ? `calc(${p.iconHeight} * 0.85)` : p.iconHeight,
+          height: xs ? `calc(${p.iconHeight} * 0.62)` : small ? `calc(${p.iconHeight} * 0.85)` : p.iconHeight,
           objectFit: "contain",
           filter: p.iconFilter
             ? `${p.iconFilter} drop-shadow(0 2px 4px rgba(0,0,0,0.5))`

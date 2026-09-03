@@ -1,3 +1,25 @@
+/**
+ * Normalizes an arbitrary platform string ("Amazon Prime Video", "Disney+ Hotstar",
+ * "Apple TV+", "ZEE5", "SonyLIV", "JioCinema", "Netflix", ...) into the matching
+ * PLATFORMS key, or null when nothing matches. This lets PlatformIcon render the
+ * correct logo from raw backend/TMDB names instead of showing a text fallback.
+ */
+export function normalizePlatformKey(rawName) {
+  if (!rawName) return null;
+  const lower = String(rawName).toLowerCase().trim();
+  if (PLATFORMS[lower]) return lower;
+  const match =
+    lower.includes("prime") || lower.includes("amazon") ? "prime"
+    : lower.includes("netflix") ? "netflix"
+    : lower.includes("hotstar") || lower.includes("disney") ? "hotstar"
+    : lower.includes("apple") ? "appletv"
+    : lower.includes("zee5") || lower.includes("zee") ? "zee5"
+    : lower.includes("sony") ? "sonyliv"
+    : lower.includes("jio") ? "jio"
+    : null;
+  return match;
+}
+
 export const PLATFORMS = {
   netflix: {
     id: "netflix",
