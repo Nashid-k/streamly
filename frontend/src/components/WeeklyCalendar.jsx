@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, ChevronLeft, ChevronRight, Tv, Film } from "lucide-react";
+import { Calendar, Tv, Film } from "lucide-react";
 import { buildWeeklyCalendar, getWeekDays } from "../utils/releaseCalendar";
 import { PLATFORMS, normalizePlatformKey } from "../api/platformAdapter";
 import PlatformIcon from "./PlatformIcon";

@@ -25,7 +25,47 @@ describe('getRatingColor', () => {
     expect(getRatingColor(undefined)).toBeNull();
   });
 
-  it('handles negative ratings', () => {
+  it('handles negative ratings (-1 > 0 is false in JS)', () => {
+    // In JS: -1 > 0 is false, so falls through to return null
     expect(getRatingColor(-1)).toBeNull();
+  });
+
+  it('handles string input via type coercion', () => {
+    // "8.5" >= 8 → 8.5 >= 8 → true (JS coerces string to number)
+    expect(getRatingColor("8.5")).toBe('#4ade80');
+    // "not-a-number" comparisons are all false → falls to rating > 0 → false
+    expect(getRatingColor("not-a-number")).toBeNull();
+  });
+
+  it('handles Infinity (>= 8 is true)', () => {
+    expect(getRatingColor(Infinity)).toBe('#4ade80');
+  });
+
+  it('boundary: exactly 8.0 returns green', () => {
+    expect(getRatingColor(8.0)).toBe('#4ade80');
+  });
+
+  it('boundary: 7.99 returns yellow', () => {
+    expect(getRatingColor(7.99)).toBe('#fbbf24');
+  });
+
+  it('boundary: exactly 6.5 returns yellow', () => {
+    expect(getRatingColor(6.5)).toBe('#fbbf24');
+  });
+
+  it('boundary: 6.49 returns red', () => {
+    expect(getRatingColor(6.49)).toBe('#f87171');
+  });
+
+  it('handles very large numbers', () => {
+    expect(getRatingColor(999)).toBe('#4ade80');
+  });
+
+  it('handles float precision', () => {
+    expect(getRatingColor(7.999999)).toBe('#fbbf24');
+  });
+
+  it('handles NaN (all comparisons false, NaN > 0 is false)', () => {
+    expect(getRatingColor(NaN)).toBeNull();
   });
 });

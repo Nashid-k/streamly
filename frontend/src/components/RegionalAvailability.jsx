@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, ChevronDown, Check, X, MapPin } from "lucide-react";
-import { PLATFORMS, normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
+import { PLATFORMS, normalizePlatformKey } from "../api/platformAdapter";
 import PlatformIcon from "./PlatformIcon";
 
 // Region data with common streaming regions

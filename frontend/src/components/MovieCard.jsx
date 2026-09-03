@@ -123,18 +123,30 @@ export default function MovieCard({
     setIsHovered(false);
   }, []);
 
+  // Fix: Clean up hoverTimeoutRef on unmount to prevent setState on unmounted component
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
+
+  // Fix: Use AbortController to cancel logo fetch on unmount / movie change
   useEffect(() => {
     if (isHovered && !movie.logoUrl && !logoFetchAttempted) {
+      const controller = new AbortController();
       const timer = setTimeout(() => {
         setLogoFetchAttempted(true);
         movieService
           .getMovieDetails(movie.id, movie.source || "all")
           .then((data) => {
-            if (data.logoUrl) setDetailedLogo(data.logoUrl);
+            if (!controller.signal.aborted && data.logoUrl) setDetailedLogo(data.logoUrl);
           })
           .catch(() => {});
-      }, 50); // Fire fetch almost immediately on hover intent (80ms), so logo is ready before hover animation finishes at 250ms!
-      return () => clearTimeout(timer);
+      }, 50);
+      return () => {
+        controller.abort();
+        clearTimeout(timer);
+      };
     }
   }, [isHovered, movie.id, movie.logoUrl, logoFetchAttempted, movie.source]);
 
