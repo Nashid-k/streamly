@@ -289,8 +289,12 @@ const CustomVideoPlayer = ({
   }, [activeServerIndex, movie, season, episode, useNativeControls]);
 
   const sendCommand = useCallback((c, a = []) => {
-    if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({ type: "cinesrc:command", command: c, args: a }, "https://cinesrc.st");
+    try {
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage({ type: "cinesrc:command", command: c, args: a }, "https://cinesrc.st");
+      }
+    } catch {
+      // Silently ignore postMessage errors (iframe may be cross-origin or not ready)
     }
   }, []);
 
@@ -330,6 +334,7 @@ const CustomVideoPlayer = ({
   useEffect(() => {
     if (!isCineSrc) return;
     const h = (ev) => {
+      try {
       if (ev.origin !== "https://cinesrc.st" || !ev.data || typeof ev.data !== "object") return;
       let t, d;
       try { ({ type: t, ...d } = ev.data); } catch { return; }
@@ -337,14 +342,13 @@ const CustomVideoPlayer = ({
         case "cinesrc:ready":
           sendCommand("setVolume", [isMuted ? 0 : volume]);
           sendCommand("setPlaybackRate", [playbackRate]);
-          sendCommand("play");
+          // Defer play slightly to avoid 'play() interrupted by new load' error
+          setTimeout(() => sendCommand("play"), 100);
           sendCommand("getCurrentTime");
           sendCommand("getDuration");
           sendCommand("getVolume");
           sendCommand("getPaused");
           sendCommand("getPlaybackRate");
-          sendCommand("getAudioTracks");
-          sendCommand("getQualities");
           break;
         case "cinesrc:response":
           switch (d.command) {
@@ -405,7 +409,7 @@ const CustomVideoPlayer = ({
         case "cinesrc:skipintro":
           if (d.time != null) {
             if (autoSkipIntro) {
-              sendCommand("setCurrentTime", [d.time]);
+              sendCommand("seek", [d.time]);
               showToast("Intro skipped");
             } else {
               setSkipIntroTime(d.time);
@@ -429,13 +433,20 @@ const CustomVideoPlayer = ({
           if (d.volume !== undefined) setVolume(d.volume);
           if (d.muted !== undefined) setIsMuted(d.muted);
           break;
+        case "cinesrc:close":
+          // Back button clicked with back=close
+          navigate(-1);
+          break;
         case "cinesrc:error":
           setIsLoading(false);
+          const errType = d.error?.type || d.error?.details || 'unknown';
           const ei = activeServerIndexRef.current;
+          // Ignore non-fatal HLS network errors (they auto-recover)
+          if (errType === 'networkError' || errType === 'levelLoadTimeOut') break;
           setServerErrorCounts((p) => {
             const nc = (p[ei] || 0) + 1;
             if (nc >= 2) {
-              setErrorMessage("Server failed");
+              setErrorMessage("Stream unavailable — trying next server");
               setTimeout(() => {
                 setErrorMessage("");
                 const ni = (ei + 1) % VideoSourceAdapter.getServers().length;
@@ -450,6 +461,9 @@ const CustomVideoPlayer = ({
           });
           break;
         default: break;
+      }
+      } catch {
+        // Silently catch any errors in message handling (DataCloneError, etc.)
       }
     };
     window.addEventListener("message", h);
