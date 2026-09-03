@@ -80,6 +80,7 @@ const CustomVideoPlayer = ({
   const [isVolumeHovered, setIsVolumeHovered] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showVolumePopup, setShowVolumePopup] = useState(false);
+  const [showAspectRatioPopup, setShowAspectRatioPopup] = useState(false);
   const [autoSkipIntro, setAutoSkipIntro] = useState(() => localStorage.getItem("streamly_autoSkip") === "true");
   const [autoPlayNext, setAutoPlayNext] = useState(() => localStorage.getItem("streamly_autoNext") !== "false");
   const [doubleTapRipple, setDoubleTapRipple] = useState(null);
@@ -135,6 +136,7 @@ const CustomVideoPlayer = ({
   const subtitleInputRef = useRef(null);
   const toastTimeoutRef = useRef(null);
   const volumePopupRef = useRef(null);
+  const aspectRatioPopupRef = useRef(null);
   const volumeBarRef = useRef(null);
   const isDraggingVolumeRef = useRef(false);
   const isLoopingRef = useRef(isLooping);
@@ -656,7 +658,7 @@ const CustomVideoPlayer = ({
         case "arrowleft": case "j": case "<": case ",": e.preventDefault(); seekRelative(-10); break;
         case "arrowup": e.preventDefault(); changeVolume(volume + 0.1); break;
         case "arrowdown": e.preventDefault(); changeVolume(volume - 0.1); break;
-        case "a": e.preventDefault(); setAspectRatioIndex((p) => (p + 1) % ASPECT_RATIOS.length); break;
+        case "a": e.preventDefault(); setAspectRatioIndex((p) => (p + 1) % ASPECT_RATIOS.length); setShowAspectRatioPopup(true); if (aspectRatioPopupRef.current) clearTimeout(aspectRatioPopupRef.current); aspectRatioPopupRef.current = setTimeout(() => setShowAspectRatioPopup(false), 1200); break;
         case "?": e.preventDefault(); setShowShortcuts((p) => !p); break;
         case "escape": setShowShortcuts(false); setShowSettings(false); setShowSubtitlesMenu(false); break;
         default: break;
@@ -1063,6 +1065,113 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
+      {/* ═══ CENTER-TOP HUD — Volume & Aspect Ratio ══════════════════ */}
+      <AnimatePresence>
+        {(showVolumePopup || showAspectRatioPopup) && (
+          <motion.div
+            key="hud"
+            initial={{ opacity: 0, y: -12, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 28 }}
+            style={{
+              position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)",
+              zIndex: 65, pointerEvents: "none",
+              background: "rgba(6,6,10,0.88)", backdropFilter: "blur(20px)",
+              border: `1px solid ${V.glassBorder}`,
+              borderRadius: 12, padding: "8px 16px",
+              display: "flex", alignItems: "center", gap: 10,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            }}
+          >
+            {showVolumePopup && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {/* Volume icon */}
+                <motion.div
+                  key={isMuted || volume === 0 ? "muted" : "active"}
+                  initial={{ scale: 0.6, rotate: -20 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX size={16} color={V.accent} />
+                  ) : volume < 0.5 ? (
+                    <Volume2 size={16} color={V.accent} />
+                  ) : (
+                    <Volume2 size={16} color="#fff" />
+                  )}
+                </motion.div>
+                {/* Volume bar */}
+                <div style={{
+                  width: 100, height: 4, borderRadius: 2,
+                  background: "rgba(255,255,255,0.1)", position: "relative",
+                }}>
+                  <motion.div
+                    animate={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    style={{
+                      height: "100%", borderRadius: 2,
+                      background: `linear-gradient(90deg, ${V.accent}, #f0c060)`,
+                      boxShadow: `0 0 8px ${V.accentGlow}`,
+                    }}
+                  />
+                  {/* Thumb dot */}
+                  <div style={{
+                    position: "absolute", top: "50%",
+                    left: `${(isMuted ? 0 : volume) * 100}%`,
+                    transform: "translate(-50%, -50%)",
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: "#fff",
+                    boxShadow: `0 0 4px rgba(0,0,0,0.5), 0 0 0 1.5px ${V.accent}`,
+                  }} />
+                </div>
+                {/* Percentage */}
+                <motion.span
+                  key={Math.round((isMuted ? 0 : volume) * 100)}
+                  initial={{ scale: 1.3, opacity: 0.7 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  style={{
+                    color: V.accent, fontSize: 12, fontWeight: 800,
+                    fontFamily: "monospace", minWidth: 30, textAlign: "right",
+                  }}
+                >
+                  {Math.round((isMuted ? 0 : volume) * 100)}%
+                </motion.span>
+              </div>
+            )}
+            {showVolumePopup && showAspectRatioPopup && (
+              <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
+            )}
+            {showAspectRatioPopup && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <motion.div
+                  initial={{ rotate: -90, scale: 0.5 }}
+                  animate={{ rotate: 0, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                >
+                  <Maximize size={14} color="#fff" />
+                </motion.div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <motion.span
+                    key={aspectRatioIndex}
+                    initial={{ y: 6, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                    style={{ color: "#fff", fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}
+                  >
+                    {ASPECT_RATIOS[aspectRatioIndex].name}
+                  </motion.span>
+                  <span style={{ color: V.dim, fontSize: 9, fontWeight: 600 }}>
+                    {aspectRatioIndex + 1} / {ASPECT_RATIOS.length}
+                  </span>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* SHORTCUTS OVERLAY */}
       <AnimatePresence>
         {showShortcuts && (
@@ -1464,35 +1573,6 @@ const CustomVideoPlayer = ({
                       </motion.div>
                     </AnimatePresence>
                   </motion.button>
-                  {/* Volume percentage popup */}
-                  <AnimatePresence>
-                    {showVolumePopup && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 6, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        style={{
-                          position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)",
-                          background: V.glass, border: `1px solid ${V.glassBorder}`,
-                          borderRadius: 6, padding: "3px 8px", backdropFilter: "blur(12px)",
-                          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                          pointerEvents: "none",
-                        }}
-                      >
-                        <div style={{ width: 28, height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden" }}>
-                          <div style={{
-                            width: `${(isMuted ? 0 : volume) * 100}%`, height: "100%",
-                            background: V.accent, borderRadius: 2,
-                            transition: "width 0.15s ease",
-                          }} />
-                        </div>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: V.accent, fontFamily: "monospace" }}>
-                          {Math.round((isMuted ? 0 : volume) * 100)}%
-                        </span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                   {/* Custom volume bar */}
                   <motion.div
                     initial={false}
@@ -1707,7 +1787,7 @@ const CustomVideoPlayer = ({
               <div style={{ fontSize: 10, color: V.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Aspect Ratio</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {ASPECT_RATIOS.map((ar, i) => (
-                  <button key={ar.name} onClick={() => { setAspectRatioIndex(i); setShowSettings(false); }}
+                  <button key={ar.name} onClick={() => { setAspectRatioIndex(i); setShowSettings(false); setShowAspectRatioPopup(true); if (aspectRatioPopupRef.current) clearTimeout(aspectRatioPopupRef.current); aspectRatioPopupRef.current = setTimeout(() => setShowAspectRatioPopup(false), 1200); }}
                     style={{
                       background: aspectRatioIndex === i ? "rgba(232,168,56,0.06)" : "rgba(255,255,255,0.02)",
                       color: aspectRatioIndex === i ? V.accent : V.dim,
