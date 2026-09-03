@@ -48,18 +48,21 @@ const LOADING_TIPS = [
   { text: "You can adjust subtitle sync in the subtitle settings menu.", icon: Captions },
 ];
 
-/* ─── Aurora Design System ─────────────────────────────────────── */
-const AURORA = {
-  bg: "#000",
-  glass: "rgba(0,0,0,0.72)",
-  glassBorder: "rgba(255,255,255,0.08)",
-  accent: "#FF6B00",
-  accentGlow: "rgba(255,107,0,0.5)",
-  text: "#fff",
-  textDim: "rgba(255,255,255,0.6)",
-  textFaint: "rgba(255,255,255,0.35)",
-  radius: "12px",
-  radiusPill: "100px",
+/* ═══════════════════════════════════════════════════════════════
+   PRISM Design System — Teal accent, dark chrome, cinematic
+   ═══════════════════════════════════════════════════════════════ */
+const P = {
+  bg: "#0a0a0f",
+  surface: "#12121a",
+  accent: "#00D4AA",
+  accentDim: "rgba(0,212,170,0.15)",
+  accentBorder: "rgba(0,212,170,0.3)",
+  purple: "#8B5CF6",
+  text: "#f0f0f5",
+  dim: "rgba(240,240,245,0.55)",
+  faint: "rgba(240,240,245,0.3)",
+  glass: "rgba(12,12,18,0.78)",
+  glassBorder: "rgba(255,255,255,0.07)",
 };
 
 const CustomVideoPlayer = ({
@@ -552,19 +555,20 @@ const CustomVideoPlayer = ({
   const progressPercent = duration ? (currentTime / duration) * 100 : 0;
   const bufferedPercent = duration ? (buffered / duration) * 100 : 0;
 
-  /* ─── Render ──────────────────────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════════
+     PRISM RENDER — Completely new layout
+     ═══════════════════════════════════════════════════════════════ */
   return (
     <div
       ref={containerRef}
-      className="aurora-player"
+      className="prism-player"
       style={{
         position: "relative", width: "100%",
         aspectRatio: isFullscreen ? undefined : "16 / 9",
         height: isFullscreen ? "100vh" : "auto",
         maxHeight: isFullscreen ? "100vh" : "calc(100vh - 120px)",
-        background: AURORA.bg, borderRadius: isFullscreen ? "0" : "0",
-        overflow: "hidden",
-        boxShadow: isFullscreen ? "none" : "0 24px 80px rgba(0,0,0,0.95)",
+        background: P.bg, borderRadius: isFullscreen ? 0 : 10,
+        overflow: "hidden", boxShadow: isFullscreen ? "none" : "0 0 60px rgba(0,212,170,0.06), 0 20px 60px rgba(0,0,0,0.9)",
         cursor: showControls || !showCustomUI ? "default" : "none",
         minHeight: isFullscreen ? "100vh" : undefined,
         userSelect: "none", WebkitUserSelect: "none",
@@ -575,30 +579,17 @@ const CustomVideoPlayer = ({
     >
       {/* ── IFRAME ───────────────────────────────────────────────── */}
       {iframeUrl && (
-        <iframe
-          ref={iframeRef}
-          key={`iframe-${activeServerIndex}-${useNativeControls}`}
-          src={iframeUrl}
-          style={{
-            width: "100%", height: "100%", border: "none", background: "#000",
-            pointerEvents: isCineSrc ? "auto" : (showCustomUI ? "none" : "auto"),
-            opacity: isLoading && !hasInitiallyLoaded ? 0 : 1,
-            transition: "opacity 0.4s ease",
-            filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
-            ...ASPECT_RATIOS[aspectRatioIndex].style,
-          }}
+        <iframe ref={iframeRef} key={`iframe-${activeServerIndex}-${useNativeControls}`} src={iframeUrl}
+          style={{ width: "100%", height: "100%", border: "none", background: P.bg, pointerEvents: isCineSrc ? "auto" : (showCustomUI ? "none" : "auto"), opacity: isLoading && !hasInitiallyLoaded ? 0 : 1, transition: "opacity 0.4s ease", filter: brightness !== 1 ? `brightness(${brightness})` : undefined, ...ASPECT_RATIOS[aspectRatioIndex].style }}
           allow="autoplay; fullscreen; picture-in-picture"
           onLoad={() => { if (!isCineSrc) setIsLoading(false); }}
         />
       )}
 
-      {/* ── CLICK OVERLAY ───────────────────────────────────────── */}
       {showCustomUI && !isCineSrc && <div onClick={handleOverlayClick} style={{ position: "absolute", inset: 0, zIndex: 10 }} />}
 
-      {/* ── CINESRC MOUSE OVERLAY ───────────────────────────────── */}
       {showCustomUI && isCineSrc && (
-        <div
-          onMouseMove={handleMouseMove}
+        <div onMouseMove={handleMouseMove}
           onClick={(e) => { e.stopPropagation(); togglePlay(); }}
           onDoubleClick={(e) => {
             e.stopPropagation(); const r = containerRef.current.getBoundingClientRect();
@@ -611,85 +602,84 @@ const CustomVideoPlayer = ({
         />
       )}
 
-      {/* ── SUBTITLE OVERLAY ────────────────────────────────────── */}
+      {/* ── SUBTITLES ───────────────────────────────────────────── */}
       {showCustomUI && subtitleEnabled && hasSubtitles && activeSubtitleCue && (
-        <div style={{ position: "absolute", bottom: showControls || !isPlaying || isScrubbing ? "120px" : "50px", left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 15, transition: "bottom 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
-          <div style={{ color: "#fff", padding: "8px 24px", fontFamily: '"SF Pro Display", -apple-system, sans-serif', fontSize: "clamp(18px, 3vw, 30px)", lineHeight: 1.4, fontWeight: 700, textShadow: "0 2px 12px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.6)", textAlign: "center", maxWidth: "85%", whiteSpace: "pre-wrap", letterSpacing: "0.3px" }}>
+        <div style={{ position: "absolute", bottom: showControls || !isPlaying || isScrubbing ? "110px" : "40px", left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 15, transition: "bottom 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
+          <div style={{ color: "#fff", padding: "6px 20px", fontFamily: '"Inter", -apple-system, sans-serif', fontSize: "clamp(16px, 2.8vw, 28px)", lineHeight: 1.4, fontWeight: 600, textShadow: "0 2px 8px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.8)", textAlign: "center", maxWidth: "85%", whiteSpace: "pre-wrap", letterSpacing: "0.2px", background: "rgba(0,0,0,0.35)", borderRadius: 6 }}>
             {activeSubtitleCue.text}
           </div>
         </div>
       )}
 
-      {/* ── GRADIENT OVERLAYS ───────────────────────────────────── */}
+      {/* ── VIGNETTES ───────────────────────────────────────────── */}
       {showCustomUI && (
         <>
-          <div style={{ position: "absolute", inset: 0, zIndex: 11, pointerEvents: "none", background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 18%, rgba(0,0,0,0.15) 40%, transparent 60%)", transition: "opacity 0.4s", opacity: showControls || !isPlaying || isScrubbing ? 1 : 0 }} />
-          <div style={{ position: "absolute", inset: 0, zIndex: 11, pointerEvents: "none", background: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 25%)", transition: "opacity 0.4s", opacity: showControls || !isPlaying ? 1 : 0 }} />
+          <div style={{ position: "absolute", inset: 0, zIndex: 11, pointerEvents: "none", background: "linear-gradient(to top, rgba(10,10,15,0.97) 0%, rgba(10,10,15,0.6) 15%, rgba(10,10,15,0.15) 38%, transparent 55%)", transition: "opacity 0.4s", opacity: showControls || !isPlaying || isScrubbing ? 1 : 0 }} />
+          <div style={{ position: "absolute", inset: 0, zIndex: 11, pointerEvents: "none", background: "linear-gradient(to bottom, rgba(10,10,15,0.7) 0%, transparent 22%)", transition: "opacity 0.4s", opacity: showControls || !isPlaying ? 1 : 0 }} />
         </>
       )}
 
-      {/* ── TOP INFO BAR ────────────────────────────────────────── */}
+      {/* ── TOP: SERVER BADGE ───────────────────────────────────── */}
       {showCustomUI && (
-        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 14, pointerEvents: "none", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, transition: "opacity 0.4s", opacity: showControls || !isPlaying ? 1 : 0 }}
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+          style={{ position: "absolute", top: 14, left: 16, zIndex: 14, pointerEvents: "none", display: "flex", alignItems: "center", gap: 8, transition: "opacity 0.4s", opacity: showControls || !isPlaying ? 1 : 0 }}
         >
-          <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontWeight: 800, fontSize: "clamp(0.9rem, 1.6vw, 1.2rem)", color: "#fff", textShadow: "0 2px 16px rgba(0,0,0,0.9)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "55vw", letterSpacing: "-0.02em" }}>
-              {movie?.title || movie?.name}
-            </span>
-            {movie?.isSeries && season && (
-              <span style={{ display: "inline-flex", alignItems: "center", background: "rgba(255,107,0,0.2)", color: AURORA.accent, border: "1px solid rgba(255,107,0,0.3)", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 800, flexShrink: 0, letterSpacing: "0.03em" }}>
-                S{season}{episode ? ` · E${episode}` : ""}
-              </span>
-            )}
-          </div>
-          {duration > 0 && (
-            <span style={{ fontSize: 12, color: AURORA.textDim, fontWeight: 700, fontFamily: "monospace", textShadow: "0 1px 8px rgba(0,0,0,0.9)", flexShrink: 0, letterSpacing: "0.5px" }}>
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
-          )}
+          {activeSourceId && <span style={{ fontSize: 10, color: P.accent, fontWeight: 700, padding: "3px 8px", background: P.accentDim, border: `1px solid ${P.accentBorder}`, borderRadius: 6, letterSpacing: "0.5px" }}>{activeSourceId}</span>}
+          {movie?.isSeries && season && <span style={{ fontSize: 10, color: P.dim, fontWeight: 700, padding: "3px 8px", background: "rgba(255,255,255,0.05)", border: `1px solid ${P.glassBorder}`, borderRadius: 6 }}>S{season}{episode ? ` · E${episode}` : ""}</span>}
+          {playbackRate !== 1 && <span style={{ fontSize: 10, color: P.purple, fontWeight: 800, padding: "3px 8px", background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 6 }}>{playbackRate}×</span>}
         </motion.div>
       )}
 
-      {/* ── INITIAL LOAD BACKGROUND ──────────────────────────────── */}
+      {/* ── TOP RIGHT: TIME ─────────────────────────────────────── */}
+      {showCustomUI && duration > 0 && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+          style={{ position: "absolute", top: 14, right: 16, zIndex: 14, pointerEvents: "none", transition: "opacity 0.4s", opacity: showControls || !isPlaying ? 1 : 0 }}
+        >
+          <span style={{ fontSize: 11, color: P.dim, fontWeight: 700, fontFamily: "monospace", letterSpacing: "0.5px", padding: "3px 8px", background: "rgba(255,255,255,0.04)", border: `1px solid ${P.glassBorder}`, borderRadius: 6 }}>
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+        </motion.div>
+      )}
+
+      {/* ── LOADING ─────────────────────────────────────────────── */}
       <AnimatePresence>
         {isLoading && !hasInitiallyLoaded && thumbnailUrl && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }}
-            style={{ position: "absolute", inset: 0, zIndex: 4, backgroundImage: `url(${thumbnailUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(60px) brightness(0.25)", transform: "scale(1.2)" }}
+            style={{ position: "absolute", inset: 0, zIndex: 4, backgroundImage: `url(${thumbnailUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(50px) brightness(0.2)", transform: "scale(1.15)" }}
           />
         )}
       </AnimatePresence>
-
-      {/* ── CENTER LOADER ───────────────────────────────────────── */}
       <AnimatePresence>
         {isLoading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-            style={{ position: "absolute", inset: 0, zIndex: 5, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none", gap: 20 }}
+            style={{ position: "absolute", inset: 0, zIndex: 5, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none", gap: 18 }}
           >
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${AURORA.glassBorder}` }}>
-              <motion.svg viewBox="0 0 50 50" style={{ width: 32, height: 32, overflow: "visible" }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-                <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,107,0,0.12)" strokeWidth="3" />
-                <circle cx="25" cy="25" r="20" fill="none" stroke={AURORA.accent} strokeWidth="3" strokeLinecap="round" strokeDasharray="40 85.6" style={{ filter: `drop-shadow(0 0 6px ${AURORA.accentGlow})` }} />
+            <div style={{ position: "relative", width: 56, height: 56 }}>
+              <motion.svg viewBox="0 0 56 56" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
+                <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(0,212,170,0.08)" strokeWidth="2.5" />
+                <circle cx="28" cy="28" r="24" fill="none" stroke={P.accent} strokeWidth="2.5" strokeLinecap="round" strokeDasharray="50 100.5" style={{ filter: `drop-shadow(0 0 8px ${P.accent})` }} />
+              </motion.svg>
+              <motion.svg viewBox="0 0 56 56" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} animate={{ rotate: -360 }} transition={{ repeat: Infinity, duration: 3, ease: "linear" }}>
+                <circle cx="28" cy="28" r="18" fill="none" stroke="rgba(139,92,246,0.1)" strokeWidth="2" />
+                <circle cx="28" cy="28" r="18" fill="none" stroke={P.purple} strokeWidth="2" strokeLinecap="round" strokeDasharray="30 82.9" style={{ filter: `drop-shadow(0 0 6px ${P.purple})` }} />
               </motion.svg>
             </div>
             {!hasInitiallyLoaded && (
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, maxWidth: 600, width: "90%" }}>
-                <div style={{ color: "#fff", fontSize: "clamp(1.2rem, 2.5vw, 1.6rem)", fontWeight: 800, textAlign: "center", letterSpacing: "-0.02em", textShadow: "0 4px 20px rgba(0,0,0,0.8)" }}>
-                  {movie?.title || movie?.name || "Loading"}
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, maxWidth: 500, width: "90%" }}>
+                <div style={{ color: P.text, fontSize: "clamp(1.1rem, 2.2vw, 1.4rem)", fontWeight: 700, textAlign: "center", letterSpacing: "-0.01em" }}>{movie?.title || movie?.name || "Loading"}</div>
+                <div style={{ color: P.accent, fontSize: 11, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase" }}>
+                  {movie?.isSeries ? `S${season} · E${episode}` : "Loading stream"}
                 </div>
-                <div style={{ color: AURORA.accent, fontSize: 12, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" }}>
-                  {movie?.isSeries ? `Season ${season} Episode ${episode}` : "Fetching stream..."}
-                </div>
-                <div style={{ marginTop: 16, height: 36, position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
+                <div style={{ marginTop: 12, height: 32, position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
                   <AnimatePresence mode="wait">
                     {dynamicTips[currentTipIndex] && (() => {
-                      const TipIcon = dynamicTips[currentTipIndex].icon;
+                      const TI = dynamicTips[currentTipIndex].icon;
                       return (
-                        <motion.div key={currentTipIndex} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}
-                          style={{ position: "absolute", display: "flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,0.5)", padding: "8px 16px", borderRadius: AURORA.radiusPill, border: `1px solid ${AURORA.glassBorder}`, backdropFilter: "blur(12px)", whiteSpace: "nowrap" }}
+                        <motion.div key={currentTipIndex} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}
+                          style={{ position: "absolute", display: "flex", alignItems: "center", gap: 7, background: "rgba(0,0,0,0.4)", padding: "6px 14px", borderRadius: 100, border: `1px solid ${P.glassBorder}`, backdropFilter: "blur(10px)", whiteSpace: "nowrap" }}
                         >
-                          <TipIcon size={13} color={AURORA.accent} />
-                          <span style={{ color: AURORA.textDim, fontSize: 12, fontWeight: 600 }}>{dynamicTips[currentTipIndex].text}</span>
+                          <TI size={12} color={P.accent} />
+                          <span style={{ color: P.dim, fontSize: 11, fontWeight: 500 }}>{dynamicTips[currentTipIndex].text}</span>
                         </motion.div>
                       );
                     })()}
@@ -701,20 +691,20 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ── ERROR BANNER ────────────────────────────────────────── */}
+      {/* ── ERROR ────────────────────────────────────────────────── */}
       <AnimatePresence>
         {errorMessage && (
-          <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }}
-            style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)", background: "rgba(220,38,38,0.9)", color: "#fff", padding: "8px 20px", borderRadius: AURORA.radiusPill, display: "flex", alignItems: "center", gap: 8, zIndex: 60, backdropFilter: "blur(12px)", fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(220,38,38,0.4)", whiteSpace: "nowrap" }}
-          ><AlertCircle size={14} /> {errorMessage}</motion.div>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+            style={{ position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)", background: "rgba(239,68,68,0.9)", color: "#fff", padding: "7px 18px", borderRadius: 100, display: "flex", alignItems: "center", gap: 7, zIndex: 60, backdropFilter: "blur(12px)", fontWeight: 600, fontSize: 11, whiteSpace: "nowrap" }}
+          ><AlertCircle size={13} /> {errorMessage}</motion.div>
         )}
       </AnimatePresence>
 
       {/* ── TOAST ────────────────────────────────────────────────── */}
       <AnimatePresence>
         {toastMessage && (
-          <motion.div initial={{ opacity: 0, y: -12, x: "-50%", scale: 0.95 }} animate={{ opacity: 1, y: 0, x: "-50%", scale: 1 }} exit={{ opacity: 0, y: -8, x: "-50%", scale: 0.95 }} transition={{ duration: 0.2 }}
-            style={{ position: "absolute", top: 24, left: "50%", background: AURORA.glass, color: "#fff", padding: "8px 20px", borderRadius: AURORA.radiusPill, backdropFilter: "blur(20px)", border: `1px solid ${AURORA.glassBorder}`, zIndex: 62, fontWeight: 700, fontSize: 12, pointerEvents: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.5)", whiteSpace: "nowrap" }}
+          <motion.div initial={{ opacity: 0, y: -10, x: "-50%", scale: 0.95 }} animate={{ opacity: 1, y: 0, x: "-50%", scale: 1 }} exit={{ opacity: 0, y: -6, x: "-50%", scale: 0.95 }} transition={{ duration: 0.2 }}
+            style={{ position: "absolute", top: 20, left: "50%", background: P.glass, color: P.text, padding: "7px 18px", borderRadius: 100, backdropFilter: "blur(20px)", border: `1px solid ${P.glassBorder}`, zIndex: 62, fontWeight: 600, fontSize: 11, pointerEvents: "none", whiteSpace: "nowrap" }}
           >{toastMessage}</motion.div>
         )}
       </AnimatePresence>
@@ -723,51 +713,48 @@ const CustomVideoPlayer = ({
       <AnimatePresence>
         {showShortcuts && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowShortcuts(false)}
-            style={{ position: "absolute", inset: 0, zIndex: 70, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
+            style={{ position: "absolute", inset: 0, zIndex: 70, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
           >
-            <motion.div initial={{ scale: 0.92, opacity: 0, y: 14 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+            <motion.div initial={{ scale: 0.93, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} transition={{ type: "spring", stiffness: 400, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
-              style={{ background: "rgba(12,12,14,0.96)", border: `1px solid ${AURORA.glassBorder}`, borderRadius: 20, padding: "24px 28px", width: 300, color: "#fff", boxShadow: "0 40px 80px rgba(0,0,0,0.8)", backdropFilter: "blur(30px)" }}
+              style={{ background: "rgba(12,12,18,0.97)", border: `1px solid ${P.glassBorder}`, borderRadius: 16, padding: "22px 26px", width: 280, color: P.text, boxShadow: `0 40px 80px rgba(0,0,0,0.8), 0 0 0 1px ${P.glassBorder}` }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,107,0,0.12)", border: "1px solid rgba(255,107,0,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Keyboard size={14} color={AURORA.accent} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 7, background: P.accentDim, border: `1px solid ${P.accentBorder}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Keyboard size={13} color={P.accent} />
                   </div>
-                  <span style={{ fontWeight: 800, fontSize: 14 }}>Shortcuts</span>
+                  <span style={{ fontWeight: 700, fontSize: 13 }}>Shortcuts</span>
                 </div>
-                <button onClick={() => setShowShortcuts(false)} style={{ background: "transparent", border: "none", color: AURORA.textFaint, cursor: "pointer", padding: 4, display: "flex" }}><X size={16} /></button>
+                <button onClick={() => setShowShortcuts(false)} style={{ background: "transparent", border: "none", color: P.faint, cursor: "pointer", padding: 4, display: "flex" }}><X size={14} /></button>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {KEYBOARD_SHORTCUTS.map(({ key, action }) => (
                   <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: AURORA.textDim, fontSize: 12 }}>{action}</span>
-                    <span style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${AURORA.glassBorder}`, padding: "2px 10px", borderRadius: 6, fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: AURORA.accent, whiteSpace: "nowrap" }}>{key}</span>
+                    <span style={{ color: P.dim, fontSize: 11 }}>{action}</span>
+                    <span style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${P.glassBorder}`, padding: "2px 9px", borderRadius: 5, fontFamily: "monospace", fontWeight: 700, fontSize: 10, color: P.accent }}>{key}</span>
                   </div>
                 ))}
-              </div>
-              <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${AURORA.glassBorder}`, textAlign: "center", color: AURORA.textFaint, fontSize: 11 }}>
-                Press <span style={{ color: AURORA.textDim, fontFamily: "monospace", fontWeight: 700 }}>?</span> or click anywhere to dismiss
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── CENTER PLAY/PAUSE FLASH ─────────────────────────────── */}
+      {/* ── CENTER PLAY/PAUSE ───────────────────────────────────── */}
       {showCustomUI && (
         <div style={{ position: "absolute", inset: 0, zIndex: 12, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
           <AnimatePresence>
             {centerIcon && (
               <motion.div key={centerIcon.type + centerIconKeyRef.current}
-                initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.4 }}
-                transition={{ duration: 0.35, type: "spring", stiffness: 400, damping: 25 }}
-                style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${AURORA.glassBorder}`, position: "absolute" }}
+                initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.5 }}
+                transition={{ duration: 0.3, type: "spring", stiffness: 400, damping: 25 }}
+                style={{ width: 68, height: 68, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${P.accentBorder}` }}
               >
-                <motion.div initial={{ opacity: 0.8, scale: 0.8 }} animate={{ opacity: 0, scale: 2 }} transition={{ duration: 0.5, ease: "easeOut" }}
-                  style={{ position: "absolute", inset: -1, borderRadius: "50%", border: `2px solid ${AURORA.accent}` }}
+                <motion.div initial={{ opacity: 0.7, scale: 0.7 }} animate={{ opacity: 0, scale: 2.2 }} transition={{ duration: 0.5 }}
+                  style={{ position: "absolute", inset: -1, borderRadius: "50%", border: `2px solid ${P.accent}` }}
                 />
-                {centerIcon.type === "play" ? <Play size={30} fill={AURORA.accent} color={AURORA.accent} style={{ marginLeft: 4 }} /> : <Pause size={30} fill={AURORA.accent} color={AURORA.accent} />}
+                {centerIcon.type === "play" ? <Play size={28} fill={P.accent} color={P.accent} style={{ marginLeft: 3 }} /> : <Pause size={28} fill={P.accent} color={P.accent} />}
               </motion.div>
             )}
           </AnimatePresence>
@@ -776,54 +763,50 @@ const CustomVideoPlayer = ({
 
       {/* ── PAUSED INFO ─────────────────────────────────────────── */}
       {showPausedInfo && showCustomUI && (
-        <motion.div initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          style={{ position: "absolute", left: 20, bottom: 88, zIndex: 15, display: "flex", gap: 14, alignItems: "center", maxWidth: "min(520px, 86%)", pointerEvents: "none", textAlign: "left" }}
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          style={{ position: "absolute", left: 18, bottom: 100, zIndex: 15, display: "flex", gap: 12, alignItems: "center", maxWidth: "min(480px, 84%)", pointerEvents: "none" }}
         >
-          {(movie?.posterUrl || movie?.backdropUrl || thumbnailUrl) && (
-            <div style={{ width: "clamp(72px, 11vw, 110px)", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", flexShrink: 0, boxShadow: "0 16px 48px rgba(0,0,0,0.7)", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)" }}>
-              <img src={movie?.posterUrl || movie?.backdropUrl || thumbnailUrl} alt={movie?.title || movie?.name} loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          {(movie?.posterUrl || thumbnailUrl) && (
+            <div style={{ width: "clamp(64px, 10vw, 100px)", aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", flexShrink: 0, boxShadow: "0 12px 40px rgba(0,0,0,0.7)", border: `1px solid ${P.glassBorder}` }}>
+              <img src={movie?.posterUrl || thumbnailUrl} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
           )}
           <div style={{ minWidth: 0 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, color: AURORA.accent, fontSize: 11, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 6 }}>
-              <Pause size={12} fill={AURORA.accent} color={AURORA.accent} /> Paused
-              {movie?.isSeries && season && <span style={{ color: AURORA.textDim }}>S{season}{episode ? ` E${episode}` : ""}</span>}
+            <div style={{ color: P.accent, fontSize: 10, fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 4 }}>
+              <Pause size={11} fill={P.accent} color={P.accent} style={{ marginRight: 4, verticalAlign: "middle" }} />Paused
+              {movie?.isSeries && season && <span style={{ color: P.dim, marginLeft: 6 }}>S{season}{episode ? ` E${episode}` : ""}</span>}
             </div>
-            <div style={{ color: "#fff", fontWeight: 900, fontSize: "clamp(1.1rem, 2.4vw, 1.6rem)", lineHeight: 1.12, textShadow: "0 3px 16px rgba(0,0,0,0.9)", marginBottom: 6, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+            <div style={{ color: P.text, fontWeight: 700, fontSize: "clamp(1rem, 2.2vw, 1.5rem)", lineHeight: 1.1, marginBottom: 4, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
               {movie?.title || movie?.name}
             </div>
-            {movie?.overview && (
-              <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "clamp(0.75rem, 1.3vw, 0.9rem)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", textShadow: "0 1px 8px rgba(0,0,0,0.9)" }}>
-                {movie.overview}
-              </div>
-            )}
+            {movie?.overview && <div style={{ color: P.dim, fontSize: "clamp(0.7rem, 1.2vw, 0.85rem)", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{movie.overview}</div>}
           </div>
         </motion.div>
       )}
 
       {/* ── DOUBLE TAP RIPPLE ───────────────────────────────────── */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 11, pointerEvents: "none", display: "flex", alignItems: "center" }}>
+      <div style={{ position: "absolute", inset: 0, zIndex: 11, pointerEvents: "none" }}>
         <AnimatePresence>
           {doubleTapRipple && (
             <motion.div key={doubleTapRipple.id}
-              initial={{ opacity: 0.6, scale: 0.8 }} animate={{ opacity: 0, scale: 1.4 }} transition={{ duration: 0.45, ease: "easeOut" }}
-              style={{ position: "absolute", [doubleTapRipple.side]: 0, width: "35%", height: "100%", background: `radial-gradient(ellipse at ${doubleTapRipple.side} center, rgba(255,255,255,0.12) 0%, transparent 70%)` }}
+              initial={{ opacity: 0.5, scale: 0.7 }} animate={{ opacity: 0, scale: 1.5 }} transition={{ duration: 0.4 }}
+              style={{ position: "absolute", [doubleTapRipple.side]: 0, width: "40%", height: "100%", background: `radial-gradient(ellipse at ${doubleTapRipple.side} center, rgba(0,212,170,0.1) 0%, transparent 70%)` }}
             />
           )}
         </AnimatePresence>
       </div>
 
-      {/* ── SIDE SEEK INDICATORS ────────────────────────────────── */}
+      {/* ── SIDE SEEK ───────────────────────────────────────────── */}
       <div style={{ position: "absolute", inset: 0, zIndex: 12, pointerEvents: "none", display: "flex", alignItems: "center" }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "30%", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <AnimatePresence>
             {sideIcon?.type === "backward" && (
-              <motion.div key="bwd" initial={{ opacity: 0, scale: 0.6, x: -24 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 1.1, x: -12 }}
-                transition={{ type: "spring", stiffness: 450, damping: 25 }}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: 80, height: 80, borderRadius: "50%", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(16px)", border: `1px solid ${AURORA.glassBorder}` }}
+              <motion.div key="bwd" initial={{ opacity: 0, scale: 0.5, x: -20 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 1.2, x: -10 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: 72, height: 72, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(16px)", border: `1px solid ${P.accentBorder}` }}
               >
-                <Rewind size={28} color={AURORA.accent} strokeWidth={2} fill="rgba(255,107,0,0.2)" />
-                <span style={{ fontSize: 11, fontWeight: 800, color: AURORA.accent, fontFamily: "monospace" }}>{sideIcon.text}</span>
+                <Rewind size={24} color={P.accent} strokeWidth={2.5} fill="rgba(0,212,170,0.15)" />
+                <span style={{ fontSize: 10, fontWeight: 800, color: P.accent, fontFamily: "monospace" }}>{sideIcon.text}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -831,29 +814,23 @@ const CustomVideoPlayer = ({
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "30%", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <AnimatePresence>
             {sideIcon?.type === "forward" && (
-              <motion.div key="fwd" initial={{ opacity: 0, scale: 0.6, x: 24 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 1.1, x: 12 }}
-                transition={{ type: "spring", stiffness: 450, damping: 25 }}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: 80, height: 80, borderRadius: "50%", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(16px)", border: `1px solid ${AURORA.glassBorder}` }}
+              <motion.div key="fwd" initial={{ opacity: 0, scale: 0.5, x: 20 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 1.2, x: 10 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: 72, height: 72, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(16px)", border: `1px solid ${P.accentBorder}` }}
               >
-                <FastForward size={28} color={AURORA.accent} strokeWidth={2} fill="rgba(255,107,0,0.2)" />
-                <span style={{ fontSize: 11, fontWeight: 800, color: AURORA.accent, fontFamily: "monospace" }}>{sideIcon.text}</span>
+                <FastForward size={24} color={P.accent} strokeWidth={2.5} fill="rgba(0,212,170,0.15)" />
+                <span style={{ fontSize: 10, fontWeight: 800, color: P.accent, fontFamily: "monospace" }}>{sideIcon.text}</span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* ── NATIVE PLAYER EXIT ──────────────────────────────────── */}
-      {useNativeControls && (
-        <AnimatePresence>
-          {showControls && (
-            <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} style={{ position: "absolute", top: 16, right: 16, zIndex: 50 }}>
-              <button onClick={() => setUseNativeControls(false)}
-                style={{ background: AURORA.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: AURORA.radiusPill, cursor: "pointer", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 6, boxShadow: `0 4px 16px rgba(255,107,0,0.4)` }}
-              ><MonitorPlay size={14} /> Exit Native</button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* ── NATIVE EXIT ─────────────────────────────────────────── */}
+      {useNativeControls && showControls && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: "absolute", top: 14, right: 14, zIndex: 50 }}>
+          <button onClick={() => setUseNativeControls(false)} style={{ background: P.accent, color: "#fff", border: "none", padding: "7px 14px", borderRadius: 100, cursor: "pointer", fontWeight: 700, fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}><MonitorPlay size={13} /> Exit Native</button>
+        </motion.div>
       )}
 
       {/* ── SUBTITLES PANEL ─────────────────────────────────────── */}
@@ -861,33 +838,28 @@ const CustomVideoPlayer = ({
         {showSubtitlesMenu && (
           <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
-            style={{ position: "absolute", bottom: 84, right: 44, zIndex: 50, background: "rgba(10,10,12,0.94)", backdropFilter: "blur(30px) saturate(160%)", border: `1px solid ${AURORA.glassBorder}`, borderRadius: 18, padding: 16, width: 245, color: "#fff", boxShadow: "0 24px 56px rgba(0,0,0,0.75)", display: "flex", flexDirection: "column", gap: 14 }}
+            style={{ position: "absolute", bottom: 100, right: 40, zIndex: 50, background: P.glass, backdropFilter: "blur(30px) saturate(160%)", border: `1px solid ${P.glassBorder}`, borderRadius: 14, padding: 14, width: 230, color: P.text, boxShadow: "0 20px 50px rgba(0,0,0,0.7)", display: "flex", flexDirection: "column", gap: 12 }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 10, color: AURORA.textFaint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700 }}>Subtitles</span>
+              <span style={{ fontSize: 10, color: P.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700 }}>Subtitles</span>
               <div onClick={(e) => { e.stopPropagation(); setSubtitleEnabled(!subtitleEnabled); }}
-                style={{ width: 34, height: 18, background: subtitleEnabled ? AURORA.accent : "rgba(255,255,255,0.12)", borderRadius: AURORA.radiusPill, position: "relative", cursor: "pointer", transition: "background 0.25s" }}
-              >
-                <div style={{ width: 14, height: 14, background: "#fff", borderRadius: "50%", position: "absolute", top: 2, left: subtitleEnabled ? 18 : 2, transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
-              </div>
+                style={{ width: 32, height: 17, background: subtitleEnabled ? P.accent : "rgba(255,255,255,0.1)", borderRadius: 100, position: "relative", cursor: "pointer", transition: "background 0.25s" }}
+              ><div style={{ width: 13, height: 13, background: "#fff", borderRadius: "50%", position: "absolute", top: 2, left: subtitleEnabled ? 17 : 2, transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} /></div>
             </div>
-            <div data-scrollable="true" style={{ background: "rgba(255,255,255,0.02)", padding: 10, borderRadius: 10, border: "1px solid rgba(255,255,255,0.03)", display: "flex", flexDirection: "column", gap: 3, maxHeight: 180, overflowY: "auto" }}>
+            <div data-scrollable="true" style={{ background: "rgba(255,255,255,0.02)", padding: 8, borderRadius: 8, border: `1px solid ${P.glassBorder}`, display: "flex", flexDirection: "column", gap: 2, maxHeight: 160, overflowY: "auto" }}>
               {availableSubtitleLangs.length > 0 ? availableSubtitleLangs.map((lang, idx) => (
                 <button key={idx} onClick={() => { handleSubtitleLanguageSelect(lang.downloadLink); setShowSubtitlesMenu(false); }}
-                  style={{ background: "transparent", color: "rgba(255,255,255,0.8)", border: "none", padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, textAlign: "left", transition: "background 0.15s" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  className="prism-btn-hover"
+                  style={{ background: "transparent", color: "rgba(255,255,255,0.8)", border: "none", padding: "6px 10px", borderRadius: 7, cursor: "pointer", fontSize: 11, fontWeight: 600, textAlign: "left", transition: "background 0.12s" }}
                 >{lang.language}</button>
               )) : (
-                <div style={{ fontSize: 11, color: AURORA.textFaint, textAlign: "center", padding: 8 }}>
-                  {isFetchingSubtitles ? "Searching OpenSubtitles..." : "No subtitles found online"}
-                </div>
+                <div style={{ fontSize: 10, color: P.faint, textAlign: "center", padding: 8 }}>{isFetchingSubtitles ? "Searching..." : "No subtitles found"}</div>
               )}
             </div>
-            <div style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
+            <div style={{ height: 1, background: "rgba(255,255,255,0.04)" }} />
             <button onClick={(e) => { e.stopPropagation(); subtitleInputRef.current?.click(); setShowSubtitlesMenu(false); }}
-              style={{ background: "rgba(255,255,255,0.04)", color: "#fff", border: "1px dashed rgba(255,255,255,0.12)", padding: 10, borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, transition: "all 0.15s" }}
-            ><Upload size={13} /> {subtitleFileName || "Upload Custom (.srt)"}</button>
+              style={{ background: "rgba(255,255,255,0.03)", color: P.text, border: `1px dashed ${P.glassBorder}`, padding: 9, borderRadius: 9, cursor: "pointer", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.15s" }}
+            ><Upload size={12} /> {subtitleFileName || "Upload (.srt)"}</button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -897,261 +869,247 @@ const CustomVideoPlayer = ({
         {showSettings && (
           <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
-            style={{ position: "absolute", bottom: 84, right: 14, zIndex: 50, background: "rgba(10,10,12,0.94)", backdropFilter: "blur(30px) saturate(160%)", border: `1px solid ${AURORA.glassBorder}`, borderRadius: 18, padding: 16, width: 245, color: "#fff", boxShadow: "0 24px 56px rgba(0,0,0,0.75)", display: "flex", flexDirection: "column", gap: 14, maxHeight: "calc(100vh - 160px)", overflowY: "auto" }}
+            style={{ position: "absolute", bottom: 100, right: 12, zIndex: 50, background: P.glass, backdropFilter: "blur(30px) saturate(160%)", border: `1px solid ${P.glassBorder}`, borderRadius: 14, padding: 14, width: 230, color: P.text, boxShadow: "0 20px 50px rgba(0,0,0,0.7)", display: "flex", flexDirection: "column", gap: 12, maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}
           >
-            {/* Playback Speed */}
-            <div style={{ background: "rgba(255,255,255,0.02)", padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" }}>
-              <div style={{ fontSize: 10, color: AURORA.textFaint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10 }}>Playback Speed</div>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {/* Speed */}
+            <div style={{ background: "rgba(255,255,255,0.02)", padding: 10, borderRadius: 10, border: `1px solid ${P.glassBorder}` }}>
+              <div style={{ fontSize: 9, color: P.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Speed</div>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
                   <button key={rate} onClick={() => { sendCommand("setPlaybackRate", [rate]); setPlaybackRate(rate); setShowSettings(false); }}
-                    style={{ background: playbackRate === rate ? "rgba(255,107,0,0.18)" : "rgba(255,255,255,0.04)", color: playbackRate === rate ? AURORA.accent : "rgba(255,255,255,0.7)", border: playbackRate === rate ? "1px solid rgba(255,107,0,0.3)" : "1px solid rgba(255,255,255,0.06)", padding: "6px 10px", borderRadius: AURORA.radiusPill, cursor: "pointer", fontSize: 12, fontWeight: 800, transition: "all 0.15s" }}
+                    style={{ background: playbackRate === rate ? P.accentDim : "rgba(255,255,255,0.03)", color: playbackRate === rate ? P.accent : P.dim, border: playbackRate === rate ? `1px solid ${P.accentBorder}` : `1px solid ${P.glassBorder}`, padding: "5px 9px", borderRadius: 100, cursor: "pointer", fontSize: 11, fontWeight: 700, transition: "all 0.15s" }}
                   >{rate}×</button>
                 ))}
               </div>
             </div>
             {/* Quality */}
-            {qualities && qualities.length > 0 && (
-              <div style={{ background: "rgba(255,255,255,0.02)", padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" }}>
-                <div style={{ fontSize: 10, color: AURORA.textFaint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10 }}>Quality</div>
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {qualities?.length > 0 && (
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: 10, borderRadius: 10, border: `1px solid ${P.glassBorder}` }}>
+                <div style={{ fontSize: 9, color: P.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Quality</div>
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                   {qualities.map((q, idx) => (
-                    <button key={idx} onClick={() => { sendCommand("setQuality", [q.id || idx]); sendCommand("setLevel", [q.id || idx]); sendCommand("setResolution", [q.id || idx]); setCurrentQuality(q); setShowSettings(false); }}
-                      style={{ background: (currentQuality?.id === q.id || currentQuality === q) ? "rgba(255,107,0,0.18)" : "rgba(255,255,255,0.04)", color: (currentQuality?.id === q.id || currentQuality === q) ? AURORA.accent : "rgba(255,255,255,0.7)", border: (currentQuality?.id === q.id || currentQuality === q) ? "1px solid rgba(255,107,0,0.3)" : "1px solid rgba(255,255,255,0.06)", padding: "6px 10px", borderRadius: AURORA.radiusPill, cursor: "pointer", fontSize: 12, fontWeight: 800, transition: "all 0.15s" }}
-                    >{q.name || q.height + "p" || q.label || "Quality " + idx}</button>
+                    <button key={idx} onClick={() => { sendCommand("setQuality", [q.id || idx]); sendCommand("setLevel", [q.id || idx]); setCurrentQuality(q); setShowSettings(false); }}
+                      style={{ background: (currentQuality?.id === q.id || currentQuality === q) ? P.accentDim : "rgba(255,255,255,0.03)", color: (currentQuality?.id === q.id || currentQuality === q) ? P.accent : P.dim, border: (currentQuality?.id === q.id || currentQuality === q) ? `1px solid ${P.accentBorder}` : `1px solid ${P.glassBorder}`, padding: "5px 9px", borderRadius: 100, cursor: "pointer", fontSize: 11, fontWeight: 700, transition: "all 0.15s" }}
+                    >{q.name || q.height + "p" || idx}</button>
                   ))}
                 </div>
               </div>
             )}
-            {/* Audio Tracks */}
-            {audioTracks && audioTracks.length > 0 && (
-              <div style={{ background: "rgba(255,255,255,0.02)", padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" }}>
-                <div style={{ fontSize: 10, color: AURORA.textFaint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10 }}>Audio Track</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {/* Audio */}
+            {audioTracks?.length > 0 && (
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: 10, borderRadius: 10, border: `1px solid ${P.glassBorder}` }}>
+                <div style={{ fontSize: 9, color: P.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Audio</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                   {audioTracks.map((t, idx) => (
-                    <button key={idx} onClick={() => { sendCommand("setAudioTrack", [t.id || idx]); sendCommand("setAudio", [t.id || idx]); sendCommand("setTrack", [t.id || idx]); setCurrentAudioTrack(t); setShowSettings(false); }}
-                      style={{ background: (currentAudioTrack?.id === t.id || currentAudioTrack === t) ? "rgba(255,107,0,0.12)" : "rgba(255,255,255,0.03)", color: (currentAudioTrack?.id === t.id || currentAudioTrack === t) ? AURORA.accent : "rgba(255,255,255,0.6)", border: "1px solid transparent", padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, textAlign: "left", transition: "all 0.15s" }}
-                    >{t.name || t.label || t.language || "Track " + idx}</button>
+                    <button key={idx} onClick={() => { sendCommand("setAudioTrack", [t.id || idx]); setCurrentAudioTrack(t); setShowSettings(false); }}
+                      style={{ background: (currentAudioTrack?.id === t.id || currentAudioTrack === t) ? "rgba(0,212,170,0.08)" : "rgba(255,255,255,0.02)", color: (currentAudioTrack?.id === t.id || currentAudioTrack === t) ? P.accent : P.dim, border: "1px solid transparent", padding: "6px 9px", borderRadius: 7, cursor: "pointer", fontSize: 11, fontWeight: 600, textAlign: "left", transition: "all 0.15s" }}
+                    >{t.name || t.language || `Track ${idx}`}</button>
                   ))}
                 </div>
               </div>
             )}
-            {/* Aspect Ratio */}
-            <div style={{ background: "rgba(255,255,255,0.02)", padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" }}>
-              <div style={{ fontSize: 10, color: AURORA.textFaint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10 }}>Aspect Ratio</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {/* Aspect */}
+            <div style={{ background: "rgba(255,255,255,0.02)", padding: 10, borderRadius: 10, border: `1px solid ${P.glassBorder}` }}>
+              <div style={{ fontSize: 9, color: P.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Aspect Ratio</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {ASPECT_RATIOS.map((ar, idx) => (
                   <button key={ar.name} onClick={() => { setAspectRatioIndex(idx); showToast(`Aspect: ${ar.name}`); setShowSettings(false); }}
-                    style={{ background: aspectRatioIndex === idx ? "rgba(255,107,0,0.12)" : "rgba(255,255,255,0.03)", color: aspectRatioIndex === idx ? AURORA.accent : "rgba(255,255,255,0.6)", border: aspectRatioIndex === idx ? "1px solid rgba(255,107,0,0.3)" : "1px solid transparent", padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", justifyContent: "space-between", alignItems: "center", transition: "all 0.15s" }}
-                  >{ar.name} {aspectRatioIndex === idx && <Check size={12} strokeWidth={3} />}</button>
+                    style={{ background: aspectRatioIndex === idx ? "rgba(0,212,170,0.08)" : "rgba(255,255,255,0.02)", color: aspectRatioIndex === idx ? P.accent : P.dim, border: aspectRatioIndex === idx ? `1px solid ${P.accentBorder}` : "1px solid transparent", padding: "6px 9px", borderRadius: 7, cursor: "pointer", fontSize: 11, fontWeight: 600, display: "flex", justifyContent: "space-between", alignItems: "center", transition: "all 0.15s" }}
+                  >{ar.name} {aspectRatioIndex === idx && <Check size={11} strokeWidth={3} />}</button>
                 ))}
               </div>
             </div>
             {/* Automations */}
-            <div style={{ background: "rgba(255,255,255,0.02)", padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" }}>
-              <div style={{ fontSize: 10, color: AURORA.textFaint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10 }}>Automations</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.8)" }}>Auto-Skip Intro</span>
-                  <div onClick={() => { const v = !autoSkipIntro; setAutoSkipIntro(v); localStorage.setItem("streamly_autoSkip", v); }}
-                    style={{ width: 34, height: 18, background: autoSkipIntro ? AURORA.accent : "rgba(255,255,255,0.12)", borderRadius: AURORA.radiusPill, position: "relative", cursor: "pointer", transition: "background 0.25s" }}
-                  ><div style={{ width: 14, height: 14, background: "#fff", borderRadius: "50%", position: "absolute", top: 2, left: autoSkipIntro ? 18 : 2, transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} /></div>
-                </div>
-                {movie?.isSeries && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.8)" }}>Auto-Play Next</span>
-                    <div onClick={() => { const v = !autoPlayNext; setAutoPlayNext(v); localStorage.setItem("streamly_autoNext", v); }}
-                      style={{ width: 34, height: 18, background: autoPlayNext ? AURORA.accent : "rgba(255,255,255,0.12)", borderRadius: AURORA.radiusPill, position: "relative", cursor: "pointer", transition: "background 0.25s" }}
-                    ><div style={{ width: 14, height: 14, background: "#fff", borderRadius: "50%", position: "absolute", top: 2, left: autoPlayNext ? 18 : 2, transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} /></div>
+            <div style={{ background: "rgba(255,255,255,0.02)", padding: 10, borderRadius: 10, border: `1px solid ${P.glassBorder}` }}>
+              <div style={{ fontSize: 9, color: P.faint, textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>Automations</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  { label: "Auto-Skip Intro", val: autoSkipIntro, set: setAutoSkipIntro, key: "streamly_autoSkip" },
+                  ...(movie?.isSeries ? [{ label: "Auto-Play Next", val: autoPlayNext, set: setAutoPlayNext, key: "streamly_autoNext" }] : []),
+                ].map((item, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.75)" }}>{item.label}</span>
+                    <div onClick={() => { const v = !item.val; item.set(v); localStorage.setItem(item.key, v); }}
+                      style={{ width: 32, height: 17, background: item.val ? P.accent : "rgba(255,255,255,0.1)", borderRadius: 100, position: "relative", cursor: "pointer", transition: "background 0.25s" }}
+                    ><div style={{ width: 13, height: 13, background: "#fff", borderRadius: "50%", position: "absolute", top: 2, left: item.val ? 17 : 2, transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)" }} /></div>
                   </div>
-                )}
+                ))}
               </div>
             </div>
-            <div style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
+            <div style={{ height: 1, background: "rgba(255,255,255,0.04)" }} />
             <button onClick={(e) => { e.stopPropagation(); setUseNativeControls(true); setShowSettings(false); }}
-              style={{ background: "rgba(255,107,0,0.08)", color: AURORA.accent, border: "1px solid rgba(255,107,0,0.18)", padding: 10, borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, transition: "all 0.15s" }}
-            ><Captions size={14} /> Native Subtitles & Audio</button>
+              style={{ background: "rgba(139,92,246,0.08)", color: P.purple, border: "1px solid rgba(139,92,246,0.2)", padding: 9, borderRadius: 9, cursor: "pointer", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            ><Captions size={13} /> Native Audio</button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── BOTTOM CONTROLS ─────────────────────────────────────── */}
-      <AnimatePresence>
-        {(showControls || !isPlaying || isScrubbing) && showCustomUI && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 20, pointerEvents: "none" }}
-          >
-            {/* Attachment Row (Skip Intro + Up Next) */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", marginBottom: 10, pointerEvents: "none" }}>
-              <div style={{ pointerEvents: "auto" }}>
-                <AnimatePresence>
-                  {showSkipIntro && skipIntroTime != null && (
-                    <motion.button initial={{ opacity: 0, x: -16, scale: 0.92 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -12, scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 26 }}
-                      onClick={(e) => { e.stopPropagation(); sendCommand("seek", [skipIntroTime]); setShowSkipIntro(false); }}
-                      style={{ background: "rgba(0,0,0,0.7)", color: "#fff", border: `1.5px solid ${AURORA.accent}`, padding: "9px 18px", borderRadius: 10, cursor: "pointer", fontWeight: 700, backdropFilter: "blur(16px)", display: "flex", alignItems: "center", gap: 7, fontSize: 12, boxShadow: `0 0 16px rgba(255,107,0,0.2), 0 6px 16px rgba(0,0,0,0.4)` }}
-                    ><FastForward size={14} color={AURORA.accent} fill={AURORA.accent} /> Skip Intro</motion.button>
-                  )}
-                </AnimatePresence>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, pointerEvents: "auto" }}>
-                <AnimatePresence>
-                  {showUpNext && hasNextEpisode && (
-                    <motion.div initial={{ opacity: 0, x: 20, scale: 0.93 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 14, scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 380, damping: 26 }}
-                      style={{ background: "rgba(0,0,0,0.75)", border: `1px solid ${AURORA.glassBorder}`, borderRadius: 14, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, backdropFilter: "blur(20px)", boxShadow: "0 14px 36px rgba(0,0,0,0.6)" }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 9, color: AURORA.textFaint, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 2 }}>Up Next</div>
-                        <div style={{ fontSize: 13, color: "#fff", fontWeight: 700 }}>Episode {(episode || 0) + 1}</div>
-                      </div>
-                      <div style={{ position: "relative", width: 36, height: 36, flexShrink: 0 }}>
-                        <svg width="36" height="36" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
-                          <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5" />
-                          <circle cx="18" cy="18" r="14" fill="none" stroke={AURORA.accent} strokeWidth="2.5" strokeDasharray={`${2 * Math.PI * 14}`} strokeDashoffset={`${2 * Math.PI * 14 * (1 - upNextCountdown / 15)}`} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.9s linear" }} />
-                        </svg>
-                        <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff" }}>{upNextCountdown}</span>
-                      </div>
-                      <button onClick={(e) => { e.stopPropagation(); dismissUpNext(); }}
-                        style={{ background: "rgba(255,255,255,0.06)", border: "none", color: AURORA.textDim, cursor: "pointer", width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                      ><X size={12} /></button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                {hasNextEpisode && (
-                  <button onClick={(e) => { e.stopPropagation(); onNextEpisode?.(); }}
-                    style={{ background: AURORA.accent, color: "#fff", border: "none", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, display: "flex", alignItems: "center", gap: 6, boxShadow: `0 4px 14px rgba(255,107,0,0.4)`, fontSize: 12, transition: "all 0.15s" }}
-                  >Next Episode <SkipForward size={14} fill="currentColor" /></button>
-                )}
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div ref={progressBarRef} onMouseDown={onProgressMouseDown} onMouseMove={handleProgressHover} onMouseLeave={() => setHoverTime(null)}
-              className="aurora-progress"
-              style={{ position: "relative", zIndex: 20, height: 24, display: "flex", alignItems: "center", cursor: "pointer", padding: "0 20px", pointerEvents: "auto", marginBottom: 2 }}
-            >
+      {/* ═══ BOTTOM ZONE ═══════════════════════════════════════════ */}
+      {showCustomUI && (
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 20, pointerEvents: "none", opacity: showControls || !isPlaying || isScrubbing ? 1 : 0, transition: "opacity 0.3s" }}
+        >
+          {/* Skip Intro / Up Next */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 18px", marginBottom: 8, pointerEvents: "none" }}>
+            <div style={{ pointerEvents: "auto" }}>
               <AnimatePresence>
-                {hoverTime != null && (
-                  <motion.div initial={{ opacity: 0, y: 4, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 3, scale: 0.95 }} transition={{ duration: 0.12 }}
-                    style={{ position: "absolute", bottom: 20, left: `${hoverX + 20}px`, transform: "translateX(-50%)", pointerEvents: "none", display: "flex", flexDirection: "column", alignItems: "center" }}
+                {showSkipIntro && skipIntroTime != null && (
+                  <motion.button initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 26 }}
+                    onClick={(e) => { e.stopPropagation(); sendCommand("seek", [skipIntroTime]); setShowSkipIntro(false); }}
+                    style={{ background: P.glass, color: P.text, border: `1px solid ${P.accent}`, padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 700, backdropFilter: "blur(16px)", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                  ><FastForward size={13} color={P.accent} fill={P.accent} /> Skip Intro</motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, pointerEvents: "auto" }}>
+              <AnimatePresence>
+                {showUpNext && hasNextEpisode && (
+                  <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }}
+                    transition={{ type: "spring", stiffness: 380, damping: 26 }}
+                    style={{ background: P.glass, border: `1px solid ${P.glassBorder}`, borderRadius: 12, padding: "8px 12px", display: "flex", alignItems: "center", gap: 10, backdropFilter: "blur(20px)" }}
                   >
-                    <div style={{ background: "rgba(8,8,10,0.95)", color: "#fff", padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 800, fontFamily: "monospace", whiteSpace: "nowrap", border: `1px solid ${AURORA.glassBorder}`, boxShadow: "0 4px 12px rgba(0,0,0,0.6)", letterSpacing: "0.5px" }}>
-                      {formatTime(hoverTime)}
+                    <div>
+                      <div style={{ fontSize: 9, color: P.faint, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 1 }}>Up Next</div>
+                      <div style={{ fontSize: 12, color: P.text, fontWeight: 700 }}>Ep {(episode || 0) + 1}</div>
                     </div>
+                    <div style={{ position: "relative", width: 32, height: 32, flexShrink: 0 }}>
+                      <svg width="32" height="32" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+                        <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2.5" />
+                        <circle cx="16" cy="16" r="13" fill="none" stroke={P.accent} strokeWidth="2.5" strokeDasharray={`${2 * Math.PI * 13}`} strokeDashoffset={`${2 * Math.PI * 13 * (1 - upNextCountdown / 15)}`} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.9s linear" }} />
+                      </svg>
+                      <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: P.text }}>{upNextCountdown}</span>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); dismissUpNext(); }} style={{ background: "rgba(255,255,255,0.05)", border: "none", color: P.dim, cursor: "pointer", width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={11} /></button>
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div style={{ position: "relative", width: "100%", height: hoverTime != null || isScrubbing ? "6px" : "3px", background: "rgba(255,255,255,0.1)", borderRadius: 3, transition: "height 0.2s cubic-bezier(0.4,0,0.2,1)" }}>
-                <div style={{ position: "absolute", inset: 0, width: `${bufferedPercent}%`, background: "rgba(255,255,255,0.12)", borderRadius: 3, transition: "width 0.3s" }} />
-                <div style={{ position: "absolute", inset: 0, width: `${progressPercent}%`, background: `linear-gradient(90deg, ${AURORA.accent}, #FF8C33)`, borderRadius: 3, boxShadow: `0 0 10px ${AURORA.accentGlow}` }} />
-                <div className="aurora-scrubber" style={{ position: "absolute", left: `${progressPercent}%`, top: "50%", transform: "translate(-50%, -50%)", width: 14, height: 14, borderRadius: "50%", background: "#fff", boxShadow: `0 1px 8px rgba(0,0,0,0.5), 0 0 0 2px ${AURORA.accent}`, transition: "transform 0.15s, box-shadow 0.15s", cursor: "grab" }} />
+              {hasNextEpisode && (
+                <button onClick={(e) => { e.stopPropagation(); onNextEpisode?.(); }}
+                  style={{ background: P.accent, color: "#fff", border: "none", padding: "7px 13px", borderRadius: 7, cursor: "pointer", fontWeight: 700, display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}
+                >Next <SkipForward size={13} fill="currentColor" /></button>
+              )}
+            </div>
+          </div>
+
+          {/* ═══ PROGRESS BAR ═══════════════════════════════════════ */}
+          <div ref={progressBarRef} onMouseDown={onProgressMouseDown} onMouseMove={handleProgressHover} onMouseLeave={() => setHoverTime(null)}
+            className="prism-progress"
+            style={{ position: "relative", height: 28, display: "flex", alignItems: "center", cursor: "pointer", padding: "0 18px", pointerEvents: "auto" }}
+          >
+            <AnimatePresence>
+              {hoverTime != null && (
+                <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 3 }} transition={{ duration: 0.1 }}
+                  style={{ position: "absolute", bottom: 22, left: `${hoverX + 18}px`, transform: "translateX(-50%)", pointerEvents: "none" }}
+                >
+                  <div style={{ background: P.surface, color: P.text, padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 800, fontFamily: "monospace", whiteSpace: "nowrap", border: `1px solid ${P.glassBorder}`, letterSpacing: "0.3px" }}>
+                    {formatTime(hoverTime)}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <div style={{ position: "relative", width: "100%", height: hoverTime != null || isScrubbing ? 5 : 3, background: "rgba(255,255,255,0.08)", borderRadius: 3, transition: "height 0.2s cubic-bezier(0.4,0,0.2,1)" }}>
+              <div style={{ position: "absolute", inset: 0, width: `${bufferedPercent}%`, background: "rgba(255,255,255,0.1)", borderRadius: 3 }} />
+              <div style={{ position: "absolute", inset: 0, width: `${progressPercent}%`, background: `linear-gradient(90deg, ${P.accent}, #00F5C4)`, borderRadius: 3, boxShadow: `0 0 12px rgba(0,212,170,0.5)` }} />
+              <div className="prism-scrubber" style={{ position: "absolute", left: `${progressPercent}%`, top: "50%", transform: "translate(-50%, -50%)", width: 13, height: 13, borderRadius: "50%", background: P.accent, boxShadow: `0 0 10px ${P.accent}, 0 0 0 2px rgba(0,212,170,0.3)`, transition: "transform 0.15s, box-shadow 0.15s", cursor: "grab" }} />
+            </div>
+          </div>
+
+          {/* ═══ TITLE + CONTROLS ROW ══════════════════════════════ */}
+          <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 14px 12px", pointerEvents: "auto" }}>
+            {/* LEFT: Playback */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <motion.button onClick={togglePlay} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                style={{ background: P.accent, border: "none", color: "#fff", cursor: "pointer", width: 38, height: 38, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 16px rgba(0,212,170,0.35)`, flexShrink: 0 }}
+                title={isPlaying ? "Pause (K)" : "Play (K)"}
+              >{isPlaying ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" style={{ marginLeft: 2 }} />}</motion.button>
+              <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(-10); }} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} title="Rewind 10s"
+                style={{ background: "transparent", border: `1px solid ${P.glassBorder}`, color: P.dim, cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+              ><RotateCcw size={15} /></motion.button>
+              <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(10); }} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} title="Forward 10s"
+                style={{ background: "transparent", border: `1px solid ${P.glassBorder}`, color: P.dim, cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+              ><RotateCw size={15} /></motion.button>
+              {/* Volume */}
+              <div onMouseEnter={() => setIsVolumeHovered(true)} onMouseLeave={() => setIsVolumeHovered(false)}
+                style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.04)", borderRadius: 100, overflow: "hidden", border: `1px solid ${P.glassBorder}` }}
+              >
+                <motion.button onClick={toggleMute} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                  style={{ background: "transparent", border: "none", color: P.dim, cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  title="Mute (M)"
+                >{isMuted || volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}</motion.button>
+                <motion.div initial={false} animate={{ width: isVolumeHovered ? 60 : 0, opacity: isVolumeHovered ? 1 : 0, marginRight: isVolumeHovered ? 8 : 0 }}
+                  transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                  style={{ display: "flex", alignItems: "center", overflow: "hidden" }}
+                >
+                  <input type="range" min="0" max="1" step="0.02" value={isMuted ? 0 : volume}
+                    onChange={(e) => { e.stopPropagation(); changeVolume(parseFloat(e.target.value)); }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="prism-volume"
+                    style={{ width: 60, cursor: "pointer", height: 3, flexShrink: 0 }}
+                  />
+                </motion.div>
               </div>
             </div>
 
-            {/* Control Row */}
-            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 14px 14px", pointerEvents: "auto" }}>
-              {/* Left Controls */}
-              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                <motion.button onClick={togglePlay} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  style={{ background: `linear-gradient(135deg, ${AURORA.accent}, #FF8C33)`, border: "none", color: "#fff", cursor: "pointer", width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 18px rgba(255,107,0,0.45)`, flexShrink: 0 }}
-                  title={isPlaying ? "Pause (K)" : "Play (K)"}
-                >{isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" style={{ marginLeft: 2 }} />}</motion.button>
-                <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(-10); }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Rewind 10s (J)"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", color: AURORA.text, cursor: "pointer", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}
-                ><RotateCcw size={16} /></motion.button>
-                <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(10); }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Forward 10s (L)"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", color: AURORA.text, cursor: "pointer", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}
-                ><RotateCw size={16} /></motion.button>
-                {/* Volume */}
-                <div onMouseEnter={() => setIsVolumeHovered(true)} onMouseLeave={() => setIsVolumeHovered(false)}
-                  style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.06)", borderRadius: AURORA.radiusPill, overflow: "hidden", border: "1px solid rgba(255,255,255,0.06)" }}
-                >
-                  <motion.button onClick={toggleMute} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    style={{ background: "transparent", border: "none", color: "#fff", cursor: "pointer", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                    title="Mute (M)"
-                  >{isMuted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}</motion.button>
-                  <motion.div initial={false} animate={{ width: isVolumeHovered ? 64 : 0, opacity: isVolumeHovered ? 1 : 0, marginRight: isVolumeHovered ? 10 : 0 }}
-                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                    style={{ display: "flex", alignItems: "center", overflow: "hidden" }}
-                  >
-                    <input type="range" min="0" max="1" step="0.02" value={isMuted ? 0 : volume}
-                      onChange={(e) => { e.stopPropagation(); changeVolume(parseFloat(e.target.value)); }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="aurora-volume"
-                      style={{ width: 64, cursor: "pointer", height: 3, flexShrink: 0 }}
-                    />
-                  </motion.div>
-                </div>
-                {/* Time */}
-                <div style={{ marginLeft: 8, fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.85)", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
-                  {formatTime(currentTime)}<span style={{ color: AURORA.textFaint, fontWeight: 400 }}>/</span><span style={{ color: AURORA.textDim }}>{formatTime(duration)}</span>
-                </div>
-              </div>
-
-              {/* Center Title */}
-              <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 6, pointerEvents: "none", whiteSpace: "nowrap", maxWidth: "35%", overflow: "hidden" }}>
-                <span style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.85)", letterSpacing: "1px", border: `1px solid ${AURORA.glassBorder}`, flexShrink: 0 }}>
-                  {isTvContent ? `S${season} E${episode}` : "MOVIE"}
-                </span>
-                <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis" }}>{movie.title || movie.name}</span>
-                {isTvContent && <span style={{ color: AURORA.accent, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>— Ep {episode}</span>}
-                {playbackRate !== 1 && <span style={{ background: "rgba(255,107,0,0.15)", border: "1px solid rgba(255,107,0,0.3)", color: AURORA.accent, fontSize: 9, fontWeight: 900, padding: "2px 6px", borderRadius: 4, flexShrink: 0 }}>{playbackRate}×</span>}
-              </div>
-
-              {/* Right Controls */}
-              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                {activeSourceId && <span style={{ fontSize: 9, color: AURORA.textFaint, fontWeight: 700, padding: "2px 6px", background: "rgba(255,255,255,0.04)", borderRadius: 4, marginRight: 4, whiteSpace: "nowrap" }}>{activeSourceId}</span>}
-                <input type="file" accept=".srt,.vtt" ref={subtitleInputRef} onChange={handleSubtitleUpload} style={{ display: "none" }} />
-                <motion.button onClick={(e) => { e.stopPropagation(); setShowSubtitlesMenu(!showSubtitlesMenu); setShowSettings(false); }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  style={{ background: subtitleEnabled || showSubtitlesMenu ? "rgba(255,107,0,0.12)" : "rgba(255,255,255,0.06)", border: subtitleEnabled || showSubtitlesMenu ? "1px solid rgba(255,107,0,0.25)" : "1px solid rgba(255,255,255,0.06)", color: subtitleEnabled || showSubtitlesMenu ? AURORA.accent : "rgba(255,255,255,0.85)", cursor: "pointer", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", transition: "all 0.15s" }}
-                  title={subtitleFileName ? `Subtitle: ${subtitleFileName}` : "Subtitles"}
-                >
-                  <Captions size={16} style={{ transition: "transform 0.3s", transform: showSubtitlesMenu ? "scale(1.1)" : "scale(1)" }} />
-                  {subtitleEnabled && <div style={{ position: "absolute", top: 4, right: 4, width: 5, height: 5, background: AURORA.accent, borderRadius: "50%" }} />}
-                </motion.button>
-                <motion.button onClick={(e) => { e.stopPropagation(); setShowShortcuts((p) => !p); }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  style={{ background: showShortcuts ? "rgba(255,107,0,0.12)" : "rgba(255,255,255,0.06)", border: showShortcuts ? "1px solid rgba(255,107,0,0.25)" : "1px solid rgba(255,255,255,0.06)", color: showShortcuts ? AURORA.accent : "rgba(255,255,255,0.85)", cursor: "pointer", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
-                  title="Shortcuts (?)"
-                ><Keyboard size={16} /></motion.button>
-                <motion.button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setShowSubtitlesMenu(false); }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  style={{ background: showSettings ? "rgba(255,107,0,0.12)" : "rgba(255,255,255,0.06)", border: showSettings ? "1px solid rgba(255,107,0,0.25)" : "1px solid rgba(255,255,255,0.06)", color: showSettings ? AURORA.accent : "rgba(255,255,255,0.85)", cursor: "pointer", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
-                  title="Settings"
-                ><Settings size={16} style={{ transition: "transform 0.3s", transform: showSettings ? "rotate(50deg)" : "rotate(0)" }} /></motion.button>
-                <motion.button onClick={toggleFullscreen} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", cursor: "pointer", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
-                  title={isFullscreen ? "Exit Fullscreen (F)" : "Fullscreen (F)"}
-                >{isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}</motion.button>
-              </div>
+            {/* CENTER: Show Name — BELOW progress bar */}
+            <div style={{ position: "absolute", left: "50%", bottom: 42, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, pointerEvents: "none", textAlign: "center", maxWidth: "50%" }}>
+              <span style={{ color: P.text, fontSize: "clamp(0.85rem, 1.8vw, 1.1rem)", fontWeight: 700, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", display: "block" }}>
+                {movie?.title || movie?.name}
+              </span>
+              {isTvContent && <span style={{ color: P.accent, fontSize: 10, fontWeight: 700, letterSpacing: "1px" }}>Season {season} · Episode {episode}</span>}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            {/* RIGHT: Settings */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <motion.button onClick={(e) => { e.stopPropagation(); setShowSubtitlesMenu(!showSubtitlesMenu); setShowSettings(false); }} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                style={{ background: subtitleEnabled || showSubtitlesMenu ? P.accentDim : "transparent", border: subtitleEnabled || showSubtitlesMenu ? `1px solid ${P.accentBorder}` : `1px solid ${P.glassBorder}`, color: subtitleEnabled || showSubtitlesMenu ? P.accent : P.dim, cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", transition: "all 0.15s" }}
+                title="Subtitles"
+              >
+                <Captions size={15} />
+                {subtitleEnabled && <div style={{ position: "absolute", top: 3, right: 3, width: 5, height: 5, background: P.accent, borderRadius: "50%" }} />}
+              </motion.button>
+              <motion.button onClick={(e) => { e.stopPropagation(); setShowShortcuts((p) => !p); }} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                style={{ background: showShortcuts ? P.accentDim : "transparent", border: showShortcuts ? `1px solid ${P.accentBorder}` : `1px solid ${P.glassBorder}`, color: showShortcuts ? P.accent : P.dim, cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+                title="Shortcuts (?)"
+              ><Keyboard size={15} /></motion.button>
+              <motion.button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setShowSubtitlesMenu(false); }} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                style={{ background: showSettings ? P.accentDim : "transparent", border: showSettings ? `1px solid ${P.accentBorder}` : `1px solid ${P.glassBorder}`, color: showSettings ? P.accent : P.dim, cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+                title="Settings"
+              ><Settings size={15} style={{ transition: "transform 0.3s", transform: showSettings ? "rotate(45deg)" : "rotate(0)" }} /></motion.button>
+              <motion.button onClick={toggleFullscreen} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                style={{ background: "transparent", border: `1px solid ${P.glassBorder}`, color: P.dim, cursor: "pointer", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+                title={isFullscreen ? "Exit Fullscreen (F)" : "Fullscreen (F)"}
+              >{isFullscreen ? <Minimize size={15} /> : <Maximize size={15} />}</motion.button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* ── CONTEXT MENU ────────────────────────────────────────── */}
       <AnimatePresence>
         {contextMenu.show && (
           <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.12 }}
-            style={{ position: "absolute", left: contextMenu.x, top: contextMenu.y, zIndex: 100, background: "rgba(12,12,14,0.92)", backdropFilter: "blur(16px)", border: `1px solid ${AURORA.glassBorder}`, borderRadius: 12, padding: "6px 0", minWidth: 200, boxShadow: "0 16px 40px rgba(0,0,0,0.65)", pointerEvents: "auto" }}
+            style={{ position: "absolute", left: contextMenu.x, top: contextMenu.y, zIndex: 100, background: P.glass, backdropFilter: "blur(16px)", border: `1px solid ${P.glassBorder}`, borderRadius: 10, padding: "5px 0", minWidth: 190, boxShadow: "0 16px 40px rgba(0,0,0,0.6)", pointerEvents: "auto" }}
             onClick={(e) => e.stopPropagation()} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
           >
             {[
-              { icon: <Link size={13} />, label: "Copy video URL", action: () => { navigator.clipboard.writeText(window.location.href); setContextMenu({ show: false, x: 0, y: 0 }); showToast("URL Copied to Clipboard"); } },
-              { icon: <Repeat size={13} color={isLooping ? AURORA.accent : "#fff"} />, label: isLooping ? "Loop is On" : "Loop is Off", action: () => { setIsLooping(!isLooping); setContextMenu({ show: false, x: 0, y: 0 }); showToast(isLooping ? "Loop Disabled" : "Loop Enabled"); } },
-              { icon: isPlaying ? <Pause size={13} /> : <Play size={13} />, label: isPlaying ? "Pause" : "Play", action: () => { togglePlay(); setContextMenu({ show: false, x: 0, y: 0 }); } },
-              { icon: isMuted || volume === 0 ? <VolumeX size={13} /> : <Volume2 size={13} />, label: isMuted || volume === 0 ? "Unmute" : "Mute", action: () => { toggleMute(); setContextMenu({ show: false, x: 0, y: 0 }); } },
+              { icon: <Link size={12} />, label: "Copy URL", action: () => { navigator.clipboard.writeText(window.location.href); setContextMenu({ show: false, x: 0, y: 0 }); showToast("URL Copied"); } },
+              { icon: <Repeat size={12} color={isLooping ? P.accent : P.text} />, label: isLooping ? "Loop On" : "Loop Off", action: () => { setIsLooping(!isLooping); setContextMenu({ show: false, x: 0, y: 0 }); showToast(isLooping ? "Loop Off" : "Loop On"); } },
+              { icon: isPlaying ? <Pause size={12} /> : <Play size={12} />, label: isPlaying ? "Pause" : "Play", action: () => { togglePlay(); setContextMenu({ show: false, x: 0, y: 0 }); } },
+              { icon: isMuted || volume === 0 ? <VolumeX size={12} /> : <Volume2 size={12} />, label: isMuted ? "Unmute" : "Mute", action: () => { toggleMute(); setContextMenu({ show: false, x: 0, y: 0 }); } },
             ].map((item, i) => (
-              <div key={i} className="ctx-menu-item" onClick={item.action}
-                style={{ padding: "9px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 500 }}
+              <div key={i} className="prism-btn-hover" onClick={item.action}
+                style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", color: P.text, fontSize: 11, fontWeight: 500 }}
               >{item.icon} {item.label}</div>
             ))}
-            <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "3px 0" }} />
-            <div className="ctx-menu-item" onClick={() => {
+            <div style={{ height: 1, background: "rgba(255,255,255,0.04)", margin: "3px 0" }} />
+            <div className="prism-btn-hover" onClick={() => {
               setIsLoading(true); setIframeUrl("");
               setTimeout(() => { setHasInitiallyLoaded(false); contentSignatureRef.current = ""; }, 100);
-              setContextMenu({ show: false, x: 0, y: 0 }); showToast("Reloading Player...");
-            }} style={{ padding: "9px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 500 }}>
-              <RefreshCw size={13} /> Troubleshoot (Reload)
+              setContextMenu({ show: false, x: 0, y: 0 }); showToast("Reloading...");
+            }} style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", color: P.text, fontSize: 11, fontWeight: 500 }}>
+              <RefreshCw size={12} /> Reload
             </div>
           </motion.div>
         )}
