@@ -551,6 +551,63 @@ export function mapSource(movie) {
 }
 
 /**
+ * Normalize a movie's source and sourceName from availablePlatforms.
+ * This is the single source of truth — call it on ANY movie data from any API.
+ * Handles: raw strings, undefined source, missing availablePlatforms, etc.
+ *
+ * Priority chain:
+ * 1. If movie.source is already a canonical key → use it directly
+ * 2. If movie.source is a raw string → normalize it
+ * 3. Fall back to availablePlatforms[0] and normalize
+ * 4. Return null (never default to netflix or any platform)
+ */
+export function normalizeMovieSource(movie) {
+  if (!movie) return { ...movie, source: null, sourceName: null };
+
+  // 1. If source is already a valid canonical key, use it
+  if (movie.source && PLATFORMS[movie.source]) {
+    return { ...movie, source: movie.source, sourceName: movie.sourceName || PLATFORMS[movie.source].name };
+  }
+
+  // 2. If source is a raw string, normalize it
+  if (movie.source && typeof movie.source === 'string') {
+    const key = normalizePlatformKey(movie.source);
+    if (key) {
+      return { ...movie, source: key, sourceName: PLATFORMS[key].name };
+    }
+  }
+
+  // 3. Try availablePlatforms
+  if (movie.availablePlatforms && movie.availablePlatforms.length > 0) {
+    for (const p of movie.availablePlatforms) {
+      const match = PlatformAdapter.resolveFromRawName(p);
+      if (match) {
+        return { ...movie, source: match.id, sourceName: match.name };
+      }
+    }
+    // Even if no match, return the raw first platform as sourceName (for display)
+    const rawFirst = movie.availablePlatforms[0];
+    const rawKey = normalizePlatformKey(rawFirst);
+    if (rawKey) {
+      return { ...movie, source: rawKey, sourceName: PLATFORMS[rawKey].name };
+    }
+    // Raw string didn't normalize — still show it as sourceName for transparency
+    return { ...movie, source: null, sourceName: rawFirst };
+  }
+
+  // 4. No platform data at all
+  return { ...movie, source: null, sourceName: null };
+}
+
+/**
+ * Normalize an array of movies with source/sourceName resolution.
+ */
+export function normalizeMoviesSources(movies) {
+  if (!Array.isArray(movies)) return [];
+  return movies.map(normalizeMovieSource);
+}
+
+/**
  * Resolve all available platform keys for a movie.
  * Returns an array of unique canonical platform IDs.
  */

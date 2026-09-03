@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { movieService } from "../api/movieService";
 import MovieCard from "../components/MovieCard";
+import { normalizeMovieSource } from "../api/platformAdapter";
 
 export default function PersonDetails() {
   const { id } = useParams();
@@ -335,7 +336,7 @@ export default function PersonDetails() {
                 style={{ width: "200px", flexShrink: 0 }}
               >
                 <MovieCard
-                  movie={{ ...movie, source: movie.source || movie.availablePlatforms?.[0] || null }}
+                  movie={normalizeMovieSource(movie)}
                 />
               </motion.div>
             ))}
@@ -363,7 +364,7 @@ export default function PersonDetails() {
                 }}
               >
                 <MovieCard
-                  movie={{ ...movie, source: movie.source || movie.availablePlatforms?.[0] || null }}
+                  movie={normalizeMovieSource(movie)}
                 />
               </motion.div>
             ))}

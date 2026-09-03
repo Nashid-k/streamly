@@ -6,6 +6,7 @@ import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast.jsx";
 import { useConfirmDialog } from "../components/ConfirmDialog.jsx";
 import MovieCard from "../components/MovieCard.jsx";
+import { normalizeMovieSource } from "../api/platformAdapter";
 
 export default function HistoryPage() {
   const navigate = useNavigate();
@@ -263,10 +264,7 @@ export default function HistoryPage() {
                           style={{ position: "relative" }}
                         >
                           <MovieCard
-                            movie={{
-                              ...movie,
-                              source: movie.source || movie.availablePlatforms?.[0] || null,
-                            }}
+                            movie={normalizeMovieSource(movie)}
                             showProgress={true}
                             progressValue={
                               movie.lastWatched

@@ -16,7 +16,7 @@ import { movieService } from "../api/movieService";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import RailArrow from "../components/RailArrow";
-import { PLATFORMS, normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
+import { PLATFORMS, normalizePlatformKey, PlatformAdapter, normalizeMovieSource } from "../api/platformAdapter";
 
 const GENRE_OPTIONS = [
   "All",
@@ -434,11 +434,7 @@ export default function Home({
   const featuredMovies = useMemo(
     () =>
       featuredData
-        ? featuredData.map((m) => ({
-            ...m,
-            source: m.source || m.availablePlatforms?.[0] || null,
-            sourceName: m.sourceName || null,
-          }))
+        ? featuredData.map(normalizeMovieSource)
         : EMPTY_ARRAY,
     [featuredData],
   );
@@ -566,7 +562,8 @@ export default function Home({
 
     const standardCategories = [];
     for (const cat of rawCategories) {
-      let filtered = [...cat.movies];
+      // Normalize every movie's source/sourceName from availablePlatforms
+      let filtered = cat.movies.map(normalizeMovieSource);
       let dynamicName = cat.name;
 
       if (filter === "series" || filter === "tv shows") {

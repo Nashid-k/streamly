@@ -45,7 +45,7 @@ import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast.jsx";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
-import { normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
+import { normalizePlatformKey, PlatformAdapter, normalizeMovieSource, PLATFORMS } from "../api/platformAdapter";
 import { buildMovieAddedNotification } from "../utils/notificationEngine";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
@@ -534,37 +534,40 @@ export default function TitleDetails() {
     }
   };
 
-  const { data: movie, isLoading: loading } = useQuery({
+  const { data: rawMovie, isLoading: loading } = useQuery({
     queryKey: ["movie", id],
     queryFn: () => movieService.getMovieDetails(id),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: true,
   });
 
-  // Resolve the actual platform from movie's availablePlatforms (fully dynamic)
-  const effectivePlatform = useMemo(() => {
-    if (!movie?.availablePlatforms?.length) return undefined;
-    for (const p of movie.availablePlatforms) {
-      const key = normalizePlatformKey(p);
-      if (key) return key;
-    }
-    return undefined;
-  }, [movie?.availablePlatforms]);
+  // ── SINGLE SOURCE OF TRUTH: normalize platform data from ANY API response ──
+  const movie = useMemo(() => rawMovie ? normalizeMovieSource(rawMovie) : rawMovie, [rawMovie]);
+
+  // Resolve the actual platform — now guaranteed to be a canonical key or null
+  const effectivePlatform = movie?.source || undefined;
 
   // All unique platform keys available for this title (for logo row display)
   const availablePlatformKeys = useMemo(() => {
-    if (!movie?.availablePlatforms?.length) return [];
-    const seen = new Set();
     const keys = [];
-    for (const p of movie.availablePlatforms) {
-      const key = normalizePlatformKey(p);
-      if (key && !seen.has(key)) {
-        seen.add(key);
-        keys.push(key);
+    const seen = new Set();
+    // Use the resolved source first
+    if (effectivePlatform && !seen.has(effectivePlatform)) {
+      seen.add(effectivePlatform);
+      keys.push(effectivePlatform);
+    }
+    // Then add any additional platforms from availablePlatforms
+    if (movie?.availablePlatforms?.length) {
+      for (const p of movie.availablePlatforms) {
+        const key = normalizePlatformKey(p);
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          keys.push(key);
+        }
       }
     }
     return keys;
-  }, [movie?.availablePlatforms]);
+  }, [effectivePlatform, movie?.availablePlatforms]);
 
   const { data: similarData } = useQuery({
     queryKey: ["similar", id],
@@ -749,7 +752,7 @@ export default function TitleDetails() {
   }
 
   const resolvedPlatform = effectivePlatform;
-  const sourceName = resolvedPlatform ? PlatformAdapter.getName(resolvedPlatform) : (movie?.availablePlatforms?.[0] || 'Streaming');
+  const sourceName = movie?.sourceName || (resolvedPlatform ? PlatformAdapter.getName(resolvedPlatform) : 'Streaming');
 
   const formatTime = (time) => {
     if (!time || isNaN(time)) return "0:00";
@@ -2129,7 +2132,7 @@ export default function TitleDetails() {
                   }}
                 >
                   <MovieCard
-                    movie={{ ...sim, source: sim.source || resolvedPlatform }}
+                    movie={normalizeMovieSource({ ...sim, source: sim.source || resolvedPlatform })}
                   />
                 </motion.div>
               ))}
