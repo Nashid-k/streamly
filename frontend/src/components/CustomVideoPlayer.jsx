@@ -17,12 +17,12 @@ const getNumericId = (s) => {
 };
 
 const ASPECT_RATIOS = [
-  { name: "Fit (16:9)", style: { transform: "scale(1)" } },
-  { name: "Crop 16:10", style: { transform: "scale(1.111)" } },
-  { name: "Crop 2.35:1", style: { transform: "scale(1.322)" } },
-  { name: "Crop 2.39:1", style: { transform: "scale(1.344)" } },
-  { name: "Crop 4:3", style: { transform: "scale(1.333)" } },
-  { name: "Extra Zoom", style: { transform: "scale(1.18)" } },
+  { name: "Fit (16:9)", scale: 1 },
+  { name: "Crop 16:10", scale: 1.111 },
+  { name: "Crop 2.35:1", scale: 1.322 },
+  { name: "Crop 2.39:1", scale: 1.344 },
+  { name: "Crop 4:3", scale: 1.333 },
+  { name: "Extra Zoom", scale: 1.18 },
 ];
 
 const KEYBOARD_SHORTCUTS = [
@@ -1161,25 +1161,25 @@ const CustomVideoPlayer = ({
     <div
       ref={containerRef}
       style={{
-        position: isFullscreen ? "fixed" : "relative", width: "100%",
-        aspectRatio: isFullscreen ? undefined : "16/9",
+        position: isFullscreen ? 'fixed' : 'relative', width: '100%',
+        aspectRatio: isFullscreen ? undefined : '16/9',
         height: isFullscreen ? '100dvh' : 'auto',
         maxHeight: isFullscreen ? '100dvh' : 'min(calc(100vh - 120px), 80vw)',
-        minHeight: isFullscreen ? '100dvh' : undefined,
-        background: "#000",
+        background: '#000',
         borderRadius: isFullscreen ? 0 : 12,
-        inset: isFullscreen ? "0" : undefined,
+        inset: isFullscreen ? '0' : undefined,
         zIndex: isFullscreen ? 9999 : undefined,
-        overflow: "hidden",
-        cursor: controlsVisible || !showCustomUI ? "default" : "none",
-        minHeight: isFullscreen ? "100vh" : undefined,
-        userSelect: "none",
-        WebkitUserSelect: "none",
-        touchAction: "manipulation", /* Allow our touch handlers, block browser zoom */
-        WebkitTouchCallout: "none",
-        /* Safe area insets for notched phones */
-        paddingBottom: isFullscreen ? 'env(safe-area-inset-bottom, 0px)' : undefined,
-        paddingTop: isFullscreen ? 'env(safe-area-inset-top, 0px)' : undefined,
+        overflow: 'hidden',
+        cursor: controlsVisible || !showCustomUI ? 'default' : 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        touchAction: 'manipulation',
+        WebkitTouchCallout: 'none',
+        /* Safe area insets — applied as margin on the iframe, not padding on container */
+        '--sat': isFullscreen ? 'env(safe-area-inset-top, 0px)' : '0px',
+        '--sab': isFullscreen ? 'env(safe-area-inset-bottom, 0px)' : '0px',
+        '--sal': isFullscreen ? 'env(safe-area-inset-left, 0px)' : '0px',
+        '--sar': isFullscreen ? 'env(safe-area-inset-right, 0px)' : '0px',
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => {
@@ -1207,13 +1207,21 @@ const CustomVideoPlayer = ({
           key={`iframe-${activeServerIndex}-${useNativeControls}`}
           src={iframeUrl}
           style={{
-            width: "100%", height: "100%", border: "none", background: "#000",
-            pointerEvents: isCineSrc ? "auto" : (showCustomUI ? "none" : "auto"),
+            width: '100%', height: '100%', border: 'none', background: '#000', overflow: 'visible',
+            pointerEvents: isCineSrc ? 'auto' : (showCustomUI ? 'none' : 'auto'),
             opacity: hasInitiallyLoaded ? 1 : 0,
-            transition: "opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+            transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
             filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
-            transformOrigin: "center center",
-            ...ASPECT_RATIOS[aspectRatioIndex].style,
+            /* Safe area margins on the iframe itself */
+            marginTop: 'var(--sat)',
+            marginBottom: 'var(--sab)',
+            marginLeft: 'var(--sal)',
+            marginRight: 'var(--sar)',
+            /* Aspect ratio: use object-fit instead of transform to respect safe areas */
+            objectFit: 'contain',
+            transform: ASPECT_RATIOS[aspectRatioIndex].scale !== 1
+              ? `scale(${ASPECT_RATIOS[aspectRatioIndex].scale})` : 'none',
+            transformOrigin: 'center center',
           }}
           allow="autoplay; fullscreen; picture-in-picture"
           onLoad={() => {
