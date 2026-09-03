@@ -210,6 +210,17 @@ const useIsMobile = (breakpoint = 640) => {
   return isMobile;
 };
 
+/* Detect touch device: has touch screen + no hover = mobile/tablet */
+const useIsTouch = () => {
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const noHover = window.matchMedia('(hover: none)').matches;
+    setIsTouch(hasTouch && noHover);
+  }, []);
+  return isTouch;
+};
+
 const CustomVideoPlayer = ({
   movie, season, episode, preferredServerIndex = 0, onServerChange,
   hasNextEpisode, onNextEpisode, thumbnailUrl, startTime = 0, onProgressUpdate,
@@ -269,6 +280,13 @@ const CustomVideoPlayer = ({
   const [showPausedInfo, setShowPausedInfo] = useState(false);
   const pausedInfoTimerRef = useRef(null);
 
+  /* Touch swipe gesture state */
+  const [swipeSide, setSwipeSide] = useState(null); // 'left' = brightness, 'right' = volume
+  const [swipePercent, setSwipePercent] = useState(0);
+  const swipeStartRef = useRef(null);
+  const swipeSideRef = useRef(null);
+  const swipeHudTimerRef = useRef(null);
+
   /* Refs */
   const iframeRef = useRef(null);
   const containerRef = useRef(null);
@@ -295,6 +313,7 @@ const CustomVideoPlayer = ({
   useEffect(() => { isLoopingRef.current = isLooping; }, [isLooping]);
 
   const isMobile = useIsMobile();
+  const isTouch = useIsTouch();
   const isCineSrc = iframeUrl.includes("cinesrc.st");
   const showCustomUI = isCineSrc && !useNativeControls;
 
@@ -858,6 +877,65 @@ const CustomVideoPlayer = ({
     return () => el.removeEventListener("wheel", h);
   }, [showCustomUI, volume, changeVolume, showSettings, showSubtitlesMenu, showShortcuts]);
 
+  /* ═══ Touch Swipe Gestures — Volume (right) & Brightness (left) ═══ */
+  const handleTouchStart = useCallback((e) => {
+    if (!isTouch || !showCustomUI) return;
+    const touch = e.touches[0];
+    const r = containerRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const relX = (touch.clientX - r.left) / r.width;
+    const side = relX < 0.4 ? 'left' : relX > 0.6 ? 'right' : null;
+    if (!side) return;
+    swipeStartRef.current = { y: touch.clientY, side };
+    swipeSideRef.current = side;
+  }, [isTouch, showCustomUI]);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!isTouch || !showCustomUI || !swipeStartRef.current) return;
+    const touch = e.touches[0];
+    const dy = swipeStartRef.current.y - touch.clientY;
+    const r = containerRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const sensitivity = r.height * 0.4; /* 40% of player height = full range */
+    const pct = Math.max(-1, Math.min(1, dy / sensitivity));
+    const side = swipeStartRef.current.side;
+    if (side === 'right') {
+      /* Volume: swipe up = louder */
+      const newVol = Math.max(0, Math.min(1, volume + pct * 0.5));
+      setVolume(newVol);
+      localStorage.setItem('streamly_volume', newVol.toString());
+      sendCommand('setVolume', [newVol]);
+      if (newVol > 0 && isMuted) {
+        setIsMuted(false);
+        localStorage.setItem('streamly_muted', 'false');
+      }
+    } else if (side === 'left') {
+      /* Brightness: swipe up = brighter */
+      const newBright = Math.max(0.2, Math.min(1.5, brightness + pct * 0.3));
+      setBrightness(newBright);
+    }
+    setSwipeSide(side);
+    setSwipePercent(Math.abs(pct));
+    /* Reset start point for continuous tracking */
+    swipeStartRef.current = { y: touch.clientY, side };
+    /* Auto-hide HUD */
+    if (swipeHudTimerRef.current) clearTimeout(swipeHudTimerRef.current);
+    swipeHudTimerRef.current = setTimeout(() => {
+      setSwipeSide(null);
+      setSwipePercent(0);
+    }, 1000);
+  }, [isTouch, showCustomUI, volume, isMuted, brightness, sendCommand]);
+
+  const handleTouchEnd = useCallback(() => {
+    swipeStartRef.current = null;
+    swipeSideRef.current = null;
+    if (swipeHudTimerRef.current) clearTimeout(swipeHudTimerRef.current);
+    swipeHudTimerRef.current = setTimeout(() => {
+      setSwipeSide(null);
+      setSwipePercent(0);
+    }, 600);
+  }, []);
+
   /* Auto-hide controls */
   const handleMouseMove = useCallback(() => {
     setShowControls(true);
@@ -925,6 +1003,9 @@ const CustomVideoPlayer = ({
         if (isPlaying && !showSettings && !showSubtitlesMenu && !isLoading && !isScrubbing)
           setShowControls(false);
       }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onContextMenu={(e) => {
         if (!showCustomUI) return;
         e.preventDefault();
@@ -1465,6 +1546,89 @@ const CustomVideoPlayer = ({
                   {aspectRatioIndex + 1} / {ASPECT_RATIOS.length}
                 </span>
               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ TOUCH SWIPE HUDS — Volume (right) & Brightness (left) ═══ */}
+      <AnimatePresence>
+        {swipeSide && isTouch && (
+          <motion.div
+            key={`swipe-${swipeSide}`}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.85 }}
+            transition={SPRING_SNAPPY}
+            style={{
+              position: "absolute",
+              top: "50%",
+              [swipeSide === 'left' ? 'left' : 'right']: 'clamp(16px, 4vw, 32px)',
+              transform: 'translateY(-50%)',
+              zIndex: 65, pointerEvents: 'none',
+            }}
+          >
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+              background: 'rgba(28,28,30,0.82)',
+              backdropFilter: 'blur(40px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 18,
+              padding: 'clamp(8px, 2vw, 14px) clamp(10px, 2.5vw, 18px)',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.05)',
+            }}>
+              <ArcRing
+                progress={swipeSide === 'right' ? (isMuted ? 0 : volume) : brightness / 1.5}
+                size={40}
+                strokeWidth={2.5}
+                color={swipeSide === 'left' ? '#FBBF24' : (swipeSide === 'right' && (isMuted || volume === 0)) ? '#ff453a' : '#fff'}
+                bgColor="rgba(255,255,255,0.06)"
+                glowColor={swipeSide === 'left' ? 'rgba(251,191,36,0.3)' : undefined}
+              >
+                {swipeSide === 'left' ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                  </svg>
+                ) : (
+                  <motion.div
+                    key={isMuted || volume === 0 ? 'off' : volume < 0.3 ? 'low' : 'high'}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={SPRING_FAST}
+                  >
+                    {isMuted || volume === 0 ? (
+                      <VolumeX size={16} color="#ff453a" strokeWidth={2.2} />
+                    ) : (
+                      <Volume2 size={16} color="#fff" strokeWidth={2.2} />
+                    )}
+                  </motion.div>
+                )}
+              </ArcRing>
+              <motion.span
+                key={swipeSide === 'right' ? Math.round((isMuted ? 0 : volume) * 100) : Math.round(brightness * 100)}
+                initial={{ y: -4, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={SPRING_FAST}
+                style={{
+                  color: swipeSide === 'left' ? '#FBBF24' : (swipeSide === 'right' && (isMuted || volume === 0)) ? '#ff453a' : '#fff',
+                  fontSize: R.fontLarge, fontWeight: 700,
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+                  fontVariantNumeric: 'tabular-nums',
+                  letterSpacing: '-0.02em',
+                  minWidth: 32, textAlign: 'center',
+                }}
+              >
+                {swipeSide === 'right' ? Math.round((isMuted ? 0 : volume) * 100) + '%' : Math.round(brightness * 100) + '%'}
+              </motion.span>
             </div>
           </motion.div>
         )}
