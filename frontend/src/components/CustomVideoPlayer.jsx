@@ -247,8 +247,10 @@ const CustomVideoPlayer = ({
   const [buffered, setBuffered] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const volumeRef = useRef(1);
   const [isVolumeHovered, setIsVolumeHovered] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const isMutedRef = useRef(false);
   const [showVolumeArc, setShowVolumeArc] = useState(false);
   const [showAspectRatioArc, setShowAspectRatioArc] = useState(false);
   const [autoSkipIntro, setAutoSkipIntro] = useState(() => localStorage.getItem("streamly_autoSkip") === "true");
@@ -355,6 +357,8 @@ const CustomVideoPlayer = ({
   useEffect(() => { autoPlayNextRef.current = autoPlayNext; }, [autoPlayNext]);
   const isLoadingRef = useRef(isLoading);
   useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
 
   const subtitleEngineRef = useRef(new SubtitleEngine());
   const [activeSubtitleCue, setActiveSubtitleCue] = useState(null);
@@ -594,7 +598,7 @@ const CustomVideoPlayer = ({
         try { ({ type: t, ...d } = ev.data); } catch { return; }
         switch (t) {
           case "cinesrc:ready":
-            sendCommand("setVolume", [isMuted ? 0 : volume]);
+            sendCommand("setVolume", [isMutedRef.current ? 0 : volumeRef.current]);
             sendCommand("setPlaybackRate", [playbackRate]);
             sendCommand("getCurrentTime");
             sendCommand("getDuration");
@@ -719,7 +723,7 @@ const CustomVideoPlayer = ({
     };
     window.addEventListener("message", h);
     return () => window.removeEventListener("message", h);
-  }, [isCineSrc, isScrubbing, volume, isMuted, playbackRate, sendCommand, hasNextEpisode, onNextEpisode, activeServerIndex, startUpNextCountdown, onProgressUpdate]);
+  }, [isCineSrc, isScrubbing, playbackRate, sendCommand, hasNextEpisode, onNextEpisode, activeServerIndex, startUpNextCountdown, onProgressUpdate]);
 
   /* Actions */
   const triggerCenterIcon = useCallback((type) => {
@@ -957,8 +961,8 @@ const CustomVideoPlayer = ({
         case "m": e.preventDefault(); toggleMute(); break;
         case "arrowright": case "l": case ">": case ".": e.preventDefault(); seekRelative(10); break;
         case "arrowleft": case "j": case "<": case ",": e.preventDefault(); seekRelative(-10); break;
-        case "arrowup": e.preventDefault(); changeVolume(volume + 0.1); break;
-        case "arrowdown": e.preventDefault(); changeVolume(volume - 0.1); break;
+        case "arrowup": e.preventDefault(); changeVolume(volumeRef.current + 0.1); break;
+        case "arrowdown": e.preventDefault(); changeVolume(volumeRef.current - 0.1); break;
         case "a": e.preventDefault(); setAspectRatioIndex((p) => (p + 1) % ASPECT_RATIOS.length); setShowAspectRatioArc(true); if (aspectRatioArcTimerRef.current) clearTimeout(aspectRatioArcTimerRef.current); aspectRatioArcTimerRef.current = setTimeout(() => setShowAspectRatioArc(false), 1200); break;
         case "?": e.preventDefault(); setShowShortcuts((p) => !p); break;
         case "escape": setShowShortcuts(false); setShowSettings(false); setShowSubtitlesMenu(false); break;
@@ -967,7 +971,7 @@ const CustomVideoPlayer = ({
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [isCineSrc, togglePlay, toggleFullscreen, toggleMute, seekRelative, volume, changeVolume]);
+  }, [isCineSrc, togglePlay, toggleFullscreen, toggleMute, seekRelative, changeVolume]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -975,11 +979,11 @@ const CustomVideoPlayer = ({
     const h = (e) => {
       if (showSettings || showSubtitlesMenu || showShortcuts) return;
       e.preventDefault();
-      changeVolume(volume + (e.deltaY < 0 ? 0.05 : -0.05));
+      changeVolume(volumeRef.current + (e.deltaY < 0 ? 0.05 : -0.05));
     };
     el.addEventListener("wheel", h, { passive: false });
     return () => el.removeEventListener("wheel", h);
-  }, [showCustomUI, volume, changeVolume, showSettings, showSubtitlesMenu, showShortcuts]);
+  }, [showCustomUI, changeVolume, showSettings, showSubtitlesMenu, showShortcuts]);
 
   /* ═══ Touch Gestures — VLC/MX Player Style ═══════════════════════════════
      LEFT 30%:   swipe ↑↓ = brightness
