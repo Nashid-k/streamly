@@ -299,6 +299,7 @@ const CustomVideoPlayer = ({
   const [currentQuality, setCurrentQuality] = useState(null);
   const [audioTracks, setAudioTracks] = useState([]);
   const [currentAudioTrack, setCurrentAudioTrack] = useState(null);
+  const [directStreamProvider, setDirectStreamProvider] = useState(null);
   const [showPausedInfo, setShowPausedInfo] = useState(false);
   const pausedInfoTimerRef = useRef(null);
 
@@ -548,6 +549,7 @@ const CustomVideoPlayer = ({
           );
           if (!cancelled) {
             setDirectStreamUrl(streamData.streamUrl);
+            setDirectStreamProvider(streamData.provider || 'direct');
             // Auto-load subtitles from Direct server if available
             if (streamData.subtitles?.length > 0) {
               const subUrl = streamData.subtitles[0];
@@ -2649,6 +2651,17 @@ const CustomVideoPlayer = ({
                     flexShrink: 0, letterSpacing: "0.3px",
                     fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                   }}>{movie.releaseYear}</span>
+                )}
+                {/* Direct stream provider badge */}
+                {isDirectStream && directStreamProvider && (
+                  <span style={{
+                    color: "rgba(0,200,120,0.7)", fontSize: "10px", fontWeight: 700,
+                    background: "rgba(0,200,120,0.08)", padding: "2px 7px",
+                    borderRadius: 100, flexShrink: 0, letterSpacing: "0.5px",
+                    border: "1px solid rgba(0,200,120,0.12)",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                    textTransform: "uppercase",
+                  }}>{directStreamProvider}</span>
                 )}
               </div>
               <div style={{ flexShrink: 0, minWidth: "clamp(50px, 10vw, 70px)" }} />
