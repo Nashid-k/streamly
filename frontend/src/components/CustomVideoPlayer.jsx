@@ -404,6 +404,9 @@ const CustomVideoPlayer = ({
   const qualitiesMapRef = useRef([]);
   /* Thumbnail preview cache (time -> dataURL) */
   const thumbnailCacheRef = useRef(new Map());
+  /* 5s thumbnail capture interval handle (held on a ref so a bundler's
+     minifier can't drop the binding while the effect cleanup needs it) */
+  const thumbnailIntervalRef = useRef(null);
   /* Netflix-style sprite previews from the CDN's thumbnail VTT */
   const vttTileRef = useRef([]);
   const vttSpriteMetaRef = useRef(new Map());
@@ -851,7 +854,7 @@ const CustomVideoPlayer = ({
         const thumbCanvas = document.createElement('canvas');
         thumbCanvas.width = 160; thumbCanvas.height = 90;
         const thumbCtx = thumbCanvas.getContext('2d');
-        const thumbInterval = setInterval(() => {
+        thumbnailIntervalRef.current = setInterval(() => {
           if (video.paused || video.ended || !video.videoWidth) return;
           try {
             thumbCtx.drawImage(video, 0, 0, 160, 90);
@@ -919,7 +922,8 @@ const CustomVideoPlayer = ({
         video.removeEventListener('canplay', handleCanPlay);
         video.removeEventListener('ended', handleEnded);
         video.removeEventListener('error', handleError);
-        if (thumbInterval) clearInterval(thumbInterval);
+        if (thumbnailIntervalRef.current) clearInterval(thumbnailIntervalRef.current);
+        thumbnailIntervalRef.current = null;
         hlsRef.current = null;
         if (hls) { hls.destroy(); hls = null; }
       };
