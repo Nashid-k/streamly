@@ -61,9 +61,22 @@ export class VideoSourceAdapter {
     if (season) params.set("season", season);
     if (episode) params.set("episode", episode);
     const res = await fetch(`${STREAM_SERVICE_URL}/api/stream?${params}`);
-    if (!res.ok) throw new Error(`Stream extraction failed: ${res.status}`);
-    const data = await res.json();
-    if (!data.streamUrl) throw new Error("No stream URL found");
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      // Session-protected content (e.g. CineSrc "thunder") can't be extracted as
+      // a direct m3u8 — signal the player to use CineSrc's native iframe instead.
+      if (data?.encrypted || data?.requiresIframe) {
+        const err = new Error(data?.error || "Stream is session-protected");
+        err.requiresIframe = true;
+        throw err;
+      }
+      throw new Error(data?.error || `Stream extraction failed: ${res.status}`);
+    }
+    if (!data?.streamUrl) {
+      const err = new Error(data?.error || "No stream URL found");
+      err.requiresIframe = data?.requiresIframe;
+      throw err;
+    }
     // Route through the CORS proxy so HLS.js can fetch m3u8/segments cross-origin
     const proxiedUrl = `${STREAM_SERVICE_URL}/api/proxy?url=${encodeURIComponent(data.streamUrl)}`;
     return {

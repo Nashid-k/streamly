@@ -636,10 +636,26 @@ const CustomVideoPlayer = ({
             }
             setIsLoading(false);
           }
-        } catch {
+        } catch (extractErr) {
           if (!cancelled) {
-            // Fail over to the next server on extraction failure
-            failoverToNextServer("Direct stream unavailable, switching server...");
+            // Session-key-protected streams (CineSrc "thunder") can't be played as
+            // a direct m3u8 — jump straight to CineSrc's native iframe (Server 1),
+            // which plays them, instead of showing an error then failing over.
+            if (extractErr?.requiresIframe) {
+              setErrorMessage("This title streams through CineSrc's player");
+              setTimeout(() => {
+                if (cancelled) return;
+                setErrorMessage("");
+                const servers = VideoSourceAdapter.getServers();
+                const cinesrcIndex = servers.findIndex((_, i) => !VideoSourceAdapter.isDirectServer(i));
+                const ni = cinesrcIndex >= 0 ? cinesrcIndex : 1;
+                setActiveServerIndex(ni);
+                onServerChange?.(ni);
+              }, 1200);
+            } else {
+              // Fail over to the next server on extraction failure
+              failoverToNextServer("Direct stream unavailable, switching server...");
+            }
           }
         }
         return;
