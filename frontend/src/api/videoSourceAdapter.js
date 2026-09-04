@@ -63,6 +63,8 @@ export class VideoSourceAdapter {
     const res = await fetch(`${STREAM_SERVICE_URL}/api/stream?${params}`);
     if (!res.ok) throw new Error(`Stream extraction failed: ${res.status}`);
     const data = await res.json();
-    return data.streamUrl;
+    if (!data.streamUrl) throw new Error("No stream URL found");
+    // Route through the CORS proxy so HLS.js can fetch m3u8/segments cross-origin
+    return `${STREAM_SERVICE_URL}/api/proxy?url=${encodeURIComponent(data.streamUrl)}`;
   }
 }
