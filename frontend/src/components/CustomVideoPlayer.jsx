@@ -6,7 +6,7 @@ import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Settings, AlertCircle, Check, RotateCcw, RotateCw,
   SkipForward, FastForward, Rewind,
-  Keyboard, X, Upload, Captions, Film, Link, Repeat,
+  Keyboard, X, Upload, Captions, Film, Link, Repeat, AudioLines,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SubtitleEngine } from "../utils/SubtitleEngine";
@@ -274,6 +274,7 @@ const CustomVideoPlayer = ({
   const [sideIcon, setSideIcon] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showSubtitlesMenu, setShowSubtitlesMenu] = useState(false);
+  const [showAudioMenu, setShowAudioMenu] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [aspectRatioIndex, setAspectRatioIndex] = useState(0);
   const [toastMessage, setToastMessage] = useState("");
@@ -349,6 +350,15 @@ const CustomVideoPlayer = ({
   const isDraggingVolumeRef = useRef(false);
   const isLoopingRef = useRef(isLooping);
   useEffect(() => { isLoopingRef.current = isLooping; }, [isLooping]);
+
+  /* HLS.js instance ref (for Direct server audio/quality switching) */
+  const hlsRef = useRef(null);
+  /* Thumbnail preview cache (time -> dataURL) */
+  const thumbnailCacheRef = useRef(new Map());
+  const [previewThumbUrl, setPreviewThumbUrl] = useState(null);
+  const [previewTime, setPreviewTime] = useState(null);
+  const previewThumbTimerRef = useRef(null);
+  const seekLongPressRef = useRef(null);
 
   const isMobile = useIsMobile();
   const isTouch = useIsTouch();
@@ -497,8 +507,9 @@ const CustomVideoPlayer = ({
       [controlsTimeoutRef, clickTimeoutRef, seekTimeoutRef,
        centerIconTimeoutRef, sideIconTimeoutRef, skipIntroTimeoutRef,
        toastTimeoutRef, volumeArcTimerRef, aspectRatioArcTimerRef,
-       gestureHudTimerRef].forEach(r => { if (r.current) clearTimeout(r.current); });
+       gestureHudTimerRef, previewThumbTimerRef].forEach(r => { if (r.current) clearTimeout(r.current); });
       if (upNextIntervalRef.current) clearInterval(upNextIntervalRef.current);
+      if (seekLongPressRef.current) clearInterval(seekLongPressRef.current);
     };
   }, []);
 
@@ -650,12 +661,49 @@ const CustomVideoPlayer = ({
 
       if (Hls.isSupported()) {
         hls = new Hls({ enableWorker: true, startPosition: startTimeRef.current || -1 });
+        hlsRef.current = hls;
         hls.loadSource(directStreamUrl);
         hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+
+        /* Audio tracks */
+        hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_, { audioTracks: tracks }) => {
+          const mapped = tracks.map((t, i) => ({ id: t.id ?? i, name: t.name || t.lang || `Track ${i + 1}`, language: t.lang || '' }));
+          setAudioTracks(mapped);
+        });
+        hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (_, { id }) => {
+          setCurrentAudioTrack({ id, name: `Track ${id + 1}` });
+        });
+
+        /* Quality levels */
+        hls.on(Hls.Events.LEVELS_UPDATED, (_, { levels }) => {
+          const mapped = levels.map((l, i) => ({ id: i, name: l.height ? `${l.height}p` : `Level ${i}`, height: l.height || 0, bitrate: l.bitrate || 0 }));
+          setQualities(mapped);
+        });
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_, { level }) => {
+          setCurrentQuality({ id: level, name: level === -1 ? 'Auto' : undefined });
+        });
+
+        /* Thumbnail capture — draw video frame every 10s for preview */
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = 160; thumbCanvas.height = 90;
+        const thumbCtx = thumbCanvas.getContext('2d');
+        const thumbInterval = setInterval(() => {
+          if (video.paused || video.ended || !video.videoWidth) return;
+          try {
+            thumbCtx.drawImage(video, 0, 0, 160, 90);
+            const bucket = Math.floor(video.currentTime / 5) * 5;
+            thumbnailCacheRef.current.set(bucket, thumbCanvas.toDataURL('image/jpeg', 0.5));
+          } catch {}
+        }, 5000);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, (_, { levels: lvls }) => {
           setHasInitiallyLoaded(true);
           setIsLoading(false);
           video.play().catch(() => {});
+          /* Set auto-quality as default */
+          if (lvls?.length > 1) {
+            setQualities(lvls.map((l, i) => ({ id: i, name: l.height ? `${l.height}p` : `Level ${i}`, height: l.height || 0, bitrate: l.bitrate || 0 })));
+          }
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
@@ -696,6 +744,8 @@ const CustomVideoPlayer = ({
         video.removeEventListener('canplay', handleCanPlay);
         video.removeEventListener('ended', handleEnded);
         video.removeEventListener('error', handleError);
+        if (thumbInterval) clearInterval(thumbInterval);
+        hlsRef.current = null;
         if (hls) { hls.destroy(); hls = null; }
       };
     };
@@ -1142,7 +1192,7 @@ const CustomVideoPlayer = ({
         case "arrowdown": e.preventDefault(); changeVolume(volumeRef.current - 0.1); break;
         case "a": e.preventDefault(); setAspectRatioIndex((p) => (p + 1) % ASPECT_RATIOS.length); setShowAspectRatioArc(true); if (aspectRatioArcTimerRef.current) clearTimeout(aspectRatioArcTimerRef.current); aspectRatioArcTimerRef.current = setTimeout(() => setShowAspectRatioArc(false), 1200); break;
         case "?": e.preventDefault(); setShowShortcuts((p) => !p); break;
-        case "escape": setShowShortcuts(false); setShowSettings(false); setShowSubtitlesMenu(false); break;
+        case "escape": setShowShortcuts(false); setShowSettings(false); setShowSubtitlesMenu(false); setShowAudioMenu(false); break;
         default: break;
       }
     };
@@ -1154,13 +1204,13 @@ const CustomVideoPlayer = ({
     const el = containerRef.current;
     if (!el || !showCustomUI) return;
     const h = (e) => {
-      if (showSettings || showSubtitlesMenu || showShortcuts) return;
+      if (showSettings || showSubtitlesMenu || showAudioMenu || showShortcuts) return;
       e.preventDefault();
       changeVolume(volumeRef.current + (e.deltaY < 0 ? 0.05 : -0.05));
     };
     el.addEventListener("wheel", h, { passive: false });
     return () => el.removeEventListener("wheel", h);
-  }, [showCustomUI, changeVolume, showSettings, showSubtitlesMenu, showShortcuts]);
+  }, [showCustomUI, changeVolume, showSettings, showSubtitlesMenu, showAudioMenu, showShortcuts]);
 
   /* ═══ Touch Gestures — VLC/MX Player Style ═══════════════════════════════
      LEFT 30%:   swipe ↑↓ = brightness
@@ -1294,7 +1344,7 @@ const CustomVideoPlayer = ({
   const handleMouseMove = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    if (isPlaying && !showSettings && !showSubtitlesMenu && !isLoading && !isScrubbing) {
+    if (isPlaying && !showSettings && !showSubtitlesMenu && !showAudioMenu && !isLoading && !isScrubbing) {
       const hideDelay = isTouch ? 5000 : 3000;
       controlsTimeoutRef.current = setTimeout(() => setShowControls(false), hideDelay);
     }
@@ -1302,7 +1352,7 @@ const CustomVideoPlayer = ({
   const handleTouchInteraction = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    if (isPlaying && !showSettings && !showSubtitlesMenu && !isLoading && !isScrubbing) {
+    if (isPlaying && !showSettings && !showSubtitlesMenu && !showAudioMenu && !isLoading && !isScrubbing) {
       controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 5000);
     }
   }, [isPlaying, showSettings, showSubtitlesMenu, isLoading, isScrubbing]);
@@ -1371,7 +1421,7 @@ const CustomVideoPlayer = ({
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => {
-        if (isPlaying && !showSettings && !showSubtitlesMenu && !isLoading && !isScrubbing)
+        if (isPlaying && !showSettings && !showSubtitlesMenu && !showAudioMenu && !isLoading && !isScrubbing)
           setShowControls(false);
       }}
       onTouchStart={handleTouchStart}
@@ -2432,7 +2482,7 @@ const CustomVideoPlayer = ({
                 padding: `0 ${R.progressBarPad}`, pointerEvents: "auto",
               }}
             >
-              {/* Hover time tooltip */}
+              {/* Hover time tooltip with preview thumbnail */}
               <AnimatePresence>
                 {hoverTime != null && (
                   <motion.div
@@ -2441,25 +2491,48 @@ const CustomVideoPlayer = ({
                     exit={{ opacity: 0, y: 6, scale: 0.95 }}
                     transition={SPRING_FAST}
                     style={{
-                      position: "absolute", bottom: 24,
+                      position: "absolute", bottom: 28,
                       left: `${hoverX}px`, transform: "translateX(-50%)",
                       pointerEvents: "none",
                     }}
                   >
-                    <div style={{
-                      background: "rgba(28,28,30,0.88)",
-                      backdropFilter: "blur(24px) saturate(160%)",
-                      WebkitBackdropFilter: "blur(24px) saturate(160%)",
-                      color: "#fff",
-                      padding: `${R.padTiny} ${R.padSmall}`, borderRadius: R.radiusSmall,
-                      fontSize: R.fontLarge, fontWeight: 600,
-                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
-                      fontVariantNumeric: "tabular-nums",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                      boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-                    }}>
-                      {fmt(hoverTime)}
-                    </div>
+                    {(() => {
+                      const bucket = Math.floor(hoverTime / 5) * 5;
+                      const thumbUrl = thumbnailCacheRef.current.get(bucket)
+                        || thumbnailCacheRef.current.get(bucket - 5)
+                        || thumbnailCacheRef.current.get(bucket + 5)
+                        || null;
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                          {thumbUrl && (
+                            <div style={{
+                              width: "clamp(120px, 18vw, 170px)", height: "clamp(68px, 10vw, 96px)",
+                              borderRadius: R.radiusSmall, overflow: "hidden",
+                              border: "2px solid rgba(255,255,255,0.15)",
+                              boxShadow: "0 6px 24px rgba(0,0,0,0.6)",
+                              background: "rgba(0,0,0,0.4)",
+                            }}>
+                              <img src={thumbUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                            </div>
+                          )}
+                          <div style={{
+                            background: "rgba(28,28,30,0.92)",
+                            backdropFilter: "blur(24px) saturate(160%)",
+                            WebkitBackdropFilter: "blur(24px) saturate(160%)",
+                            color: "#fff",
+                            padding: `4px ${R.padSmall}`, borderRadius: R.radiusSmall,
+                            fontSize: R.fontSmall, fontWeight: 700, letterSpacing: "0.5px",
+                            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                            fontVariantNumeric: "tabular-nums",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+                            whiteSpace: "nowrap",
+                          }}>
+                            {fmt(hoverTime)}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -2577,6 +2650,12 @@ const CustomVideoPlayer = ({
                   {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" style={{ marginLeft: 2 }} />}
                 </motion.button>
                 <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(-10); }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    seekLongPressRef.current = setInterval(() => seekRelative(-10), 300);
+                  }}
+                  onPointerUp={() => { clearInterval(seekLongPressRef.current); seekLongPressRef.current = null; }}
+                  onPointerLeave={() => { clearInterval(seekLongPressRef.current); seekLongPressRef.current = null; }}
                   whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                   transition={SPRING}
                   style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -2584,6 +2663,12 @@ const CustomVideoPlayer = ({
                   <RotateCcw size={15} />
                 </motion.button>
                 <motion.button onClick={(e) => { e.stopPropagation(); seekRelative(10); }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    seekLongPressRef.current = setInterval(() => seekRelative(10), 300);
+                  }}
+                  onPointerUp={() => { clearInterval(seekLongPressRef.current); seekLongPressRef.current = null; }}
+                  onPointerLeave={() => { clearInterval(seekLongPressRef.current); seekLongPressRef.current = null; }}
                   whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                   transition={SPRING}
                   style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -2704,6 +2789,23 @@ const CustomVideoPlayer = ({
                   <Captions size={15} />
                   {subtitleEnabled && <div style={{ position: "absolute", top: 4, right: 4, width: "clamp(3px, 0.5vw, 4px)", height: "clamp(3px, 0.5vw, 4px)", background: "#fff", borderRadius: "50%" }} />}
                 </motion.button>
+                {/* Audio track button — only show when multiple audio tracks exist */}
+                {audioTracks?.length > 1 && (
+                  <motion.button onClick={(e) => { e.stopPropagation(); setShowAudioMenu(!showAudioMenu); setShowSettings(false); setShowSubtitlesMenu(false); }}
+                    whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                    transition={SPRING}
+                    style={{
+                      background: showAudioMenu ? "rgba(255,255,255,0.08)" : "transparent",
+                      border: showAudioMenu ? "1px solid rgba(255,255,255,0.08)" : "none",
+                      color: showAudioMenu ? "#fff" : "rgba(255,255,255,0.6)",
+                      cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      position: "relative",
+                    }}
+                  >
+                    <AudioLines size={15} />
+                  </motion.button>
+                )}
                 {isMobile ? (
                   /* Mobile: aspect ratio button (no keyboard shortcuts needed) */
                   <motion.button onClick={(e) => {
@@ -2762,6 +2864,22 @@ const CustomVideoPlayer = ({
                     <Settings size={15} />
                   </motion.div>
                 </motion.button>
+                {/* Picture-in-Picture */}
+                {isDirectStream && videoRef.current && 'pictureInPictureEnabled' in document && (
+                  <motion.button onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+                      else if (videoRef.current) await videoRef.current.requestPictureInPicture();
+                    } catch {}
+                  }}
+                    whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
+                    transition={SPRING}
+                    style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <Maximize size={15} style={{ transform: "scale(0.8) translate(-1px, 1px)" }} />
+                  </motion.button>
+                )}
                 <motion.button onClick={toggleFullscreen}
                   whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                   transition={SPRING}
@@ -2824,10 +2942,27 @@ const CustomVideoPlayer = ({
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Quality</div>
                 <div style={{ display: "flex", gap: "clamp(4px, 1vw, 6px)", flexWrap: "wrap" }}>
-                  {qualities.map((q, i) => (
-                    <motion.button key={i} onClick={() => { sendCommand("setQuality", [q.id || i]); setCurrentQuality(q); setShowSettings(false); }}
-                      whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-                      transition={SPRING}
+                  <motion.button onClick={() => {
+                    if (isDirectStream && hlsRef.current) { hlsRef.current.currentLevel = -1; }
+                    else { sendCommand("setQuality", [-1]); }
+                    setCurrentQuality({ id: -1, name: 'Auto' }); setShowSettings(false);
+                  }}
+                    whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }} transition={SPRING}
+                    style={{
+                      background: (currentQuality?.id === -1 || (!currentQuality && qualities.length > 1)) ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.02)",
+                      color: (currentQuality?.id === -1 || (!currentQuality && qualities.length > 1)) ? "#fff" : "rgba(255,255,255,0.5)",
+                      border: (currentQuality?.id === -1) ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.04)",
+                      padding: `${R.padSmall} ${R.padSmall}`, borderRadius: 100, cursor: "pointer", fontSize: R.fontSmall, fontWeight: 700,
+                      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                    }}
+                  >Auto</motion.button>
+                  {qualities.map((q) => (
+                    <motion.button key={q.id} onClick={() => {
+                      if (isDirectStream && hlsRef.current) { hlsRef.current.currentLevel = q.id; }
+                      else { sendCommand("setQuality", [q.id]); }
+                      setCurrentQuality(q); setShowSettings(false);
+                    }}
+                      whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }} transition={SPRING}
                       style={{
                         background: (currentQuality?.id === q.id) ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.02)",
                         color: (currentQuality?.id === q.id) ? "#fff" : "rgba(255,255,255,0.5)",
@@ -2836,7 +2971,7 @@ const CustomVideoPlayer = ({
                         fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                       }}
                     >
-                      {q.name || q.height + "p" || i}
+                      {q.name || q.height + "p" || q.id}
                     </motion.button>
                   ))}
                 </div>
@@ -2849,7 +2984,11 @@ const CustomVideoPlayer = ({
                 <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Audio</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {audioTracks.map((t, i) => (
-                    <button key={i} onClick={() => { sendCommand("setAudioTrack", [t.id || i]); setCurrentAudioTrack(t); setShowSettings(false); }}
+                    <button key={i} onClick={() => {
+                      if (isDirectStream && hlsRef.current) { hlsRef.current.audioTrack = t.id ?? i; }
+                      else { sendCommand("setAudioTrack", [t.id || i]); }
+                      setCurrentAudioTrack(t); setShowSettings(false);
+                    }}
                       style={{
                         background: (currentAudioTrack?.id === t.id) ? "rgba(255,255,255,0.06)" : "transparent",
                         color: (currentAudioTrack?.id === t.id) ? "#fff" : "rgba(255,255,255,0.5)",
@@ -2858,7 +2997,7 @@ const CustomVideoPlayer = ({
                         fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                       }}
                     >
-                      {t.name || t.language || `Track ${i}`}
+                      {t.name || t.language || `Track ${i + 1}`}
                     </button>
                   ))}
                 </div>
@@ -3009,6 +3148,58 @@ const CustomVideoPlayer = ({
             >
               <Upload size={12} /> {subtitleFileName || "Upload (.srt)"}
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ AUDIO TRACKS PANEL ═══════════════════════════════════ */}
+      <AnimatePresence>
+        {showAudioMenu && audioTracks?.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            transition={SPRING}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "absolute", bottom: "clamp(40px, 8vw, 60px)", right: "clamp(68px, 14vw, 96px)", zIndex: 50,
+              width: R.panelSubtitles, maxHeight: "40vh",
+              background: "rgba(18,18,20,0.88)",
+              backdropFilter: "blur(40px) saturate(180%)",
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: R.radiusMedium, padding: `${R.padMedium} ${R.padMedium}`, color: "#fff",
+              overflowY: "auto",
+              boxShadow: "0 16px 56px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.04)",
+            }}
+          >
+            <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 12, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Audio Track</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {audioTracks.map((t, i) => (
+                <button key={i} onClick={() => {
+                  if (isDirectStream && hlsRef.current) { hlsRef.current.audioTrack = t.id ?? i; }
+                  else { sendCommand("setAudioTrack", [t.id || i]); }
+                  setCurrentAudioTrack(t); setShowAudioMenu(false);
+                }}
+                  style={{
+                    width: "100%", background: (currentAudioTrack?.id === t.id) ? "rgba(255,255,255,0.06)" : "transparent",
+                    color: (currentAudioTrack?.id === t.id) ? "#fff" : "rgba(255,255,255,0.6)",
+                    border: "none", padding: `${R.padSmall} ${R.padSmall}`, borderRadius: 10,
+                    cursor: "pointer", fontSize: R.fontMedium, fontWeight: 600, textAlign: "left",
+                    display: "flex", alignItems: "center", gap: 8,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                  }}
+                >
+                  <span style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: (currentAudioTrack?.id === t.id) ? "#fff" : "transparent",
+                    border: "1px solid rgba(255,255,255,0.3)",
+                    flexShrink: 0,
+                  }} />
+                  {t.name || t.language || `Track ${i + 1}`}
+                </button>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
