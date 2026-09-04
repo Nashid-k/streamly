@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { chromium } from 'playwright';
 
+console.log('[BOOT] Stream service starting...');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
