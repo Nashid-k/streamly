@@ -17,6 +17,53 @@ const getNumericId = (s) => {
   return m ? m[0] : null;
 };
 
+/* Parse a WebVTT thumbnail sprite file into tile descriptors.
+   Format:
+     WEBVTT
+     00:00:00.000 --> 00:00:10.000
+     https://host/sprite.jpg#xywh=0,0,320,180     */
+const parseThumbnailVTT = (vttText) => {
+  const tiles = [];
+  const lines = vttText.split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    const m = line.match(/^(?:(\d{1,2}):)?(\d{2}):(\d{2})[.,](\d{1,3})\s*-->\s*(?:(\d{1,2}):)?(\d{2}):(\d{2})[.,](\d{1,3})/);
+    if (m) {
+      const toNum = (h, min, s, ms) => (h || 0) * 3600 + +min * 60 + +s + +ms / 1000;
+      const start = toNum(m[1], m[2], m[3], m[4]);
+      const end = toNum(m[5], m[6], m[7], m[8]);
+      const imgLine = (lines[i + 1] || "").trim();
+      if (imgLine) {
+        const hashIdx = imgLine.lastIndexOf("#");
+        const url = hashIdx > 0 ? imgLine.slice(0, hashIdx) : imgLine;
+        const params = hashIdx > 0 ? imgLine.slice(hashIdx + 1) : "";
+        const xywh = params.match(/xywh=(\d+),(\d+),(\d+),(\d+)/);
+        const tile = { start, end, url };
+        if (xywh) {
+          tile.x = +xywh[1]; tile.y = +xywh[2]; tile.w = +xywh[3]; tile.h = +xywh[4];
+        } else {
+          tile.x = 0; tile.y = 0; tile.w = 320; tile.h = 180;
+        }
+        tiles.push(tile);
+      }
+      i += 2;
+    } else {
+      i++;
+    }
+  }
+  return tiles;
+};
+
+const STREAM_SERVICE_URL = import.meta.env.VITE_STREAM_SERVICE_URL || "";
+
+/* Route cross-origin CDN URLs through the stream-service CORS proxy */
+const proxyUrl = (u) => {
+  if (!u || !STREAM_SERVICE_URL) return u;
+  if (String(u).startsWith(STREAM_SERVICE_URL)) return u;
+  return `${STREAM_SERVICE_URL}/api/proxy?url=${encodeURIComponent(u)}`;
+};
+
 const ASPECT_RATIOS = [
   { name: "Fit (16:9)", scale: 1 },
   { name: "Crop 16:10", scale: 1.111 },
@@ -354,8 +401,12 @@ const CustomVideoPlayer = ({
 
   /* HLS.js instance ref (for Direct server audio/quality switching) */
   const hlsRef = useRef(null);
+  const qualitiesMapRef = useRef([]);
   /* Thumbnail preview cache (time -> dataURL) */
   const thumbnailCacheRef = useRef(new Map());
+  /* Netflix-style sprite previews from the CDN's thumbnail VTT */
+  const vttTileRef = useRef([]);
+  const vttSpriteMetaRef = useRef(new Map());
   const [previewThumbUrl, setPreviewThumbUrl] = useState(null);
   const [previewTime, setPreviewTime] = useState(null);
   const previewThumbTimerRef = useRef(null);
@@ -539,6 +590,8 @@ const CustomVideoPlayer = ({
       const isNew = contentSignatureRef.current !== sig;
       contentSignatureRef.current = sig;
       if (isNew) { setCurrentTime(0); setDuration(0); setBuffered(0); targetSeekTimeRef.current = null; }
+      vttTileRef.current = [];
+      vttSpriteMetaRef.current = new Map();
 
       /* Direct streaming server — fetch m3u8 via stream service */
       if (VideoSourceAdapter.isDirectServer(activeServerIndex)) {
@@ -552,27 +605,34 @@ const CustomVideoPlayer = ({
             setDirectStreamProvider(streamData.provider || 'direct');
             // Auto-load subtitles from Direct server if available
             if (streamData.subtitles?.length > 0) {
-              const subUrl = streamData.subtitles[0];
-              // If it's a search URL, fetch the subtitle list
-              if (subUrl.includes('search?id=')) {
-                try {
-                  const subRes = await fetch(subUrl);
+              try {
+                let subUrl = streamData.subtitles[0];
+                // If it's a search URL, fetch the subtitle list first
+                if (subUrl.includes('search?id=')) {
+                  const subRes = await fetch(proxyUrl(subUrl));
                   if (subRes.ok) {
                     const subs = await subRes.json();
-                    if (subs?.length > 0) {
-                      const srtUrl = subs[0].url;
-                      const srtRes = await fetch(srtUrl);
-                      if (srtRes.ok) {
-                        const srtText = await srtRes.text();
-                        const parsed = SubtitleEngine.parseSRT(srtText);
-                        setSubtitleTrack(parsed);
-                        setSubtitleLang("English");
-                        setSubtitleEnabled(true);
-                      }
-                    }
+                    if (subs?.length > 0) subUrl = subs[0].url;
                   }
-                } catch {}
-              }
+                }
+                const subRes = await fetch(proxyUrl(subUrl));
+                if (subRes.ok) {
+                  const subText = await subRes.text();
+                  const parsed = subUrl.includes('.vtt') || subText.trim().startsWith("WEBVTT")
+                    ? SubtitleEngine.parseVTT(subText)
+                    : SubtitleEngine.parseSRT(subText);
+                  if (parsed.length > 0) {
+                    subtitleEngineRef.current.setCues(parsed);
+                    setHasSubtitles(true);
+                    setSubtitleEnabled(true);
+                    setSubtitleFileName("Auto (English)");
+                  }
+                }
+              } catch {}
+            }
+            // Load thumbnail sprite sheet (VTT) for Netflix-style previews
+            if (streamData.thumbnails?.length > 0) {
+              setupThumbnailVTT(streamData.thumbnails[0]);
             }
             setIsLoading(false);
           }
@@ -632,6 +692,29 @@ const CustomVideoPlayer = ({
     } catch { /* iframe cross-origin */ }
   }, []);
 
+  /* Load the CDN's thumbnail sprite VTT and pre-warm sprite sheet metadata.
+     Gives Netflix-style previews across the ENTIRE timeline, not just the
+     parts already played (the on-the-fly frame captures can't reach ahead). */
+  const setupThumbnailVTT = useCallback(async (vttUrl) => {
+    try {
+      const fullUrl = /^https?:/.test(vttUrl) ? vttUrl : `https:${vttUrl}`;
+      const res = await fetch(proxyUrl(fullUrl), { priority: 'low' });
+      if (!res.ok) return;
+      const text = await res.text();
+      const tiles = parseThumbnailVTT(text);
+      if (tiles.length === 0) return;
+      vttTileRef.current = tiles;
+      // Proactively cache sprite sheet dimensions so hover tiles render instantly
+      const spriteURLs = [...new Set(tiles.map(t => t.url))];
+      spriteURLs.forEach((rawUrl) => {
+        const img = new Image();
+        img.onload = () => vttSpriteMetaRef.current.set(rawUrl, { w: img.naturalWidth, h: img.naturalHeight });
+        img.onerror = () => {};
+        img.src = proxyUrl(rawUrl);
+      });
+    } catch { /* thumbnail VTT optional */ }
+  }, []);
+
   /* HLS.js — direct stream playback */
   useEffect(() => {
     if (!directStreamUrl || !videoRef.current) return;
@@ -656,6 +739,16 @@ const CustomVideoPlayer = ({
       const handleTimeUpdate = () => {
         setCurrentTime(video.currentTime);
         setDuration(video.duration || 0);
+        if (hasSubtitlesRef.current) {
+          const cue = subtitleEngineRef.current.getActiveCue(video.currentTime);
+          setActiveSubtitleCue((p) => p?.start === cue?.start && p?.end === cue?.end ? p : cue);
+        }
+        // Debounce progress writes to Firestore — max once per 10 seconds
+        const now = Date.now();
+        if (now - lastProgressWriteRef.current > 10000) {
+          lastProgressWriteRef.current = now;
+          onProgressUpdate?.(video.currentTime, video.duration);
+        }
       };
       video.addEventListener('timeupdate', handleTimeUpdate);
 
@@ -704,12 +797,41 @@ const CustomVideoPlayer = ({
         hls.on(Hls.Events.LEVELS_UPDATED, (_, { levels }) => {
           const mapped = levels.map((l, i) => ({ id: i, name: l.height ? `${l.height}p` : `Level ${i}`, height: l.height || 0, bitrate: l.bitrate || 0 }));
           setQualities(mapped);
+          qualitiesMapRef.current = mapped;
         });
         hls.on(Hls.Events.LEVEL_SWITCHED, (_, { level }) => {
-          setCurrentQuality({ id: level, name: level === -1 ? 'Auto' : undefined });
+          const q = level === -1
+            ? { id: -1, name: 'Auto' }
+            : (qualitiesMapRef.current[level] || { id: level, name: undefined });
+          setCurrentQuality(q);
+          // Watchdog: after a level switch, ensure video buffers actually advance.
+          // On slow fMP4 CDNs a forced switch can leave video frozen while audio
+          // keeps playing — recover by nudging the fragment loader.
+          if (level !== -1) {
+            const h = hlsRef.current;
+            const start = Date.now();
+            const lastPos = video.currentTime || 0;
+            const stallTimer = setInterval(() => {
+              if (!h) { clearInterval(stallTimer); return; }
+              const advanced = (video.currentTime || 0) - lastPos;
+              const bufferedOk = video.buffered.length > 0 && video.buffered.end(video.buffered.length - 1) > lastPos;
+              if (advanced > 1.5 || bufferedOk) {
+                clearInterval(stallTimer);
+                return;
+              }
+              if (Date.now() - start > 5000) {
+                clearInterval(stallTimer);
+                if (!video.paused && video.readyState < 3) {
+                  h.startLoad(video.currentTime || 0);
+                }
+              }
+            }, 1200);
+          }
         });
 
-        /* Thumbnail capture — draw video frame every 10s for preview */
+        /* Thumbnail capture — draw video frame every 5s for preview.
+           These only cover the already-watched timeline; the CDN thumbnail
+           VTT (when present) provides full Netflix-style coverage. */
         const thumbCanvas = document.createElement('canvas');
         thumbCanvas.width = 160; thumbCanvas.height = 90;
         const thumbCtx = thumbCanvas.getContext('2d');
@@ -728,7 +850,9 @@ const CustomVideoPlayer = ({
           video.play().catch(() => {});
           /* Set auto-quality as default */
           if (lvls?.length > 1) {
-            setQualities(lvls.map((l, i) => ({ id: i, name: l.height ? `${l.height}p` : `Level ${i}`, height: l.height || 0, bitrate: l.bitrate || 0 })));
+            const mapped = lvls.map((l, i) => ({ id: i, name: l.height ? `${l.height}p` : `Level ${i}`, height: l.height || 0, bitrate: l.bitrate || 0 }));
+            setQualities(mapped);
+            qualitiesMapRef.current = mapped;
           }
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
@@ -741,11 +865,20 @@ const CustomVideoPlayer = ({
                   setIsLoading(false);
                   failoverToNextServer("Direct stream unavailable, switching server...");
                 } else {
-                  setTimeout(() => hls?.startLoad(), 3000);
+                  // Preserve playback position so a transient hiccup doesn't reset to 0
+                  const pos = video.currentTime || 0;
+                  setTimeout(() => hls?.startLoad(pos), 3000);
                 }
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
                 hls?.recoverMediaError();
+                // Re-arm any lost buffer position after recovery so the
+                // "video stuck, audio playing" state doesn't persist
+                setTimeout(() => {
+                  if (video.currentTime > 0 && video.readyState < 3) {
+                    hls?.startLoad(video.currentTime);
+                  }
+                }, 800);
                 break;
               default:
                 setIsLoading(false);
@@ -1180,7 +1313,9 @@ const CustomVideoPlayer = ({
   const handleProgressHover = useCallback((e) => {
     if (!progressBarRef.current || !duration) return;
     const r = progressBarRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - r.left, r.width));
+    let x = Math.max(0, Math.min(e.clientX - r.left, r.width));
+    // Keep the 170px preview tooltip fully on-screen (it's centered on x)
+    x = Math.max(90, Math.min(x, r.width - 90));
     setHoverX(x);
     setHoverTime((x / r.width) * duration);
   }, [duration]);
@@ -2523,16 +2658,51 @@ const CustomVideoPlayer = ({
                     }}
                   >
                     {(() => {
+                      /* Resolve a preview for hoverTime:
+                         1. CDN thumbnail sprite tile (full-timeline, Netflix-style)
+                         2. Live-captured frame (already-watched regions)
+                         3. No preview — just the time pill */
+                      const tile = vttTileRef.current.find((t) => hoverTime >= t.start && hoverTime <= t.end)
+                        || null;
                       const bucket = Math.floor(hoverTime / 5) * 5;
                       const thumbUrl = thumbnailCacheRef.current.get(bucket)
                         || thumbnailCacheRef.current.get(bucket - 5)
                         || thumbnailCacheRef.current.get(bucket + 5)
+                        || thumbnailCacheRef.current.get(bucket - 10)
+                        || thumbnailCacheRef.current.get(bucket + 10)
                         || null;
+                      const TILE_W = 170;
+                      const TILE_H = 96;
                       return (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                          {thumbUrl && (
+                          {tile && (
                             <div style={{
-                              width: "clamp(120px, 18vw, 170px)", height: "clamp(68px, 10vw, 96px)",
+                              width: TILE_W, height: TILE_H,
+                              borderRadius: R.radiusSmall, overflow: "hidden",
+                              border: "2px solid rgba(255,255,255,0.15)",
+                              boxShadow: "0 6px 24px rgba(0,0,0,0.6)",
+                              background: "rgba(0,0,0,0.4)", position: "relative",
+                            }}>
+                              <img
+                                src={proxyUrl(tile.url)}
+                                alt=""
+                                draggable={false}
+                                style={{
+                                  position: "absolute", top: 0, left: 0,
+                                  display: "block",
+                                  maxWidth: "none",
+                                  width: "auto", height: "auto",
+                                  transform: `translate(${-tile.x}px, ${-tile.y}px) scale(${TILE_W / tile.w})`,
+                                  transformOrigin: "0 0",
+                                  pointerEvents: "none",
+                                  userSelect: "none",
+                                }}
+                              />
+                            </div>
+                          )}
+                          {!tile && thumbUrl && (
+                            <div style={{
+                              width: TILE_W, height: TILE_H,
                               borderRadius: R.radiusSmall, overflow: "hidden",
                               border: "2px solid rgba(255,255,255,0.15)",
                               boxShadow: "0 6px 24px rgba(0,0,0,0.6)",
@@ -2843,9 +3013,7 @@ const CustomVideoPlayer = ({
                     <AudioLines size={15} />
                   </motion.button>
                 )}
-                {isMobile ? (
-                  /* Mobile: aspect ratio button (no keyboard shortcuts needed) */
-                  <motion.button onClick={(e) => {
+                <motion.button onClick={(e) => {
                     e.stopPropagation();
                     setAspectRatioIndex((p) => (p + 1) % ASPECT_RATIOS.length);
                     setShowAspectRatioArc(true);
@@ -2870,23 +3038,21 @@ const CustomVideoPlayer = ({
                       lineHeight: 1, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                     }}>{aspectRatioIndex + 1}</span>
                   </motion.button>
-                ) : (
-                  /* Desktop: keyboard shortcuts button */
-                  <motion.button onClick={(e) => { e.stopPropagation(); setShowShortcuts((p) => !p); }}
-                    whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
-                    transition={SPRING}
-                    style={{
-                      background: showShortcuts ? "rgba(255,255,255,0.08)" : "transparent",
-                      border: showShortcuts ? "1px solid rgba(255,255,255,0.08)" : "none",
-                      color: showShortcuts ? "#fff" : "rgba(255,255,255,0.6)",
-                      cursor: "pointer", width: R.btnSmall, height: R.btnSmall, borderRadius: "50%",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >
-                    <Keyboard size={15} />
-                  </motion.button>
-                )}
-                <motion.button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setShowSubtitlesMenu(false); }}
+                <motion.button onClick={(e) => {
+                    e.stopPropagation();
+                    setShowSettings(!showSettings); setShowSubtitlesMenu(false);
+                    // On-demand audio track sync (AUDIO_TRACKS_UPDATED may fire
+                    // before the settings panel ever opens)
+                    if (!showSettings && isDirectStream && hlsRef.current) {
+                      try {
+                        const h = hlsRef.current;
+                        if (h.audioTracks && h.audioTracks.length > 0 && audioTracks.length === 0) {
+                          const mapped = h.audioTracks.map((t, i) => ({ id: t.id ?? i, name: t.name || t.lang || `Track ${i + 1}`, language: t.lang || '' }));
+                          setAudioTracks(mapped);
+                        }
+                      } catch {}
+                    }
+                  }}
                   whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }}
                   transition={SPRING}
                   style={{
@@ -2980,7 +3146,14 @@ const CustomVideoPlayer = ({
                 <div style={{ fontSize: R.fontTiny, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 700, marginBottom: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>Quality</div>
                 <div style={{ display: "flex", gap: "clamp(4px, 1vw, 6px)", flexWrap: "wrap" }}>
                   <motion.button onClick={() => {
-                    if (isDirectStream && hlsRef.current) { hlsRef.current.currentLevel = -1; }
+                    if (isDirectStream && hlsRef.current) {
+                      const h = hlsRef.current;
+                      // Smooth switch: nextLevel waits for a fragment boundary so
+                      // video doesn't freeze while audio continues.
+                      h.nextLevel = -1;
+                      // Force an earlier boundary for snappy feedback
+                      h.startLoad(videoRef.current?.currentTime || 0);
+                    }
                     else { sendCommand("setQuality", [-1]); }
                     setCurrentQuality({ id: -1, name: 'Auto' }); setShowSettings(false);
                   }}
@@ -2995,7 +3168,18 @@ const CustomVideoPlayer = ({
                   >Auto</motion.button>
                   {qualities.map((q) => (
                     <motion.button key={q.id} onClick={() => {
-                      if (isDirectStream && hlsRef.current) { hlsRef.current.currentLevel = q.id; }
+                      if (isDirectStream && hlsRef.current) {
+                        const h = hlsRef.current;
+                        // Forced, but position-preserving switch. We keep the
+                        // current playback time so an init-segment refetch never
+                        // sends the viewer back to 0.
+                        const pos = videoRef.current?.currentTime || 0;
+                        h.nextLevel = q.id;
+                        // Nudge so it applies at the next fragment quickly
+                        h.startLoad(pos);
+                        // UI shows the target immediately; LEVEL_SWITCHED will
+                        // confirm with the real id/name.
+                      }
                       else { sendCommand("setQuality", [q.id]); }
                       setCurrentQuality(q); setShowSettings(false);
                     }}
