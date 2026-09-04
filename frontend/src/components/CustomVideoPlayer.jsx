@@ -543,11 +543,35 @@ const CustomVideoPlayer = ({
       if (VideoSourceAdapter.isDirectServer(activeServerIndex)) {
         setIframeUrl("");
         try {
-          const m3u8Url = await VideoSourceAdapter.fetchDirectStreamUrl(
+          const streamData = await VideoSourceAdapter.fetchDirectStreamUrl(
             tid, isTv ? "tv" : "movie", isTv ? season : null, isTv ? episode : null
           );
           if (!cancelled) {
-            setDirectStreamUrl(m3u8Url);
+            setDirectStreamUrl(streamData.streamUrl);
+            // Auto-load subtitles from Direct server if available
+            if (streamData.subtitles?.length > 0) {
+              const subUrl = streamData.subtitles[0];
+              // If it's a search URL, fetch the subtitle list
+              if (subUrl.includes('search?id=')) {
+                try {
+                  const subRes = await fetch(subUrl);
+                  if (subRes.ok) {
+                    const subs = await subRes.json();
+                    if (subs?.length > 0) {
+                      const srtUrl = subs[0].url;
+                      const srtRes = await fetch(srtUrl);
+                      if (srtRes.ok) {
+                        const srtText = await srtRes.text();
+                        const parsed = SubtitleEngine.parseSRT(srtText);
+                        setSubtitleTrack(parsed);
+                        setSubtitleLang("English");
+                        setSubtitleEnabled(true);
+                      }
+                    }
+                  }
+                } catch {}
+              }
+            }
             setIsLoading(false);
           }
         } catch {

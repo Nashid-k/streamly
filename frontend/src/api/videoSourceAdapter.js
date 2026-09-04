@@ -65,6 +65,13 @@ export class VideoSourceAdapter {
     const data = await res.json();
     if (!data.streamUrl) throw new Error("No stream URL found");
     // Route through the CORS proxy so HLS.js can fetch m3u8/segments cross-origin
-    return `${STREAM_SERVICE_URL}/api/proxy?url=${encodeURIComponent(data.streamUrl)}`;
+    const proxiedUrl = `${STREAM_SERVICE_URL}/api/proxy?url=${encodeURIComponent(data.streamUrl)}`;
+    return {
+      streamUrl: proxiedUrl,
+      provider: data.provider,
+      subtitles: data.subtitles || [],
+      thumbnails: data.thumbnails || [],
+      allUrls: data.allUrls || [],
+    };
   }
 }
