@@ -45,7 +45,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for images
+  // Cache-first for images, fonts, and other assets
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
@@ -55,7 +55,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         }
         return response;
-      });
+      }).catch(() => new Response('', { status: 408, statusText: 'Offline' }));
     })
   );
 });

@@ -297,4 +297,3 @@ The included `vercel.json` configures SPA routing — all paths fall back to `in
 ## 📖 More Documentation
 
 - [Git workflow guide](GIT.md)
-- [Backend README](../backend/README.md)

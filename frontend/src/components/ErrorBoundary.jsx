@@ -28,8 +28,10 @@ export default class ErrorBoundary extends React.Component {
         // Clear all caches before reload to ensure fresh chunks
         if ('caches' in window) {
           caches.keys().then(function(names) {
-            names.forEach(function(name) { caches.delete(name); });
+            return Promise.all(names.map(function(name) { return caches.delete(name); }));
           }).then(function() {
+            window.location.reload();
+          }).catch(function() {
             window.location.reload();
           });
         } else {
