@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { VideoSourceAdapter } from "../api/videoSourceAdapter";
 import { movieService } from "../api/movieService";
+import Hls from "hls.js";
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Settings, AlertCircle, Check, RotateCcw, RotateCw,
@@ -237,7 +238,18 @@ const CustomVideoPlayer = ({
   const activeServerIndexRef = useRef(activeServerIndex);
   useEffect(() => { activeServerIndexRef.current = activeServerIndex; }, [activeServerIndex]);
 
+  const failoverToNextServer = useCallback((msg = "Stream unavailable — trying next server") => {
+    setErrorMessage(msg);
+    setTimeout(() => {
+      setErrorMessage("");
+      const ni = (activeServerIndexRef.current + 1) % VideoSourceAdapter.getServers().length;
+      setActiveServerIndex(ni);
+      onServerChange?.(ni);
+    }, 2000);
+  }, [onServerChange]);
+
   const [iframeUrl, setIframeUrl] = useState("");
+  const [directStreamUrl, setDirectStreamUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
@@ -312,6 +324,7 @@ const CustomVideoPlayer = ({
 
   /* Refs */
   const iframeRef = useRef(null);
+  const videoRef = useRef(null);
   const containerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
   const clickTimeoutRef = useRef(null);
@@ -340,7 +353,8 @@ const CustomVideoPlayer = ({
   const isMobile = useIsMobile();
   const isTouch = useIsTouch();
   const isCineSrc = iframeUrl.includes("cinesrc.st");
-  const showCustomUI = isCineSrc && !useNativeControls;
+  const isDirectStream = Boolean(directStreamUrl);
+  const showCustomUI = (isCineSrc || isDirectStream) && !useNativeControls;
 
   /* Auto-hide paused info */
   useEffect(() => {
@@ -494,9 +508,11 @@ const CustomVideoPlayer = ({
   /* URL Generation */
   useEffect(() => {
     let watchdogTimer;
+    let cancelled = false;
     const gen = async () => {
       setIsLoading(true);
       setHasInitiallyLoaded(false);
+      setDirectStreamUrl("");
       let imdbId = movie.imdbId || movie.imdb_id || movie.external_ids?.imdb_id;
       const tid = getNumericId(movie.id);
       if (!tid) { setIsLoading(false); setErrorMessage("No valid content ID."); return; }
@@ -511,13 +527,36 @@ const CustomVideoPlayer = ({
       const isNew = contentSignatureRef.current !== sig;
       contentSignatureRef.current = sig;
       if (isNew) { setCurrentTime(0); setDuration(0); setBuffered(0); targetSeekTimeRef.current = null; }
+
+      /* Direct streaming server — fetch m3u8 via stream service */
+      if (VideoSourceAdapter.isDirectServer(activeServerIndex)) {
+        setIframeUrl("");
+        try {
+          const m3u8Url = await VideoSourceAdapter.fetchDirectStreamUrl(
+            tid, isTv ? "tv" : "movie", isTv ? season : null, isTv ? episode : null
+          );
+          if (!cancelled) {
+            setDirectStreamUrl(m3u8Url);
+            setIsLoading(false);
+          }
+        } catch {
+          if (!cancelled) {
+            // Fail over to the next server on extraction failure
+            failoverToNextServer("Direct stream unavailable, switching server...");
+          }
+        }
+        return;
+      }
+
+      /* Iframe-based servers */
       let url = VideoSourceAdapter.getStreamUrl(activeServerIndex, tid, isTv ? season : null, isTv ? episode : null, imdbId, movie.title);
-      if (activeServerIndex === 0) {
+      const isCineServer = url.includes("cinesrc.st");
+      if (isCineServer) {
         if (!isNew && currentTime > 0 && !targetSeekTimeRef.current) url += `&t=${Math.floor(currentTime)}&continueprompt=false`;
         else if (isNew && startTimeRef.current > 0) url += `&t=${Math.floor(startTimeRef.current)}&continueprompt=false`;
       }
       setIframeUrl(url);
-      const watchdogDelay = activeServerIndex === 0 ? 20000 : 12000;
+      const watchdogDelay = isCineServer ? 20000 : 12000;
       watchdogTimer = setTimeout(() => {
         setIsLoading((prev) => {
           if (prev) {
@@ -545,8 +584,8 @@ const CustomVideoPlayer = ({
       }, watchdogDelay);
     };
     gen();
-    return () => { if (watchdogTimer) clearTimeout(watchdogTimer); };
-  }, [activeServerIndex, movie, season, episode, useNativeControls]);
+    return () => { cancelled = true; if (watchdogTimer) clearTimeout(watchdogTimer); };
+  }, [activeServerIndex, movie, season, episode, useNativeControls, failoverToNextServer]);
 
   const sendCommand = useCallback((c, a = []) => {
     try {
@@ -555,6 +594,115 @@ const CustomVideoPlayer = ({
       }
     } catch { /* iframe cross-origin */ }
   }, []);
+
+  /* HLS.js — direct stream playback */
+  useEffect(() => {
+    if (!directStreamUrl || !videoRef.current) return;
+
+    const video = videoRef.current;
+    let hls = null;
+
+    const attachPlayer = () => {
+      setDuration(0);
+      setCurrentTime(0);
+      setBuffered(0);
+
+      const handleLoadedMetadata = () => {
+        setHasInitiallyLoaded(true);
+        setDuration(video.duration || 0);
+        if (startTimeRef.current > 0 && !targetSeekTimeRef.current) {
+          video.currentTime = Math.min(startTimeRef.current, video.duration - 1);
+        }
+      };
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+      const handleTimeUpdate = () => {
+        setCurrentTime(video.currentTime);
+        setDuration(video.duration || 0);
+      };
+      video.addEventListener('timeupdate', handleTimeUpdate);
+
+      const handleProgress = () => {
+        if (video.buffered.length > 0) {
+          setBuffered(video.buffered.end(video.buffered.length - 1));
+        }
+      };
+      video.addEventListener('progress', handleProgress);
+
+      const handlePlay = () => setIsPlaying(true);
+      const handlePause = () => setIsPlaying(false);
+      const handleWaiting = () => setIsLoading(true);
+      const handlePlaying = () => setIsLoading(false);
+      const handleCanPlay = () => setIsLoading(false);
+      const handleEnded = () => {
+        setIsPlaying(false);
+        startUpNextCountdown();
+      };
+      const handleError = () => setErrorMessage("Playback error");
+
+      video.addEventListener('play', handlePlay);
+      video.addEventListener('pause', handlePause);
+      video.addEventListener('waiting', handleWaiting);
+      video.addEventListener('playing', handlePlaying);
+      video.addEventListener('canplay', handleCanPlay);
+      video.addEventListener('ended', handleEnded);
+      video.addEventListener('error', handleError);
+
+      if (Hls.isSupported()) {
+        hls = new Hls({ enableWorker: true, startPosition: startTimeRef.current || -1 });
+        hls.loadSource(directStreamUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          setHasInitiallyLoaded(true);
+          setIsLoading(false);
+          video.play().catch(() => {});
+        });
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                // Lisbon provider streams need a CineSrc session + lack CORS,
+                // so they can't play directly — fail over to an iframe server.
+                if (data.response?.code === 404) {
+                  setIsLoading(false);
+                  failoverToNextServer("Direct stream unavailable, switching server...");
+                } else {
+                  setTimeout(() => hls?.startLoad(), 3000);
+                }
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls?.recoverMediaError();
+                break;
+              default:
+                setIsLoading(false);
+                failoverToNextServer("Direct stream unavailable, switching server...");
+                break;
+            }
+          }
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = directStreamUrl;
+        setHasInitiallyLoaded(true);
+      }
+
+      return () => {
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        video.removeEventListener('timeupdate', handleTimeUpdate);
+        video.removeEventListener('progress', handleProgress);
+        video.removeEventListener('play', handlePlay);
+        video.removeEventListener('pause', handlePause);
+        video.removeEventListener('waiting', handleWaiting);
+        video.removeEventListener('playing', handlePlaying);
+        video.removeEventListener('canplay', handleCanPlay);
+        video.removeEventListener('ended', handleEnded);
+        video.removeEventListener('error', handleError);
+        if (hls) { hls.destroy(); hls = null; }
+      };
+    };
+
+    const cleanup = attachPlayer();
+    return cleanup;
+  }, [directStreamUrl, failoverToNextServer]);
 
   /* Up Next */
   const startUpNextCountdown = useCallback(() => {
@@ -741,6 +889,21 @@ const CustomVideoPlayer = ({
 
   const togglePlay = useCallback((e) => {
     if (e) e.stopPropagation();
+    if (isDirectStream) {
+      const v = videoRef.current;
+      if (!v) return;
+      if (v.paused) {
+        v.play().catch(() => {});
+        setIsPlaying(true);
+        if (showCustomUI) triggerCenterIcon("play");
+        setShowPausedInfo(false);
+      } else {
+        v.pause();
+        setIsPlaying(false);
+        if (showCustomUI) triggerCenterIcon("pause");
+      }
+      return;
+    }
     if (isPlaying) {
       sendCommand("pause");
       setIsPlaying(false);
@@ -751,13 +914,18 @@ const CustomVideoPlayer = ({
       if (showCustomUI) triggerCenterIcon("play");
       setShowPausedInfo(false);
     }
-  }, [isPlaying, sendCommand, triggerCenterIcon, showCustomUI]);
+  }, [isPlaying, isDirectStream, sendCommand, triggerCenterIcon, showCustomUI]);
 
   const changeVolume = useCallback((nv) => {
     const v = Math.max(0, Math.min(nv, 1));
     setVolume(v);
     localStorage.setItem("streamly_volume", v.toString());
-    sendCommand("setVolume", [v]);
+    if (isDirectStream && videoRef.current) {
+      videoRef.current.volume = v;
+      if (v > 0) videoRef.current.muted = false;
+    } else {
+      sendCommand("setVolume", [v]);
+    }
     if (v > 0 && isMuted) {
       setIsMuted(false);
       localStorage.setItem("streamly_muted", "false");
@@ -766,44 +934,49 @@ const CustomVideoPlayer = ({
     setShowVolumeArc(true);
     if (volumeArcTimerRef.current) clearTimeout(volumeArcTimerRef.current);
     volumeArcTimerRef.current = setTimeout(() => setShowVolumeArc(false), 1200);
-  }, [isMuted, sendCommand]);
+  }, [isMuted, isDirectStream, sendCommand]);
 
   const toggleMute = useCallback((e) => {
     if (e) e.stopPropagation();
     const n = !isMuted;
     setIsMuted(n);
     localStorage.setItem("streamly_muted", n.toString());
-    if (n) {
-      /* Muting: send 0 to CineSrc */
-      sendCommand("setVolume", [0]);
+    if (isDirectStream && videoRef.current) {
+      videoRef.current.muted = n;
     } else {
-      /* Unmuting: if stored volume is 0, restore to device default */
-      const restoreVol = volume <= 0 ? 0.7 : volume;
-      if (volume <= 0) {
-        setVolume(restoreVol);
-        localStorage.setItem("streamly_volume", restoreVol.toString());
+      if (n) {
+        sendCommand("setVolume", [0]);
+      } else {
+        const restoreVol = volume <= 0 ? 0.7 : volume;
+        if (volume <= 0) {
+          setVolume(restoreVol);
+          localStorage.setItem("streamly_volume", restoreVol.toString());
+        }
+        sendCommand("setVolume", [restoreVol]);
       }
-      sendCommand("setVolume", [restoreVol]);
-      /* Also show the volume HUD */
-      setShowVolumeArc(true);
-      if (volumeArcTimerRef.current) clearTimeout(volumeArcTimerRef.current);
-      volumeArcTimerRef.current = setTimeout(() => setShowVolumeArc(false), 1200);
     }
-  }, [isMuted, volume, sendCommand]);
+    setShowVolumeArc(true);
+    if (volumeArcTimerRef.current) clearTimeout(volumeArcTimerRef.current);
+    volumeArcTimerRef.current = setTimeout(() => setShowVolumeArc(false), 1200);
+  }, [isMuted, volume, isDirectStream, sendCommand]);
 
   const seekRelative = useCallback((s) => {
     const base = targetSeekTimeRef.current ?? currentTime;
     const nt = Math.max(0, Math.min(base + s, duration || Infinity));
     targetSeekTimeRef.current = nt;
     setCurrentTime(nt);
-    sendCommand("seek", [nt]);
+    if (isDirectStream && videoRef.current) {
+      videoRef.current.currentTime = nt;
+    } else {
+      sendCommand("seek", [nt]);
+    }
     seekAccumulatorRef.current += s;
     const a = seekAccumulatorRef.current;
     if (a > 0) triggerSideIcon("forward", `+${a}s`);
     else if (a < 0) triggerSideIcon("backward", `${a}s`);
     if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
     seekTimeoutRef.current = setTimeout(() => { seekAccumulatorRef.current = 0; }, 1000);
-  }, [currentTime, duration, sendCommand, triggerSideIcon]);
+  }, [currentTime, duration, isDirectStream, sendCommand, triggerSideIcon]);
 
   const handleSubtitleUpload = (e) => {
     const f = e.target.files[0];
@@ -921,8 +1094,12 @@ const CustomVideoPlayer = ({
     const nt = (x / r.width) * duration;
     setCurrentTime(nt);
     targetSeekTimeRef.current = nt;
-    sendCommand("seek", [nt]);
-  }, [duration, sendCommand]);
+    if (isDirectStream && videoRef.current) {
+      videoRef.current.currentTime = nt;
+    } else {
+      sendCommand("seek", [nt]);
+    }
+  }, [duration, isDirectStream, sendCommand]);
 
   const handleProgressHover = useCallback((e) => {
     if (!progressBarRef.current || !duration) return;
@@ -952,7 +1129,7 @@ const CustomVideoPlayer = ({
 
   /* Keyboard */
   useEffect(() => {
-    if (!isCineSrc) return;
+    if (!isCineSrc && !isDirectStream) return;
     const h = (e) => {
       if (document.activeElement?.tagName === "input" || e.ctrlKey || e.metaKey || e.altKey) return;
       switch (e.key.toLowerCase()) {
@@ -971,7 +1148,7 @@ const CustomVideoPlayer = ({
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [isCineSrc, togglePlay, toggleFullscreen, toggleMute, seekRelative, changeVolume]);
+  }, [isCineSrc, isDirectStream, togglePlay, toggleFullscreen, toggleMute, seekRelative, changeVolume]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -1211,8 +1388,32 @@ const CustomVideoPlayer = ({
         });
       }}
     >
+      {/* DIRECT STREAM — native <video> with HLS.js */}
+      {isDirectStream && directStreamUrl && (
+        <video
+          ref={videoRef}
+          style={{
+            width: '100%', height: '100%', border: 'none', background: '#000',
+            objectFit: 'contain',
+            pointerEvents: 'none',
+            opacity: hasInitiallyLoaded ? 1 : 0,
+            transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
+            marginTop: 'var(--sat)',
+            marginBottom: 'var(--sab)',
+            marginLeft: 'var(--sal)',
+            marginRight: 'var(--sar)',
+            transform: ASPECT_RATIOS[aspectRatioIndex].scale !== 1
+              ? `scale(${ASPECT_RATIOS[aspectRatioIndex].scale})` : 'none',
+            transformOrigin: 'center center',
+          }}
+          crossOrigin="anonymous"
+          playsInline
+        />
+      )}
+
       {/* IFRAME */}
-      {iframeUrl && (
+      {!isDirectStream && iframeUrl && (
         <iframe
           ref={iframeRef}
           key={`iframe-${activeServerIndex}-${useNativeControls}`}
@@ -1248,7 +1449,7 @@ const CustomVideoPlayer = ({
       )}
 
       {/* CineSrc interaction overlay — handles mouse (desktop) and touch (mobile) */}
-      {showCustomUI && isCineSrc && (
+      {showCustomUI && (isCineSrc || isDirectStream) && (
         <div
           onMouseMove={handleMouseMove}
           onClick={(e) => {
