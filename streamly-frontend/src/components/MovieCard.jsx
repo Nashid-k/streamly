@@ -287,7 +287,7 @@ export default function MovieCard({
               );
             })()}
 
-            {/* Bottom-left badges: countdown + SERIES + airing day */}
+            {/* Bottom-left badges: countdown + SERIES + NEW — in one row so nothing overlaps */}
             {!isHovered && (
               <div
                 style={{
@@ -298,6 +298,7 @@ export default function MovieCard({
                   display: "flex",
                   gap: "4px",
                   alignItems: "center",
+                  flexWrap: "wrap",
                   pointerEvents: "none",
                 }}
               >
@@ -317,39 +318,24 @@ export default function MovieCard({
                     compact
                   />
                 )}
-              </div>
-            )}
-
-            {/* Bottom-left badges: SERIES + airing day */}
-            {isTvContent && !isHovered && (
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "8px",
-                  left: "8px",
-                  zIndex: 10,
-                  display: "flex",
-                  gap: "4px",
-                  alignItems: "center",
-                  pointerEvents: "none",
-                }}
-              >
-                <div
-                  style={{
-                    background: "rgba(0,0,0,0.7)",
-                    backdropFilter: "blur(6px)",
-                    color: "#fff",
-                    padding: "2px 6px",
-                    borderRadius: "3px",
-                    fontSize: "0.55rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.06em",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                  }}
-                >
-                  SERIES
-                </div>
-                {movie.nextEpisode?.releaseDate && (
+                {isTvContent && (
+                  <div
+                    style={{
+                      background: "rgba(0,0,0,0.7)",
+                      backdropFilter: "blur(6px)",
+                      color: "#fff",
+                      padding: "2px 6px",
+                      borderRadius: "3px",
+                      fontSize: "0.55rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.06em",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                    }}
+                  >
+                    SERIES
+                  </div>
+                )}
+                {isTvContent && movie.nextEpisode?.releaseDate && (
                   <div
                     style={{
                       background: "linear-gradient(135deg, rgba(244,63,94,0.9), rgba(239,68,68,0.9))",
