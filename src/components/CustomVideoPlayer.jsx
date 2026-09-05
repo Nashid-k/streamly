@@ -1361,6 +1361,12 @@ const CustomVideoPlayer = ({
     seekTimeoutRef.current = setTimeout(() => { seekAccumulatorRef.current = 0; }, 1000);
   }, [currentTime, duration, isDirectStream, sendCommand, triggerSideIcon]);
 
+  const showToast = useCallback((msg) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(msg);
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(""), 2000);
+  }, []);
+
   const handleSubtitleUpload = (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -1463,12 +1469,6 @@ const CustomVideoPlayer = ({
       ? `${h}:${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`
       : `${m}:${s < 10 ? "0" : ""}${s}`;
   };
-
-  const showToast = useCallback((msg) => {
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    setToastMessage(msg);
-    toastTimeoutRef.current = setTimeout(() => setToastMessage(""), 2000);
-  }, []);
 
   /* Progress Bar */
   const handleProgressScrub = useCallback((e) => {
