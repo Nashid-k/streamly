@@ -38,6 +38,7 @@ export function AuthProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook shares a module with its provider so consumers get both from one import
 export function useAppAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAppAuth must be used inside <AuthProvider>");

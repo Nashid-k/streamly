@@ -279,18 +279,6 @@ const loadHls = () => {
 };
 
 /* ═══ Main Player ═══════════════════════════════════════════════ */
-/* Detect mobile: no physical keyboard, so shortcuts button is useless */
-const useIsMobile = (breakpoint = 640) => {
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < breakpoint);
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
-    const handler = (e) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [breakpoint]);
-  return isMobile;
-};
-
 /* Detect touch device: has touch screen + no hover = mobile/tablet */
 const useIsTouch = () => {
   const [isTouch, setIsTouch] = useState(false);
@@ -798,6 +786,7 @@ const CustomVideoPlayer = ({
     };
     gen();
     return () => { cancelled = true; if (watchdogTimer) clearTimeout(watchdogTimer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- currentTime/onServerChange/setupThumbnailVTT are read but must NOT drive reloads: currentTime changes every timeupdate and would re-init the whole stream, and adding the others would churn the session on every parent render.
   }, [activeServerIndex, movie, season, episode, useNativeControls, failoverToNextServer]);
 
   const sendCommand = useCallback((c, a = []) => {
@@ -1091,6 +1080,7 @@ const CustomVideoPlayer = ({
       cancelled = true;
       if (cleanup) { cleanup(); cleanup = null; }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onProgressUpdate (inline parent prop) and startUpNextCountdown must not re-attach the HLS/video session on every parent render; the attach is intentionally keyed to stream + server only.
   }, [directStreamUrl, failoverToNextServer]);
 
   /* Up Next */
@@ -1231,7 +1221,10 @@ const CustomVideoPlayer = ({
             if (d.volume !== undefined) setVolume(d.volume);
             if (d.muted !== undefined) setIsMuted(d.muted);
             break;
-          case "cinesrc:close": onClose ? onClose() : window.history.back(); break;
+          case "cinesrc:close":
+            if (onClose) onClose();
+            else window.history.back();
+            break;
           case "cinesrc:error":
             setIsLoading(false);
             const errType = d.error?.type || d.error?.details || 'unknown';
@@ -1260,6 +1253,7 @@ const CustomVideoPlayer = ({
     };
     window.addEventListener("message", h);
     return () => window.removeEventListener("message", h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onServerChange/autoSkipIntro/showToast/onClose are read inside the listener but the listener is keyed to playback state; re-adding it when these parent-provided callbacks change would churn message handling on unrelated re-renders.
   }, [isCineSrc, isScrubbing, playbackRate, sendCommand, hasNextEpisode, onNextEpisode, activeServerIndex, startUpNextCountdown, onProgressUpdate]);
 
   /* Actions */
@@ -1404,7 +1398,7 @@ const CustomVideoPlayer = ({
     } catch {
       if (!silent) showToast("Search failed");
     } finally { setIsFetchingSubtitles(false); }
-  }, [movie.imdbId, movie.imdb_id, movie.external_ids, movie.title, movie.releaseYear]);
+  }, [movie.imdbId, movie.imdb_id, movie.external_ids, movie.title, movie.releaseYear, showToast]);
 
   useEffect(() => { fetchAvailableSubtitles(true); }, [fetchAvailableSubtitles, season, episode]);
 
@@ -1454,7 +1448,8 @@ const CustomVideoPlayer = ({
         screen.orientation.lock('landscape').catch(() => {});
       }
     } else {
-      document.exitFullscreen?.() || document.webkitExitFullscreen?.();
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
       if (screen.orientation?.unlock) screen.orientation.unlock();
     }
   }, [isFullscreen, isTouch]);
@@ -2046,7 +2041,11 @@ const CustomVideoPlayer = ({
                       filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.95))",
                       marginBottom: 8,
                     }}
-                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = 'block'); }}
+                    onError={(e) => {
+                      const img = e.target;
+                      img.style.display = 'none';
+                      if (img.nextSibling) img.nextSibling.style.display = 'block';
+                    }}
                   />
                 ) : null}
                 <div style={{

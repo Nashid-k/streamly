@@ -18,13 +18,12 @@ describe('apiClient wakeup logic', () => {
   it('dispatches server-wakeup event after 5s of inactivity', () => {
     // Simulate the wakeup logic
     let inflightCount = 0;
-    let wakeupTimer = null;
     let wakeupFired = false;
 
     function onFirstRequest() {
       inflightCount++;
       if (inflightCount === 1 && !wakeupFired) {
-        wakeupTimer = setTimeout(() => {
+        setTimeout(() => {
           wakeupFired = true;
           window.dispatchEvent(new Event('server-wakeup'));
         }, 5000);

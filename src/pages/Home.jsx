@@ -502,21 +502,20 @@ export default function Home({
 
   const [isHeroHovered, setIsHeroHovered] = useState(false);
   const isHeroHoveredRef = useRef(false);
-  const heroRef = useRef(null);
   const [heroVisible, setHeroVisible] = useState(true);
 
-  // Pause kenBurns animation when hero scrolls off-screen to save GPU
-  // Re-observe when heroRef changes (e.g., after AnimatePresence re-mounts the hero)
-  useEffect(() => {
-    const el = heroRef.current;
-    if (!el) return;
+  // Pause kenBurns animation when the hero scrolls off-screen to save GPU.
+  // Callback ref (React 19 cleans up on unmount) so it re-observes whenever
+  // AnimatePresence re-mounts the hero element — without a ref in the dep array.
+  const heroRef = useCallback((node) => {
+    if (!node) return;
     const observer = new IntersectionObserver(
       ([entry]) => setHeroVisible(entry.isIntersecting),
       { threshold: 0.1 },
     );
-    observer.observe(el);
+    observer.observe(node);
     return () => observer.disconnect();
-  }, [heroRef.current]);
+  }, []);
 
   // Interval logic moved below totalFeatured
 

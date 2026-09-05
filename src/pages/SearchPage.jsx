@@ -35,7 +35,7 @@ export default function SearchPage() {
   });
 
   // Suggestions from backend ("did you mean")
-  const backendSuggestions = rawResults?.suggestions || [];
+  const backendSuggestions = useMemo(() => rawResults?.suggestions || [], [rawResults]);
 
   const results = useMemo(() => {
     if (!rawResults || !Array.isArray(rawResults.movies)) return [];

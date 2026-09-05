@@ -42,7 +42,7 @@ describe("ConfirmDialog", () => {
 
     it("unmount cleanup resolves pending dialog as false", () => {
       // Verify the hook has the cleanup mechanism by checking ref exists
-      const { result } = renderHook(() => useConfirmDialog());
+      renderHook(() => useConfirmDialog());
       // The hook sets up a useEffect cleanup that resolves any pending dialog
       // We just verify the hook doesn't crash on unmount
       const { unmount } = renderHook(() => useConfirmDialog());

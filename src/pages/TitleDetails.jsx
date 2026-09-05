@@ -480,7 +480,6 @@ export default function TitleDetails() {
     return () => clearTimeout(timer);
   }, [id, isPlaying, selectedSeason, playingEpisode]);
 
-  const castRailRef = useRef(null);
   const directorRailRef = useRef(null);
   const pageRef = useRef(null);
 

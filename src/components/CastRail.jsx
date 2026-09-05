@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,7 +23,9 @@ const castItemVariants = {
 
 export default function CastRail({ cast }) {
   const railRef = useRef(null);
-  const [showArrows, setShowArrows] = useState(false);
+  // Arrows stay hidden (mobile uses swipe); the scroll-state setter was removed,
+  // so this is intentionally a constant rather than state.
+  const showArrows = false;
   if (!cast || cast.length === 0) return null;
 
   const scroll = (dir) => {
