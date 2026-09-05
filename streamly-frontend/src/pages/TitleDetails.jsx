@@ -514,18 +514,6 @@ export default function TitleDetails() {
     if (isPlaying) setIframeLoading(true);
   }, [isPlaying, playMode, playingServerIndex, playingEpisode, selectedSeason]);
 
-  /* Auto-select the NetMirror server when the title is from Netflix/Prime,
-     unless the user already picked a server manually this session. */
-  const serverManuallySetRef = useRef(false);
-  const prevPlayingRef = useRef(false);
-  useEffect(() => {
-    const started = isPlaying && !prevPlayingRef.current;
-    prevPlayingRef.current = isPlaying;
-    if (started && !serverManuallySetRef.current && NETMIRROR_SERVER_INDEX >= 0 && isNetMirrorSuitable(effectivePlatform)) {
-      setPlayingServerIndex(NETMIRROR_SERVER_INDEX);
-    }
-  }, [isPlaying, effectivePlatform]);
-
   /* Pre-warm the Direct-stream backend cache so hitting Play is near-instant.
      Uses the same signature the player calls; a warm cache returns in <1s. */
   useEffect(() => {
@@ -589,6 +577,18 @@ export default function TitleDetails() {
 
   // Resolve the actual platform — now guaranteed to be a canonical key or null
   const effectivePlatform = movie?.source || undefined;
+
+  /* Auto-select the NetMirror server when the title is from Netflix/Prime,
+     unless the user already picked a server manually this session. */
+  const serverManuallySetRef = useRef(false);
+  const prevPlayingRef = useRef(false);
+  useEffect(() => {
+    const started = isPlaying && !prevPlayingRef.current;
+    prevPlayingRef.current = isPlaying;
+    if (started && !serverManuallySetRef.current && NETMIRROR_SERVER_INDEX >= 0 && isNetMirrorSuitable(effectivePlatform)) {
+      setPlayingServerIndex(NETMIRROR_SERVER_INDEX);
+    }
+  }, [isPlaying, effectivePlatform]);
 
   // All unique platform keys available for this title (for logo row display)
   const availablePlatformKeys = useMemo(() => {
