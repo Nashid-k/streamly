@@ -18,7 +18,7 @@ import PlatformIcon from "../components/PlatformIcon";
 import RailArrow from "../components/RailArrow";
 import { PLATFORMS, normalizePlatformKey, normalizeMovieSource } from "../api/platformAdapter";
 import LeavingSoonBanner from "../components/LeavingSoonBanner";
-import { detectLeavingSoon, buildUpcomingThisMonth } from "../utils/releaseCalendar";
+import { detectLeavingSoon, buildUpcoming } from "../utils/releaseCalendar";
 
 const GENRE_OPTIONS = [
   "All",
@@ -63,6 +63,10 @@ const MovieRail = React.memo(
     const isDynamicRail =
       category.name === "Continue Watching" ||
       category.name === "My List" ||
+      category.name === "Upcoming" ||
+      category.name === "Upcoming Movies" ||
+      category.name === "Upcoming TV Shows" ||
+      category.name === "Upcoming Anime" ||
       category.name === "Releases This Month" ||
       category.name === "Coming This Month" ||
       category.name.startsWith("Because you watched");
@@ -779,10 +783,11 @@ export default function Home({
     [airingData, filter, enrichWithPlatforms],
   );
 
-  // "Coming This Month" — movies/series premieres + next episodes airing
-  // between today and the end of the current month, so every card carries a
-  // date (and S/E for series). Dedupes + sorts soonest-first client-side.
-  const comingThisMonth = useMemo(() => {
+  // "Upcoming" — future premieres (movies/series) and next-episode airings with
+  // a release date inside a rolling 90-day window. The backend catalog carries
+  // very few future-dated titles, so real upcoming entries lead and the rail is
+  // padded with tab-filtered trending/airing entries to always fill the row.
+  const upcomingReleases = useMemo(() => {
     const pool = [
       ...asArray(airingData),
       ...asArray(trendingData),
@@ -790,21 +795,32 @@ export default function Home({
       ...asArray(featuredData),
       ...asArray(rawCategories).flatMap((c) => (Array.isArray(c.movies) ? c.movies : [])),
     ];
-    // The airing rail above already surfaces next-episode airings within its
-    // 14-day window — drop those exact (id + date) pairs so the month rail
-    // only adds genuinely new premieres / later-month drops.
-    const airedKeys = new Set(
-      airingThisWeek
-        .filter((m) => m.nextEpisode?.releaseDate)
-        .map((m) => `${m.id}|${m.nextEpisode.releaseDate}`),
-    );
-    return applyPageFilter(buildUpcomingThisMonth(pool))
-      .filter((m) => !airedKeys.has(`${m.id}|${m.nextEpisode?.releaseDate || m.releaseDate}`))
-      .slice(0, 20)
+    const realUpcoming = applyPageFilter(buildUpcoming(pool, 90))
+      .slice(0, 12)
       .map(normalizeMovieSource)
       .map(enrichWithPlatforms);
+
+    const seen = new Set(realUpcoming.map((m) => m.id));
+    const filled = [...realUpcoming];
+    for (const m of [...trendingThisWeek, ...airingThisWeek]) {
+      if (m && m.id && !seen.has(m.id)) {
+        seen.add(m.id);
+        filled.push(m);
+        if (filled.length >= 12) break;
+      }
+    }
+    return filled;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [airingData, airingThisWeek, trendingData, top10Data, featuredData, rawCategories, filter, enrichWithPlatforms]);
+  }, [airingData, trendingData, top10Data, featuredData, rawCategories, filter, trendingThisWeek, airingThisWeek, enrichWithPlatforms]);
+
+  const upcomingTitle =
+    filter === "series" || filter === "tv shows"
+      ? "Upcoming TV Shows"
+      : filter === "movies"
+        ? "Upcoming Movies"
+        : filter === "anime"
+          ? "Upcoming Anime"
+          : "Upcoming";
 
   // Top 10 — backend rank first, padded to a full 10 per tab. The backend
   // list is filtered per page type, which can leave fewer than 10 (e.g. only a
@@ -819,7 +835,7 @@ export default function Home({
 
     const seen = new Set(ranked.map((m) => m.id));
     const padded = [...ranked];
-    for (const m of [...trendingThisWeek, ...airingThisWeek, ...comingThisMonth]) {
+    for (const m of [...trendingThisWeek, ...airingThisWeek, ...upcomingReleases]) {
       if (m && m.id && !seen.has(m.id)) {
         seen.add(m.id);
         padded.push(m);
@@ -828,7 +844,7 @@ export default function Home({
     }
     return padded;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [top10Data, filter, trendingThisWeek, airingThisWeek, comingThisMonth, enrichWithPlatforms]);
+  }, [top10Data, filter, trendingThisWeek, airingThisWeek, upcomingReleases, enrichWithPlatforms]);
 
   const lastWatched =
     continueWatching && continueWatching.length > 0
@@ -1380,15 +1396,14 @@ export default function Home({
           )} />
       )}
 
-      {/* Releases This Month — standard rail UI on every tab; tab-filtered
-          (all on Home, movies/series/anime on their pages) exactly like the
-          Coming This Month rail. */}
-      {!loading && filter !== "new" && activeGenre === "All" && comingThisMonth.length > 0 && (
+      {/* Upcoming — standard rail UI on every tab; tab-filtered (all on Home,
+          movies/series/anime on their pages) and padded so the rail always fills. */}
+      {!loading && filter !== "new" && activeGenre === "All" && upcomingReleases.length > 0 && (
         <FadeInSection>
           <ErrorBoundary>
             <MovieRail
               railIndex={0}
-              category={{ name: "Releases This Month", movies: comingThisMonth }}
+              category={{ name: upcomingTitle, movies: upcomingReleases }}
             />
           </ErrorBoundary>
         </FadeInSection>

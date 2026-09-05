@@ -158,25 +158,9 @@ export function isUpcomingRelease(dateStr, platform) {
   return !until.includes("ago") && until !== "yesterday";
 }
 
-/**
- * Build a "Coming this month" list from any pool of titles.
- * Accepts movies (releaseDate) and series episodes (flat or nextEpisode)
- * airing between today and the end of the current month.
- *
- * @returns {Array} items enriched with { kind, formattedRelease, releaseDay,
- *   releaseMonthDay, nextEpisode } sorted by release date (soonest first).
- */
-export function buildUpcomingThisMonth(items = []) {
+function buildUpcomingInRange(items, todayStr, endStr) {
   if (!items || !Array.isArray(items)) return [];
 
-  // Compare YYYY-MM-DD calendar strings (local calendar for "today" and the
-  // month end) rather than mixing UTC-parsed dates with local boundaries —
-  // lexicographic comparison is exact and immune to timezone edge cases.
-  const pad = (n) => String(n).padStart(2, "0");
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const monthEndStr = `${monthEnd.getFullYear()}-${pad(monthEnd.getMonth() + 1)}-${pad(monthEnd.getDate())}`;
   const seen = new Set();
   const out = [];
 
@@ -187,9 +171,9 @@ export function buildUpcomingThisMonth(items = []) {
     const dateStr = air?.releaseDate || (!isTv ? item.releaseDate : null);
     if (!dateStr) continue;
 
-    // Only keep well-formed YYYY-MM-DD strings inside [today, month end]
+    // Only keep well-formed YYYY-MM-DD strings inside [today, window end]
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) continue;
-    if (dateStr < todayStr || dateStr > monthEndStr) continue;
+    if (dateStr < todayStr || dateStr > endStr) continue;
 
     const isAnime = Boolean(
       (Array.isArray(item.genres) &&
@@ -226,6 +210,51 @@ export function buildUpcomingThisMonth(items = []) {
   return out.sort((a, b) =>
     String(a.releaseDate).localeCompare(String(b.releaseDate)),
   );
+}
+
+/**
+ * Build a "Coming this month" list from any pool of titles.
+ * Accepts movies (releaseDate) and series episodes (flat or nextEpisode)
+ * airing between today and the end of the current month.
+ *
+ * @returns {Array} items enriched with { kind, formattedRelease, releaseDay,
+ *   releaseMonthDay, nextEpisode } sorted by release date (soonest first).
+ */
+export function buildUpcomingThisMonth(items = []) {
+  if (!items || !Array.isArray(items)) return [];
+
+  // Compare YYYY-MM-DD calendar strings (local calendar for "today" and the
+  // month end) rather than mixing UTC-parsed dates with local boundaries —
+  // lexicographic comparison is exact and immune to timezone edge cases.
+  const pad = (n) => String(n).padStart(2, "0");
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const monthEndStr = `${monthEnd.getFullYear()}-${pad(monthEnd.getMonth() + 1)}-${pad(monthEnd.getDate())}`;
+
+  return buildUpcomingInRange(items, todayStr, monthEndStr);
+}
+
+/**
+ * Build an "Upcoming" list from any pool of titles — the same enrichment as
+ * buildUpcomingThisMonth, but with a sliding window of the next `windowDays`
+ * days instead of a hard month boundary. Surfaces future premiere dates and
+ * next-episode airings on a rolling basis.
+ *
+ * @returns {Array} items enriched with { kind, formattedRelease, releaseDay,
+ *   releaseMonthDay, nextEpisode } sorted by release date (soonest first).
+ */
+export function buildUpcoming(items = [], windowDays = 90) {
+  if (!items || !Array.isArray(items)) return [];
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const end = new Date(now);
+  end.setDate(now.getDate() + windowDays);
+  const endStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
+
+  return buildUpcomingInRange(items, todayStr, endStr);
 }
 
 // ─── Countdown Timer ────────────────────────────────────────────────────────
