@@ -3,7 +3,7 @@ import { VideoSourceAdapter } from "../api/videoSourceAdapter";
 import { PlatformAdapter } from "../api/platformAdapter";
 import { movieService } from "../api/movieService";
 import {
-  Play, Pause, Volume2, VolumeX, Maximize, Minimize,
+  Play, Pause, Volume1, Volume2, VolumeX, Maximize, Minimize,
   Settings, AlertCircle, Check, RotateCcw, RotateCw,
   SkipForward, FastForward, Rewind,
   Keyboard, X, Upload, Captions, Film, Link, Repeat, AudioLines,
@@ -71,6 +71,17 @@ const ASPECT_RATIOS = [
   { name: "Crop 2.39:1", scale: 1.344 },
   { name: "Crop 4:3", scale: 1.333 },
   { name: "Extra Zoom", scale: 1.18 },
+];
+
+/* Frame glyph dimensions [w, h] per aspect index — drawn in the aspect HUD
+   so the shape visibly morphs as the user cycles through ratios. */
+const AR_GLYPH = [
+  [42, 24], // Fit (16:9)
+  [38, 24], // Crop 16:10
+  [48, 20], // Crop 2.35:1
+  [48, 20], // Crop 2.39:1
+  [30, 24], // Crop 4:3
+  [42, 24], // Extra Zoom (same frame, more zoom)
 ];
 
 const KEYBOARD_SHORTCUTS = [
@@ -2225,118 +2236,146 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ VOLUME ARC HUD — Circular arc at top center (Apple TV+ style) ═══ */}
-      <AnimatePresence mode="wait">
+      {/* ═══ VOLUME HUD — bottom-center pill: state icon + segmented meter ═══ */}
+      <AnimatePresence>
         {showVolumeArc && (
           <motion.div
-            key="volume-arc"
-            initial={{ opacity: 0, scale: 0.7, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.85, y: -6 }}
+            key="volume-hud"
+            initial={{ opacity: 0, y: 18, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.97 }}
             transition={SPRING_SNAPPY}
             style={{
-              position: "absolute", top: R.hudTop, left: "50%", x: "-50%",
+              position: "absolute", left: "50%",
+              bottom: "clamp(88px, 15vh, 150px)",
+              transform: "translateX(-50%)",
               zIndex: 65, pointerEvents: "none",
             }}
           >
             <div style={{
-              display: "flex", alignItems: "center", gap: "clamp(8px, 2vw, 14px)",
-              background: "rgba(28,28,30,0.82)",
-              backdropFilter: "blur(40px) saturate(180%)",
-              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              display: "flex", alignItems: "center", gap: 12,
+              background: "rgba(12,12,14,0.78)",
+              backdropFilter: "blur(24px) saturate(160%)",
+              WebkitBackdropFilter: "blur(24px) saturate(160%)",
               border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: R.radiusMedium, padding: `${R.padMedium} ${R.padLarge}`,
-              boxShadow: "0 8px 40px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.05)",
+              borderRadius: 999,
+              padding: "10px 18px",
+              boxShadow: "0 12px 44px rgba(0,0,0,0.55), inset 0 0.5px 0 rgba(255,255,255,0.08)",
             }}>
-              {/* Circular arc volume indicator */}
-              <div style={{ position: "relative" }}>
-                <ArcRing
-                  progress={effVolume}
-                  size={44} responsive="clamp(36px, 6vw, 48px)"
-                  strokeWidth={3}
-                  color={isMuted || volume === 0 ? "#ff453a" : "rgba(255,255,255,0.9)"}
-                  bgColor="rgba(255,255,255,0.06)"
-                  glowColor={isMuted || volume === 0 ? "rgba(255,69,58,0.5)" : "rgba(255,255,255,0.15)"}
-                >
-                  <motion.div
-                    key={isMuted || volume === 0 ? "muted" : volume < 0.3 ? "low" : "high"}
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                    transition={SPRING_FAST}
-                  >
-                    {isMuted || volume === 0 ? (
-                      <VolumeX size={16} color="#ff453a" strokeWidth={2.2} />
-                    ) : volume < 0.3 ? (
-                      <Volume2 size={16} color="rgba(255,255,255,0.8)" strokeWidth={2.2} />
-                    ) : (
-                      <Volume2 size={16} color="#fff" strokeWidth={2.2} />
-                    )}
-                  </motion.div>
-                </ArcRing>
+              {/* State icon — swaps between muted / low / high */}
+              <motion.span
+                key={isMuted || volume === 0 ? "muted" : effVolume <= 0.33 ? "low" : "high"}
+                initial={{ scale: 0.4, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={SPRING_FAST}
+                style={{ display: "flex", alignItems: "center" }}
+              >
+                {isMuted || volume === 0 ? (
+                  <VolumeX size={17} color="#ff453a" strokeWidth={2.2} />
+                ) : effVolume <= 0.33 ? (
+                  <Volume1 size={17} color="rgba(255,255,255,0.85)" strokeWidth={2.2} />
+                ) : (
+                  <Volume2 size={17} color="#fff" strokeWidth={2.2} />
+                )}
+              </motion.span>
+
+              {/* Segmented meter — reads instantly, iOS-lock-screen style */}
+              <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                {Array.from({ length: 16 }).map((_, i) => {
+                  const on = effVolume > 0 && i < Math.round(effVolume * 16);
+                  const muted = isMuted || volume === 0;
+                  return (
+                    <motion.div
+                      key={i}
+                      animate={{
+                        backgroundColor: on
+                          ? muted
+                            ? "rgba(255,69,58,0.95)"
+                            : "rgba(255,255,255,0.95)"
+                          : "rgba(255,255,255,0.14)",
+                      }}
+                      transition={{ duration: 0.1 }}
+                      style={{ width: 4, height: 13, borderRadius: 2 }}
+                    />
+                  );
+                })}
               </div>
 
-              {/* Percentage number — animated slide */}
+              {/* Label */}
               <motion.span
-                key={Math.round(effVolume * 100)}
-                initial={{ y: -6, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
+                key={isMuted || volume === 0 ? "muted" : Math.round(effVolume * 100)}
+                initial={{ opacity: 0, x: 5 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={SPRING_FAST}
                 style={{
-                  color: isMuted || volume === 0 ? "#ff453a" : "#fff",
-                  fontSize: R.fontLarge, fontWeight: 700,
-                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
-                  minWidth: 36, textAlign: "right",
+                  color: isMuted || volume === 0 ? "#ff453a" : "rgba(255,255,255,0.92)",
+                  fontSize: R.fontSmall, fontWeight: 700,
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
                   fontVariantNumeric: "tabular-nums",
-                  letterSpacing: "-0.02em",
+                  letterSpacing: "0.02em",
+                  minWidth: 44,
                 }}
               >
-                {Math.round(effVolume * 100)}
+                {isMuted || volume === 0 ? "Muted" : `${Math.round(effVolume * 100)}%`}
               </motion.span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ═══ ASPECT RATIO ARC HUD ════════════════════════════════ */}
-      <AnimatePresence mode="wait">
+      {/* ═══ ASPECT RATIO HUD — bottom-center pill: morphing frame + name ═══ */}
+      <AnimatePresence>
         {showAspectRatioArc && (
           <motion.div
-            key="aspect-arc"
-            initial={{ opacity: 0, scale: 0.7, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.85, y: -6 }}
+            key="aspect-hud"
+            initial={{ opacity: 0, y: 18, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.97 }}
             transition={SPRING_SNAPPY}
             style={{
-              position: "absolute", top: R.hudTop, left: "50%", x: "-50%",
+              position: "absolute", left: "50%",
+              bottom: "clamp(88px, 15vh, 150px)",
+              transform: "translateX(-50%)",
               zIndex: 65, pointerEvents: "none",
             }}
           >
             <div style={{
-              display: "flex", alignItems: "center", gap: "clamp(8px, 2vw, 12px)",
-              background: "rgba(28,28,30,0.82)",
-              backdropFilter: "blur(40px) saturate(180%)",
-              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              display: "flex", alignItems: "center", gap: 12,
+              background: "rgba(12,12,14,0.78)",
+              backdropFilter: "blur(24px) saturate(160%)",
+              WebkitBackdropFilter: "blur(24px) saturate(160%)",
               border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: R.radiusMedium, padding: `${R.padMedium} ${R.padLarge}`,
-              boxShadow: "0 8px 40px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.05)",
+              borderRadius: 999,
+              padding: "10px 18px",
+              boxShadow: "0 12px 44px rgba(0,0,0,0.55), inset 0 0.5px 0 rgba(255,255,255,0.08)",
             }}>
-              <ArcRing
-                progress={(aspectRatioIndex + 1) / ASPECT_RATIOS.length}
-                size={36} responsive="clamp(28px, 5vw, 40px)" strokeWidth={2.5}
-                color="#fff" bgColor="rgba(255,255,255,0.06)"
-              >
-                <Maximize size={14} color="#fff" strokeWidth={2} />
-              </ArcRing>
+              {/* Frame glyph — morphs to the active aspect ratio */}
+              <motion.div
+                initial={false}
+                animate={{
+                  width: AR_GLYPH[aspectRatioIndex][0],
+                  height: AR_GLYPH[aspectRatioIndex][1],
+                }}
+                transition={SPRING}
+                style={{
+                  flexShrink: 0,
+                  borderRadius: 3,
+                  border: "1.5px solid rgba(255,255,255,0.92)",
+                  background:
+                    "radial-gradient(circle at 50% 40%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.03) 100%)",
+                  boxShadow: "0 0 14px rgba(255,255,255,0.2), inset 0 0 12px rgba(255,255,255,0.06)",
+                }}
+              />
               <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 <motion.span
                   key={aspectRatioIndex}
-                  initial={{ y: 6, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={SPRING_FAST}
                   style={{
-                    color: "#fff", fontSize: R.fontLarge, fontWeight: 700, lineHeight: 1.2,
+                    color: "#fff", fontSize: R.fontSmall, fontWeight: 700, lineHeight: 1.25,
                     fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {ASPECT_RATIOS[aspectRatioIndex].name}
