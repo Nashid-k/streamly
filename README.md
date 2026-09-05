@@ -38,7 +38,7 @@ Streamly is a Netflix-inspired streaming discovery platform that aggregates cont
 
 ```
 streamly-frontend/
-└── frontend/                ← React 19 SPA (Vite)
+└── frontend/                ← React 19 SPA (Vite) in streamly-frontend/
     ├── src/
     │   ├── api/             ← fetch() wrappers for backend
     │   ├── components/      ← Reusable UI (MovieCard, AuthModal, Toast…)
@@ -128,7 +128,7 @@ cd streamly-backend/stream-service && npm install
 
 ```bash
 # Frontend
-cp frontend/.env.example frontend/.env
+cp streamly-frontend/.env.example streamly-frontend/.env
 # → Fill in: VITE_FIREBASE_API_KEY, etc.
 
 # Backend
@@ -218,8 +218,8 @@ Set these in Vercel Dashboard → Settings → Environment Variables:
 
 | Document | Location |
 |---|---|
-| Frontend setup | [`frontend/README.md`](frontend/README.md) |
-| Frontend Git guide | [`frontend/GIT.md`](frontend/GIT.md) |
+| Frontend setup | [`streamly-frontend/README.md`](streamly-frontend/README.md) |
+| Frontend Git guide | [`streamly-frontend/GIT.md`](streamly-frontend/GIT.md) |
 | Backend API & setup | [`streamly-backend` repo](https://github.com/Nashid-k/streamly-backend) |
 
 ---
