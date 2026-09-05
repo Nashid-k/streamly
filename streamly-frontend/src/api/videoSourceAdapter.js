@@ -119,10 +119,15 @@ export class VideoSourceAdapter {
       err.requiresIframe = data?.requiresIframe;
       throw err;
     }
-    // Route through the CORS proxy so HLS.js can fetch m3u8/segments cross-origin
-    const proxiedUrl = `${STREAM_SERVICE_URL}/api/proxy?url=${encodeURIComponent(data.streamUrl)}`;
+    // When the provider CDN is CORS-open, hls.js fetches m3u8/segments directly
+    // from the CDN — no segment relay through the stream service (which is what
+    // caused buffer stalls on the free-tier backend). Only CORS-blocked streams
+    // (session-token "thunder" etc.) route through the proxy.
+    const streamUrl = data.corsOpen
+      ? data.streamUrl
+      : `${STREAM_SERVICE_URL}/api/proxy?url=${encodeURIComponent(data.streamUrl)}`;
     return {
-      streamUrl: proxiedUrl,
+      streamUrl,
       provider: data.provider,
       subtitles: data.subtitles || [],
       thumbnails: data.thumbnails || [],
