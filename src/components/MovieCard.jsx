@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Plus, Check, Star } from "lucide-react";
 import slugify from "slugify";
 import PlatformIcon from "./PlatformIcon";
-import { getTMDBWeekdayShort } from "../utils/timezone";
+import { getTMDBWeekdayShort, getTMDBWeekday } from "../utils/timezone";
 import { useNavigate } from "react-router-dom";
 import { movieService } from "../api/movieService";
 import { normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
@@ -211,6 +211,32 @@ export default function MovieCard({
   const rating = movie.imdbRating;
   const ratingColor = getRatingColor(rating);
 
+  // ── Next-airing info for the rail badges ──────────────────────────────
+  // Airing-rail cards (and any series with an announced next episode) show
+  // which DAY the episode drops plus its season/episode. Series that are only
+  // airing (not premiering) fall back to nextEpisode; premiering series use
+  // their future release date.
+  const platformForDate = movie.source || movie.platform;
+  const nextEpisodeInfo = movie.nextEpisode || {};
+  const nextAirDate =
+    nextEpisodeInfo.releaseDate ||
+    (isTvContent && movie.isUpcoming ? movie.releaseDate : null) ||
+    null;
+  const nextAirSeason =
+    nextEpisodeInfo.season ?? nextEpisodeInfo.seasonNumber ?? null;
+  const nextAirEpisodeNumber =
+    nextEpisodeInfo.episode ?? nextEpisodeInfo.episodeNumber ?? null;
+  const nextAirLabel =
+    nextAirEpisodeNumber != null
+      ? `S${nextAirSeason || 1} E${nextAirEpisodeNumber}`
+      : null;
+  const nextAirWeekdayShort = nextAirDate
+    ? getTMDBWeekdayShort(nextAirDate, undefined, platformForDate)
+    : "";
+  const nextAirWeekdayLong = nextAirDate
+    ? getTMDBWeekday(nextAirDate, undefined, platformForDate)
+    : "";
+
   return (
     <div
       ref={virtualRef}
@@ -304,7 +330,7 @@ export default function MovieCard({
               );
             })()}
 
-            {/* Bottom-left badges: countdown + SERIES + NEW — in one row so nothing overlaps */}
+            {/* Bottom-left badges: SERIES + S/E + NEW {DAY} — one row so nothing overlaps */}
             {!isHovered && (
               <div
                 style={{
@@ -319,59 +345,115 @@ export default function MovieCard({
                   pointerEvents: "none",
                 }}
               >
-                {/* Countdown badge for upcoming releases */}
-                {movie.releaseDate && !isTvContent && (
-                  <CountdownBadge
-                    releaseDate={movie.releaseDate}
-                    platform={movie.source || movie.platform}
-                    compact
-                  />
-                )}
-                {/* Countdown badge for next episode */}
-                {isTvContent && movie.nextEpisode?.releaseDate && (
-                  <CountdownBadge
-                    releaseDate={movie.nextEpisode.releaseDate}
-                    platform={movie.source || movie.platform}
-                    compact
-                  />
-                )}
-                {isTvContent && (
+                {/* Non-series premiere: explicit date chip (rail-provided) or
+                    a countdown when only the raw date is known */}
+                {!isTvContent && movie.formattedRelease && (
                   <div
                     style={{
-                      background: "rgba(0,0,0,0.7)",
+                      background: "rgba(0,0,0,0.65)",
                       backdropFilter: "blur(6px)",
-                      color: "#fff",
-                      padding: "2px 6px",
-                      borderRadius: "3px",
-                      fontSize: "0.55rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                    }}
-                  >
-                    SERIES
-                  </div>
-                )}
-                {isTvContent && movie.nextEpisode?.releaseDate && (
-                  <div
-                    style={{
-                      background: "var(--accent-gradient)",
                       color: "#fff",
                       padding: "2px 6px",
                       borderRadius: "3px",
                       fontSize: "0.5rem",
                       fontWeight: 800,
                       letterSpacing: "0.04em",
-                      backdropFilter: "blur(6px)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "3px",
-                      textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                      border: "1px solid rgba(255,255,255,0.12)",
                     }}
                   >
-                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#fff', flexShrink: 0 }} />
-                    NEW {getTMDBWeekdayShort(movie.nextEpisode.releaseDate, undefined, movie.source || movie.platform).toUpperCase()}
+                    {movie.formattedRelease}
                   </div>
+                )}
+                {!isTvContent && movie.releaseDate && !movie.formattedRelease && (
+                  <CountdownBadge
+                    releaseDate={movie.releaseDate}
+                    platform={platformForDate}
+                    compact
+                  />
+                )}
+                {/* Series with a known next episode: S/E chip + the air DAY
+                    (or full release date when the rail provides it) */}
+                {isTvContent && nextAirLabel && nextAirDate && (
+                  <>
+                    <div
+                      style={{
+                        background: "rgba(96,165,250,0.18)",
+                        color: "#93c5fd",
+                        padding: "2px 6px",
+                        borderRadius: "3px",
+                        fontSize: "0.5rem",
+                        fontWeight: 800,
+                        letterSpacing: "0.04em",
+                        backdropFilter: "blur(6px)",
+                        border: "1px solid rgba(96,165,250,0.25)",
+                      }}
+                    >
+                      {nextAirLabel}
+                    </div>
+                    <div
+                      style={{
+                        background: "var(--accent-gradient)",
+                        color: "#fff",
+                        padding: "2px 6px",
+                        borderRadius: "3px",
+                        fontSize: "0.5rem",
+                        fontWeight: 800,
+                        letterSpacing: "0.04em",
+                        backdropFilter: "blur(6px)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "3px",
+                        textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#fff', flexShrink: 0 }} />
+                      {movie.formattedRelease || nextAirWeekdayShort.toUpperCase()}
+                    </div>
+                  </>
+                )}
+                {/* Series premiere / no episode info yet */}
+                {isTvContent && !nextAirLabel && (
+                  <>
+                    <div
+                      style={{
+                        background: "rgba(0,0,0,0.7)",
+                        backdropFilter: "blur(6px)",
+                        color: "#fff",
+                        padding: "2px 6px",
+                        borderRadius: "3px",
+                        fontSize: "0.55rem",
+                        fontWeight: 700,
+                        letterSpacing: "0.06em",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      SERIES
+                    </div>
+                    {nextAirDate && movie.formattedRelease && (
+                      <div
+                        style={{
+                          background: "rgba(0,0,0,0.65)",
+                          backdropFilter: "blur(6px)",
+                          color: "#fff",
+                          padding: "2px 6px",
+                          borderRadius: "3px",
+                          fontSize: "0.5rem",
+                          fontWeight: 800,
+                          letterSpacing: "0.04em",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                        }}
+                      >
+                        {movie.formattedRelease}
+                      </div>
+                    )}
+                    {nextAirDate && !movie.formattedRelease && (
+                      <CountdownBadge
+                        releaseDate={nextAirDate}
+                        platform={platformForDate}
+                        compact
+                      />
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -528,19 +610,23 @@ export default function MovieCard({
                     SERIES
                   </span>
                 )}
-                {isTvContent && movie.nextEpisode?.releaseDate && (
+                {isTvContent && nextAirDate && (
                   <span
                     style={{
-                      background: "rgba(0,0,0,0.5)",
-                      color: "#f43f5e",
-                      padding: "1px 5px",
+                      background: "rgba(244,63,94,0.14)",
+                      color: "#fb7185",
+                      padding: "1px 6px",
                       borderRadius: "3px",
                       fontSize: "0.55rem",
                       fontWeight: 700,
                       letterSpacing: "0.04em",
                     }}
                   >
-                    {getTMDBWeekdayShort(movie.nextEpisode.releaseDate, undefined, movie.source || movie.platform)}s
+                    {nextAirLabel
+                      ? `${nextAirLabel} · ${nextAirWeekdayLong}`
+                      : movie.isUpcoming
+                        ? `Premieres ${nextAirWeekdayLong}`
+                        : `New ${nextAirWeekdayLong}`}
                   </span>
                 )}
                 {/* Genre dots */}

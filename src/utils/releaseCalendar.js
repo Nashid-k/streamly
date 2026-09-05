@@ -36,7 +36,9 @@ export function buildWeeklyCalendar(items = []) {
   const endOfWeekUTC = startOfWeekUTC + 6 * 86400000 + 86399999; // Sunday 23:59:59 UTC
 
   for (const item of items) {
-    const releaseDate = item.releaseDate || item.nextEpisode?.releaseDate;
+    const air = getAiringEpisode(item);
+    const isTv = isTvishItem(item);
+    const releaseDate = air?.releaseDate || (!isTv ? item.releaseDate : null);
     if (!releaseDate) continue;
 
     const date = new Date(releaseDate + "T12:00:00Z");
@@ -58,6 +60,9 @@ export function buildWeeklyCalendar(items = []) {
       platformGradient: platformObj?.gradient || null,
       formattedDate: formatTMDBDate(releaseDate, { weekday: "short", month: "short", day: "numeric" }, undefined, platformKey),
       weekday: getTMDBWeekday(releaseDate, undefined, platformKey),
+      // Episode rows (new episodes) get a S/E chip; premiere rows stay date-only
+      releaseType: air?.episodeLabel ? "episode" : undefined,
+      episodeInfo: air?.episodeLabel || undefined,
       isToday: date.toDateString() === today.toDateString(),
       isPast: date < today,
     });
@@ -92,6 +97,135 @@ export function getWeekDays() {
       fullDate: date.toISOString().split("T")[0],
     };
   });
+}
+
+// ─── Airing / Upcoming normalization ───────────────────────────────────────
+
+const isTvishItem = (item) =>
+  Boolean(
+    item?.isSeries ||
+      item?.type === "tv" ||
+      /^tmdb-tv-/i.test(String(item?.id || "")),
+  );
+
+/**
+ * Resolve the NEXT-episode airing info for a title, no matter how the backend
+ * shipped it. Handles both shapes seen in the wild:
+ *   • { nextEpisode: { releaseDate, season, episode } }
+ *   • flat airing rows: { releaseDate, season, episode } on TV titles
+ *
+ * @returns {{ releaseDate: string, season: number, episode: number, episodeLabel: string|null } | null}
+ */
+export function getAiringEpisode(item) {
+  if (!item) return null;
+  const nx = item.nextEpisode;
+  const isTv = isTvishItem(item);
+  const releaseDate = nx?.releaseDate || (isTv ? item.releaseDate : null);
+  if (!releaseDate) return null;
+
+  const seasonRaw = nx?.season ?? nx?.seasonNumber ?? item.season ?? item.seasonNumber;
+  const episodeRaw = nx?.episode ?? nx?.episodeNumber ?? nx?.number ?? item.episode ?? item.episodeNumber;
+  const season =
+    seasonRaw != null && !Number.isNaN(Number(seasonRaw)) && Number(seasonRaw) > 0
+      ? Number(seasonRaw)
+      : null;
+  const episode =
+    episodeRaw != null && !Number.isNaN(Number(episodeRaw)) && Number(episodeRaw) > 0
+      ? Number(episodeRaw)
+      : null;
+  const episodeLabel =
+    episode != null ? `S${season || 1} E${episode}` : null;
+
+  return { releaseDate, season, episode, episodeLabel };
+}
+
+/** Weekday + month day label, e.g. "Sun, Sep 6". */
+export function formatReleaseLabel(dateStr, platform) {
+  if (!dateStr) return "";
+  return formatTMDBDate(
+    dateStr,
+    { weekday: "short", month: "short", day: "numeric" },
+    undefined,
+    platform,
+  );
+}
+
+/** True when the release is today or in the future (not already aired). */
+export function isUpcomingRelease(dateStr, platform) {
+  if (!dateStr) return false;
+  const until = getTimeUntil(dateStr, undefined, platform);
+  if (!until) return false;
+  return !until.includes("ago") && until !== "yesterday";
+}
+
+/**
+ * Build a "Coming this month" list from any pool of titles.
+ * Accepts movies (releaseDate) and series episodes (flat or nextEpisode)
+ * airing between today and the end of the current month.
+ *
+ * @returns {Array} items enriched with { kind, formattedRelease, releaseDay,
+ *   releaseMonthDay, nextEpisode } sorted by release date (soonest first).
+ */
+export function buildUpcomingThisMonth(items = []) {
+  if (!items || !Array.isArray(items)) return [];
+
+  // Compare YYYY-MM-DD calendar strings (local calendar for "today" and the
+  // month end) rather than mixing UTC-parsed dates with local boundaries —
+  // lexicographic comparison is exact and immune to timezone edge cases.
+  const pad = (n) => String(n).padStart(2, "0");
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const monthEndStr = `${monthEnd.getFullYear()}-${pad(monthEnd.getMonth() + 1)}-${pad(monthEnd.getDate())}`;
+  const seen = new Set();
+  const out = [];
+
+  for (const item of items) {
+    if (!item || !item.id) continue;
+    const air = getAiringEpisode(item);
+    const isTv = isTvishItem(item);
+    const dateStr = air?.releaseDate || (!isTv ? item.releaseDate : null);
+    if (!dateStr) continue;
+
+    // Only keep well-formed YYYY-MM-DD strings inside [today, month end]
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) continue;
+    if (dateStr < todayStr || dateStr > monthEndStr) continue;
+
+    const isAnime = Boolean(
+      (Array.isArray(item.genres) &&
+        item.genres.some((g) => /anime/i.test(String(g)))) ||
+        (Array.isArray(item.tags) &&
+          item.tags.some((t) => /anime/i.test(String(t)))) ||
+        item.isAnime === true,
+    );
+    const kind = isAnime ? "anime" : isTv ? "series" : "movie";
+    const key = `${item.id}|${kind}|${dateStr}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const platformKey = normalizePlatformKey(item.source || item.availablePlatforms?.[0]);
+    const platformObj = platformKey ? PLATFORMS[platformKey] : null;
+
+    out.push({
+      ...item,
+      kind,
+      releaseDate: dateStr,
+      // Give the card the info it needs to draw date/S·E badges
+      nextEpisode: air && air.releaseDate
+        ? { ...(item.nextEpisode || {}), releaseDate: air.releaseDate, season: air.season, episode: air.episode }
+        : item.nextEpisode,
+      formattedRelease: formatReleaseLabel(dateStr, platformKey),
+      releaseDay: formatTMDBDate(dateStr, { weekday: "short" }, undefined, platformKey),
+      releaseMonthDay: formatTMDBDate(dateStr, { month: "short", day: "numeric" }, undefined, platformKey),
+      platformKey,
+      platformName: platformObj?.name || item.sourceName || "TBA",
+      platformColor: platformObj?.color || "#71717a",
+    });
+  }
+
+  return out.sort((a, b) =>
+    String(a.releaseDate).localeCompare(String(b.releaseDate)),
+  );
 }
 
 // ─── Countdown Timer ────────────────────────────────────────────────────────

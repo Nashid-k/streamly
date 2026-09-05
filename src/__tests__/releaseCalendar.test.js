@@ -6,7 +6,22 @@ import {
   getCountdownUrgency,
   detectNewReleasesThisWeek,
   detectLeavingSoon,
+  getAiringEpisode,
+  buildUpcomingThisMonth,
 } from '../utils/releaseCalendar';
+
+// buildUpcomingThisMonth filters against LOCAL month boundaries, so build
+// fixture dates in local calendar terms to stay robust in any TZ.
+const localDateStr = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const now = new Date();
+// Today is always inside the [today, end-of-month] window by construction,
+// so it is the safe in-window fixture regardless of local timezone/date.
+const inWindowDate = localDateStr(now);
+// Mid previous month: unambiguously before the window in every timezone.
+const pastDate = localDateStr(new Date(now.getFullYear(), now.getMonth() - 1, 5));
+// Day 2 of next month: unambiguously after the window in every timezone.
+const futureDate = localDateStr(new Date(now.getFullYear(), now.getMonth() + 1, 2));
 
 describe('buildWeeklyCalendar', () => {
   it('returns calendar with all 7 days', () => {
@@ -195,5 +210,134 @@ describe('detectLeavingSoon', () => {
     const result = detectLeavingSoon(items, 14);
     expect(result[0].title).toBe('Sooner');
     expect(result[1].title).toBe('Later');
+  });
+});
+
+describe('getAiringEpisode', () => {
+  it('returns null for missing input', () => {
+    expect(getAiringEpisode(null)).toBeNull();
+    expect(getAiringEpisode({})).toBeNull();
+  });
+
+  it('resolves nextEpisode for a series', () => {
+    const item = {
+      id: 'tmdb-tv-1',
+      isSeries: true,
+      nextEpisode: { releaseDate: '2026-09-10', season: 2, episode: 5 },
+    };
+    const result = getAiringEpisode(item);
+    expect(result.releaseDate).toBe('2026-09-10');
+    expect(result.season).toBe(2);
+    expect(result.episode).toBe(5);
+    expect(result.episodeLabel).toBe('S2 E5');
+  });
+
+  it('handles backend seasonNumber/episodeNumber shape', () => {
+    const item = {
+      id: 'tmdb-tv-2',
+      isSeries: true,
+      nextEpisode: { releaseDate: '2026-09-12', seasonNumber: 1, episodeNumber: 3 },
+    };
+    const result = getAiringEpisode(item);
+    expect(result.season).toBe(1);
+    expect(result.episode).toBe(3);
+    expect(result.episodeLabel).toBe('S1 E3');
+  });
+
+  it('falls back to flat airing rows on TV items', () => {
+    const item = {
+      id: 'tmdb-tv-3',
+      isSeries: true,
+      releaseDate: '2026-09-14',
+      season: 3,
+      episode: 8,
+    };
+    const result = getAiringEpisode(item);
+    expect(result.releaseDate).toBe('2026-09-14');
+    expect(result.episodeLabel).toBe('S3 E8');
+  });
+
+  it('ignores releaseDate on non-TV (movie) items without nextEpisode', () => {
+    const item = { id: 'm1', title: 'Film', releaseDate: '2026-09-10' };
+    expect(getAiringEpisode(item)).toBeNull();
+  });
+
+  it('produces no episode label when episode number is unknown', () => {
+    const item = {
+      id: 'tmdb-tv-4',
+      isSeries: true,
+      releaseDate: '2026-09-20',
+    };
+    const result = getAiringEpisode(item);
+    expect(result.releaseDate).toBe('2026-09-20');
+    expect(result.episodeLabel).toBeNull();
+  });
+});
+
+describe('buildUpcomingThisMonth', () => {
+  it('returns empty for empty/invalid input', () => {
+    expect(buildUpcomingThisMonth([])).toEqual([]);
+    expect(buildUpcomingThisMonth(null)).toEqual([]);
+  });
+
+  it('includes movie premieres this month with kind + date info', () => {
+    const items = [{
+      id: 'm-premiere',
+      title: 'Big Movie',
+      releaseDate: inWindowDate,
+      availablePlatforms: ['netflix'],
+    }];
+    const result = buildUpcomingThisMonth(items);
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe('movie');
+    expect(result[0].releaseDate).toBe(inWindowDate);
+    expect(result[0].formattedRelease).toBeTruthy();
+    expect(result[0].releaseDay).toBeTruthy();
+    expect(result[0].platformKey).toBe('netflix');
+  });
+
+  it('includes series next episodes as kind series with S/E kept', () => {
+    const items = [{
+      id: 'tmdb-tv-airing',
+      title: 'Airing Show',
+      isSeries: true,
+      nextEpisode: { releaseDate: inWindowDate, season: 4, episode: 9 },
+    }];
+    const result = buildUpcomingThisMonth(items);
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe('series');
+    expect(result[0].nextEpisode?.season).toBe(4);
+    expect(result[0].nextEpisode?.episode).toBe(9);
+  });
+
+  it('detects anime premieres by genres/tags/isAnime', () => {
+    const viaGenres = {
+      id: 'a1', title: 'Anime Film', releaseDate: inWindowDate, genres: ['Animation', 'anime'],
+    };
+    const viaFlag = {
+      id: 'a2', title: 'Anime Series', isSeries: true, isAnime: true,
+      releaseDate: inWindowDate,
+    };
+    const result = buildUpcomingThisMonth([viaGenres, viaFlag]);
+    expect(result.find((r) => r.id === 'a1')?.kind).toBe('anime');
+    expect(result.find((r) => r.id === 'a2')?.kind).toBe('anime');
+  });
+
+  it('excludes past and next-month releases', () => {
+    const items = [
+      { id: 'old', title: 'Old', releaseDate: pastDate },
+      { id: 'later', title: 'Later', releaseDate: futureDate },
+    ];
+    const result = buildUpcomingThisMonth(items);
+    expect(result).toHaveLength(0);
+  });
+
+  it('dedupes same id+kind+date and sorts soonest first', () => {
+    const items = [
+      { id: 'd1', title: 'Same', releaseDate: inWindowDate },
+      { id: 'd1', title: 'Same Dupe', releaseDate: inWindowDate },
+    ];
+    const result = buildUpcomingThisMonth(items);
+    expect(result).toHaveLength(1);
   });
 });

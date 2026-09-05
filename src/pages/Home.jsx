@@ -19,7 +19,7 @@ import RailArrow from "../components/RailArrow";
 import { PLATFORMS, normalizePlatformKey, PlatformAdapter, normalizeMovieSource } from "../api/platformAdapter";
 import WeeklyCalendar from "../components/WeeklyCalendar";
 import LeavingSoonBanner from "../components/LeavingSoonBanner";
-import { detectLeavingSoon, detectNewReleasesThisWeek } from "../utils/releaseCalendar";
+import { detectLeavingSoon, detectNewReleasesThisWeek, buildUpcomingThisMonth } from "../utils/releaseCalendar";
 
 const GENRE_OPTIONS = [
   "All",
@@ -64,6 +64,7 @@ const MovieRail = React.memo(
     const isDynamicRail =
       category.name === "Continue Watching" ||
       category.name === "My List" ||
+      category.name === "Coming This Month" ||
       category.name.startsWith("Because you watched");
 
     useEffect(() => {
@@ -782,6 +783,33 @@ export default function Home({
     [airingData, filter, enrichWithPlatforms],
   );
 
+  // "Coming This Month" — movies/series premieres + next episodes airing
+  // between today and the end of the current month, so every card carries a
+  // date (and S/E for series). Dedupes + sorts soonest-first client-side.
+  const comingThisMonth = useMemo(() => {
+    const pool = [
+      ...(airingData || []),
+      ...(trendingData || []),
+      ...(top10Data || []),
+      ...(featuredData || []),
+      ...(rawCategories || []).flatMap((c) => c.movies || []),
+    ];
+    // The airing rail above already surfaces next-episode airings within its
+    // 14-day window — drop those exact (id + date) pairs so the month rail
+    // only adds genuinely new premieres / later-month drops.
+    const airedKeys = new Set(
+      airingThisWeek
+        .filter((m) => m.nextEpisode?.releaseDate)
+        .map((m) => `${m.id}|${m.nextEpisode.releaseDate}`),
+    );
+    return applyPageFilter(buildUpcomingThisMonth(pool))
+      .filter((m) => !airedKeys.has(`${m.id}|${m.nextEpisode?.releaseDate || m.releaseDate}`))
+      .slice(0, 20)
+      .map(normalizeMovieSource)
+      .map(enrichWithPlatforms);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [airingData, airingThisWeek, trendingData, top10Data, featuredData, rawCategories, filter, enrichWithPlatforms]);
+
   const lastWatched =
     continueWatching && continueWatching.length > 0
       ? continueWatching[0]
@@ -1435,6 +1463,17 @@ export default function Home({
                   <MovieRail
                     railIndex={4}
                     category={{ name: 'Airing This Week', movies: airingThisWeek }}
+                  />
+                </ErrorBoundary>
+              </FadeInSection>
+            )}
+            {/* 5b. Coming This Month — premieres + new episodes with real dates */}
+            {filter !== "new" && activeGenre === "All" && comingThisMonth.length > 0 && (
+              <FadeInSection>
+                <ErrorBoundary>
+                  <MovieRail
+                    railIndex={5}
+                    category={{ name: 'Coming This Month', movies: comingThisMonth }}
                   />
                 </ErrorBoundary>
               </FadeInSection>
