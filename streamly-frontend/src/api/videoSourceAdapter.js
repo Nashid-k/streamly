@@ -32,14 +32,11 @@ const BASE_SERVERS = [
 ];
 
 export class VideoSourceAdapter {
-  // Direct/NetMirror servers only appear when the stream service is configured
-  static SERVERS = STREAM_SERVICE_URL
-    ? [
-        { name: "Direct", direct: true, url: () => "direct://" },
-        { name: "NetMirror", netmirror: true, url: () => "netmirror://" },
-        ...BASE_SERVERS,
-      ]
-    : BASE_SERVERS;
+  /* Server 1 (CineSrc iframe) is the default. Direct extraction and NetMirror
+     were removed from the rotation: Direct relayed every segment through the
+     stream-service proxy (buffer-stall source), and NetMirror's media CDN is
+     unreliable — Server 1 + the iframe fallbacks are the stable path. */
+  static SERVERS = BASE_SERVERS;
 
   static getServers() {
     return this.SERVERS;

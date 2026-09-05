@@ -46,7 +46,7 @@ import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast.jsx";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
-import { normalizePlatformKey, PlatformAdapter, normalizeMovieSource, PLATFORMS, isNetMirrorSuitable } from "../api/platformAdapter";
+import { normalizePlatformKey, PlatformAdapter, normalizeMovieSource, PLATFORMS } from "../api/platformAdapter";
 import { buildMovieAddedNotification } from "../utils/notificationEngine";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
@@ -57,7 +57,6 @@ const EMPTY_ARRAY = [];
 import { VideoSourceAdapter } from "../api/videoSourceAdapter";
 
 const SERVERS = VideoSourceAdapter.getServers();
-const NETMIRROR_SERVER_INDEX = SERVERS.findIndex((s) => s.netmirror === true);
 
 // ─── Animation Variants ───────────────────────────────────────────────────────
 
@@ -577,18 +576,7 @@ export default function TitleDetails() {
 
   // Resolve the actual platform — now guaranteed to be a canonical key or null
   const effectivePlatform = movie?.source || undefined;
-
-  /* Auto-select the NetMirror server when the title is from Netflix/Prime,
-     unless the user already picked a server manually this session. */
   const serverManuallySetRef = useRef(false);
-  const prevPlayingRef = useRef(false);
-  useEffect(() => {
-    const started = isPlaying && !prevPlayingRef.current;
-    prevPlayingRef.current = isPlaying;
-    if (started && !serverManuallySetRef.current && NETMIRROR_SERVER_INDEX >= 0 && isNetMirrorSuitable(effectivePlatform)) {
-      setPlayingServerIndex(NETMIRROR_SERVER_INDEX);
-    }
-  }, [isPlaying, effectivePlatform]);
 
   // All unique platform keys available for this title (for logo row display)
   const availablePlatformKeys = useMemo(() => {

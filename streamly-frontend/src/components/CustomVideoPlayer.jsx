@@ -490,6 +490,7 @@ const CustomVideoPlayer = ({
   }, []);
 
   const contentSignatureRef = useRef("");
+  const genKeyRef = useRef("");
   const [dynamicTips, setDynamicTips] = useState(LOADING_TIPS_DESKTOP);
 
   useEffect(() => {
@@ -585,13 +586,24 @@ const CustomVideoPlayer = ({
       let imdbId = movie.imdbId || movie.imdb_id || movie.external_ids?.imdb_id;
       const tid = getNumericId(movie.id);
       if (!tid) { setIsLoading(false); setErrorMessage("No valid content ID."); return; }
-      if (!imdbId && (activeServerIndex === 2 || activeServerIndex === 3)) {
+      if (!imdbId && activeServerIndex !== 0) {
         try {
           const e = await movieService.getExternalIds(movie.id);
           if (e?.imdb_id) imdbId = e.imdb_id;
         } catch {}
       }
       const isTv = movie?.isSeries || String(movie?.id || "").startsWith("tmdb-tv-");
+      // Reload guard: this effect also re-runs on identity-only changes (the
+      // caller passes an inline onServerChange + a re-normalized movie object,
+      // so every refetch/focus re-render bumps the deps). Only (re)load when
+      // the CONTENT or the SERVER actually changed — otherwise the iframe
+      // remounts mid-playback, re-fetching the stream from scratch.
+      const key = `${tid}|${isTv ? `${season}e${episode}` : "m"}|s${activeServerIndex}`;
+      if (genKeyRef.current === key) {
+        setIsLoading(false);
+        return;
+      }
+      genKeyRef.current = key;
       const sig = `${tid}-${isTv ? season : "m"}-${isTv ? episode : "m"}`;
       const isNew = contentSignatureRef.current !== sig;
       contentSignatureRef.current = sig;
