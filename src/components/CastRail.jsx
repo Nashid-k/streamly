@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -32,12 +32,6 @@ export default function CastRail({ cast }) {
         left: dir === "left" ? -400 : 400,
         behavior: "smooth",
       });
-  };
-
-  const checkOverflow = () => {
-    if (!railRef.current) return;
-    const { scrollWidth, clientWidth } = railRef.current;
-    setShowArrows(scrollWidth > clientWidth + 10);
   };
 
   return (

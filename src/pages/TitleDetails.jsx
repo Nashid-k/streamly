@@ -29,10 +29,6 @@ import {
   Building2,
   DollarSign,
   Tv,
-  Globe,
-  Bell,
-  BookmarkPlus,
-  Info,
   Film,
   LayoutGrid,
   List,
@@ -46,7 +42,7 @@ import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast.jsx";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
-import { normalizePlatformKey, PlatformAdapter, normalizeMovieSource, PLATFORMS } from "../api/platformAdapter";
+import { normalizePlatformKey, normalizeMovieSource } from "../api/platformAdapter";
 import { buildMovieAddedNotification } from "../utils/notificationEngine";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
@@ -99,64 +95,6 @@ const slideUpSm = {
 const fadeIn = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { duration: 0.5, ease: "easeOut" } },
-};
-
-// Scale + fade for cards
-const cardVariants = {
-  hidden: { opacity: 0, scale: 0.94, y: 20 },
-  show: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { type: "spring", stiffness: 300, damping: 26 },
-  },
-};
-
-// Similar movies grid stagger
-const gridVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.055, delayChildren: 0.05 },
-  },
-};
-
-// Cast rail stagger
-const castContainerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.04, delayChildren: 0.1 },
-  },
-};
-
-const castItemVariants = {
-  hidden: { opacity: 0, scale: 0.85, y: 12 },
-  show: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { type: "spring", stiffness: 350, damping: 28 },
-  },
-};
-
-// Episodes stagger
-const episodesContainerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
-  },
-};
-
-const episodeVariants = {
-  hidden: { opacity: 0, y: 28, scale: 0.97 },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { type: "spring", stiffness: 280, damping: 26 },
-  },
 };
 
 // ─── SeasonDropdown — custom styled dropdown (no native <select>) ─────────────
@@ -546,15 +484,6 @@ export default function TitleDetails() {
   const directorRailRef = useRef(null);
   const pageRef = useRef(null);
 
-  const scrollCast = (dir) => {
-    if (castRailRef.current) {
-      castRailRef.current.scrollBy({
-        left: dir === "left" ? -400 : 400,
-        behavior: "smooth",
-      });
-    }
-  };
-
   const scrollDirector = (dir) => {
     if (directorRailRef.current) {
       directorRailRef.current.scrollBy({
@@ -681,7 +610,7 @@ export default function TitleDetails() {
         setPlayingEpisode(saved.savedEpisode || 1);
       }
     }
-  }, [movie]);
+  }, [movie, isTvContent]);
 
   // Scroll handled by useScrollRestoration in Layout
 
@@ -1391,7 +1320,7 @@ export default function TitleDetails() {
                 initial="hidden"
                 animate="show"
               >
-                {(movie.genres || []).map((genre, i) => (
+                {(movie.genres || []).map((genre) => (
                   <motion.div
                     key={genre}
                     variants={slideUpSm}

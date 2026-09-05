@@ -4,7 +4,7 @@ import {
   getStorageAdapter,
   migrateLocalStorageToFirestore,
 } from "../api/storageAdapter";
-import { buildWelcomeNotification, generateSmartNotifications, isNotificationTypeEnabled } from "../utils/notificationEngine";
+import { buildWelcomeNotification, isNotificationTypeEnabled } from "../utils/notificationEngine";
 
 // ─── useAuth ──────────────────────────────────────────────────────────────────
 

@@ -14,8 +14,8 @@
  * deep-links, and categorized types for smart display.
  */
 
-import { normalizePlatformKey, PlatformAdapter, PLATFORMS } from "../api/platformAdapter";
-import { formatTMDBDate, getTMDBWeekday, getTimeUntil, formatTMDBDateFull } from "./timezone";
+import { normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
+import { formatTMDBDate, getTMDBWeekday, getTimeUntil } from "./timezone";
 
 // ─── Notification Types ─────────────────────────────────────────────────────
 

@@ -130,7 +130,7 @@ export function buildDeepRecommendations(movie, allMovies = [], options = {}) {
   }
 
   // ── Signal 6: High Rating Boost ──
-  for (const [key, candidate] of scored) {
+  for (const [, candidate] of scored) {
     if (candidate.movie.imdbRating >= 8.0) {
       candidate.score += 10;
     }

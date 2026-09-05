@@ -12,7 +12,7 @@ export const decodeUrl = (encodedStr) => {
         ),
       )
       .join("");
-  } catch (e) {
+  } catch {
     return encodedStr;
   }
 };

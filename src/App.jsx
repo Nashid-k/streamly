@@ -1109,7 +1109,8 @@ function Layout({ children }) {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  user ? setShowUserMenu(!showUserMenu) : setShowAuthModal(true);
+                  if (user) setShowUserMenu(!showUserMenu);
+                  else setShowAuthModal(true);
                 }
               }}
               title={user ? user.displayName || user.email : "Sign In"}

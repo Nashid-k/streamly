@@ -7,10 +7,10 @@
  *   • probes the real /health endpoints instead of guessing,
  *   • wakes a sleeping backend as soon as the app opens (pre-warm),
  *   • retries with capped exponential backoff while a backend is down,
- *   • never polls in background tabs (visibility-aware) and never keeps a
- *     healthy instance awake by polling forever — it re-checks only when the
- *     tab becomes visible again, when a request is slow ("server-wakeup"),
- *     or after a failure.
+ *   • sends a slow 5-minute keep-alive while this tab is open so a Render
+ *     free instance never idles to sleep mid-session (backed up by the
+ *     GitHub Actions keepalive when no tab is open),
+ *   • still respects background tabs: no probes run while the tab is hidden.
  *
  * Pure module — no React. Consumers subscribe with onServerHealthChange().
  */
@@ -40,14 +40,17 @@ const TARGETS = {
 const listeners = new Set();
 let started = false;
 let timer = null;
+let keepaliveTimer = null;
 let consecutiveFailures = 0;
 let visibilityHandler = null;
 let wakeupHandler = null;
 
-const INITIAL_DELAY_MS = 1200;
-const MIN_BACKOFF_MS = 4000;
-const MAX_BACKOFF_MS = 30000;
-const STALE_AFTER_MS = 60000; // re-probe if last check is older than this
+const INITIAL_DELAY_MS = 300;   // probe almost immediately so cold backends start waking
+const MIN_BACKOFF_MS = 2500;   // faster retry cycle on Render free tier / Vercel cold starts
+const MAX_BACKOFF_MS = 20000;  // cap so we never stop probing a stuck backend
+const STALE_AFTER_MS = 30000;  // re-probe sooner — cold backends can die fast
+const KEEPALIVE_INTERVAL_MS = 5 * 60 * 1000; // ping both backends every 5 min while
+  // the tab is open so a Render free instance (<15min idle) never sleeps mid-session.
 
 function snapshot() {
   return {
@@ -176,9 +179,18 @@ export function startServerHealthMonitor({ onChange, onHealthy } = {}) {
   document.addEventListener("visibilitychange", visibilityHandler);
   window.addEventListener("server-wakeup", wakeupHandler);
 
-  // Pre-warm: probe shortly after boot so a sleeping backend starts waking
-  // before the user's first click.
+  // Pre-warm: probe almost immediately so a sleeping Render/Vercel backend
+  // starts waking before the user's first click.
   timer = setTimeout(() => { cycle(); }, INITIAL_DELAY_MS);
+
+  // Keep-alive: while this tab is open AND visible, re-probe on a steady
+  // cadence. Even when healthy this fires a health request every 5 minutes,
+  // which is what keeps a Render free instance from idling to sleep between
+  // user actions. (The GitHub Actions keepalive covers the no-tab-open case.)
+  keepaliveTimer = setInterval(() => {
+    if (typeof document === "undefined" || document.visibilityState !== "visible") return;
+    cycle();
+  }, KEEPALIVE_INTERVAL_MS);
 
   return stopServerHealthMonitor;
 }
@@ -187,6 +199,7 @@ export function stopServerHealthMonitor() {
   if (!started) return;
   started = false;
   clearTimer();
+  if (keepaliveTimer) { clearInterval(keepaliveTimer); keepaliveTimer = null; }
   listeners.clear();
   if (visibilityHandler) {
     document.removeEventListener("visibilitychange", visibilityHandler);

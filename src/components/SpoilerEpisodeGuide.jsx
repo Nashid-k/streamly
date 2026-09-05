@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, ChevronDown, ChevronUp, Play, Clock, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, ChevronDown, Play, Clock, AlertTriangle } from "lucide-react";
 
 /**
  * SpoilerEpisodeGuide — Expandable episode guide with spoiler protection

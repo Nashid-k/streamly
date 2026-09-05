@@ -16,10 +16,10 @@ import { movieService } from "../api/movieService";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import RailArrow from "../components/RailArrow";
-import { PLATFORMS, normalizePlatformKey, PlatformAdapter, normalizeMovieSource } from "../api/platformAdapter";
+import { PLATFORMS, normalizePlatformKey, normalizeMovieSource } from "../api/platformAdapter";
 import WeeklyCalendar from "../components/WeeklyCalendar";
 import LeavingSoonBanner from "../components/LeavingSoonBanner";
-import { detectLeavingSoon, detectNewReleasesThisWeek, buildUpcomingThisMonth } from "../utils/releaseCalendar";
+import { detectLeavingSoon, buildUpcomingThisMonth } from "../utils/releaseCalendar";
 
 const GENRE_OPTIONS = [
   "All",
@@ -53,7 +53,7 @@ const FadeInSection = ({ children, delay = 0 }) => (
 );
 
 const MovieRail = React.memo(
-  function MovieRail({ category, railIndex = 0 }) {
+  function MovieRail({ category, railIndex: _railIndex = 0 }) {
     const railRef = useRef(null);
     const containerRef = useRef(null);
     // Windowing: render the rail's cards only while it is near the viewport.
@@ -236,7 +236,6 @@ const Top10Rail = React.memo(
     // Windowing identical to MovieRail — unmount when far offscreen
     const [inView, setInView] = useState(false);
     const scrollPosRef = useRef(0);
-    const [showArrows, setShowArrows] = useState(false);
     const top10 = movies.slice(0, 10);
 
     useEffect(() => {
@@ -287,8 +286,6 @@ const Top10Rail = React.memo(
       <div
         ref={containerRef}
         className="movie-rail-wrapper"
-        onMouseEnter={() => setShowArrows(true)}
-        onMouseLeave={() => setShowArrows(false)}
         style={{ position: "relative" }}
       >
         <div
@@ -614,7 +611,7 @@ export default function Home({
           dynamicName = `${dynamicName} TV Shows`;
       } else if (filter === "movies") {
         filtered = filtered.filter((m) =>
-          !Boolean(m.isSeries || String(m.id).startsWith("tmdb-tv-") || m.type === "tv" || (m.seasonsCount && m.seasonsCount > 0))
+          !(m.isSeries || String(m.id).startsWith("tmdb-tv-") || m.type === "tv" || (m.seasonsCount && m.seasonsCount > 0))
         );
         if (!dynamicName.toLowerCase().includes("movie"))
           dynamicName = `${dynamicName} Movies`;
@@ -1188,7 +1185,6 @@ export default function Home({
                     }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      const wasInList = isInList(activeFeaturedMovie.id);
                       toggleMyList(activeFeaturedMovie);
                     }}
                   >
@@ -1299,7 +1295,7 @@ export default function Home({
           >
             All Platforms
           </motion.button>
-          {Object.entries(PLATFORMS).filter(([key, p]) => p.category !== "aggregator").map(([key, p]) => (
+          {Object.entries(PLATFORMS).filter(([, p]) => p.category !== "aggregator").map(([key, p]) => (
             <motion.button
               layout
               key={key}

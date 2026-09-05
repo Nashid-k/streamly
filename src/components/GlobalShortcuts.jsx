@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Keyboard, X, Search, ArrowLeft, Play, Bookmark } from "lucide-react";
+import { Keyboard, X, Search, ArrowLeft, Play } from "lucide-react";
 
 export default function GlobalShortcuts() {
   const [isOpen, setIsOpen] = useState(false);

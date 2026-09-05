@@ -1,12 +1,12 @@
 import { useCallback, useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Play, Plus, Check, Star } from "lucide-react";
 import slugify from "slugify";
 import PlatformIcon from "./PlatformIcon";
 import { getTMDBWeekdayShort, getTMDBWeekday } from "../utils/timezone";
 import { useNavigate } from "react-router-dom";
 import { movieService } from "../api/movieService";
-import { normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
+import { normalizePlatformKey } from "../api/platformAdapter";
 
 // Resolve the badge platform for a card, matching normalizeMovieSource priority:
 // availablePlatforms (real availability) first, then the movie's own source.

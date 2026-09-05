@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, ChevronDown, Shield, Settings } from "lucide-react";
+import { ChevronDown, Shield, Settings } from "lucide-react";
 
 // Content warning categories with severity levels
 const WARNING_CATEGORIES = {

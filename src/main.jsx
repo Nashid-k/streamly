@@ -8,7 +8,20 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
 import { queryClient } from "./queryClient";
-import { startServerHealthMonitor } from "./api/serverHealth";
+import { startServerHealthMonitor, apiHealthUrl } from "./api/serverHealth";
+
+// Pre-warm the backend on boot — fire a lightweight HEAD-style request so a
+// sleeping Render/Vercel instance starts waking before the user navigates.
+// Runs in parallel with the health monitor's own probe.
+const prewarmBackend = () => {
+  if (import.meta.env.PROD) {
+    // Use no-cors to avoid CORS errors on cross-origin backends; we only care
+    // that the request leaves the browser (waking the server), not the response.
+    fetch(apiHealthUrl(), { mode: "no-cors", priority: "low", cache: "no-store" }).catch(() => {});
+  }
+};
+
+prewarmBackend();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

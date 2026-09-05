@@ -1,6 +1,6 @@
 const CACHE_NAME = 'streamly-v8';
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   // Skip waiting — activate immediately
   self.skipWaiting();
 });

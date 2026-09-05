@@ -141,7 +141,7 @@ describe("platformAdapter normalization deep edge cases", () => {
     });
 
     it("each platform has name, color, and category", () => {
-      for (const [key, platform] of Object.entries(PLATFORMS)) {
+      for (const [, platform] of Object.entries(PLATFORMS)) {
         expect(platform.name).toBeDefined();
         expect(platform.color).toBeDefined();
         expect(platform.category).toBeDefined();

@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, Clock, ExternalLink } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import slugify from "slugify";
 import PlatformIcon from "./PlatformIcon";

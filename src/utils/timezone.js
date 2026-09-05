@@ -42,12 +42,6 @@ const PLATFORM_RELEASE = {
 // Default for unknown platforms / US broadcast networks
 const DEFAULT_RELEASE = { type: '8pm-et' };
 
-// Source region timezones for non-midnight-local platforms
-const SOURCE_TIMEZONES = {
-  'hotstar': 'Asia/Kolkata',
-  'jio': 'Asia/Kolkata',
-};
-
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 export function getUserTimezone() {

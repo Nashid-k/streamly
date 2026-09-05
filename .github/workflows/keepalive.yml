@@ -1,0 +1,52 @@
+name: Keep backend warm
+
+# Render free-tier services spin down after ~15 minutes without traffic,
+# causing 30-60s cold starts on the first request. This action pings both
+# backends on a cadence well under the idle threshold so they stay warm and
+# "instant" for users.
+#
+# Tips:
+#  - The API URL below matches vercel.json's rewrite target. If it changes,
+#    update both.
+#  - Add a repository secret `KEEPALIVE_STREAM_URL` with your stream-service
+#    Render URL (https://your-stream-service.onrender.com). Without it the
+#    action only pings the API backend.
+#  - Note: always-on warmth consumes ~720 of the 750 free instance-hours on
+#    a Render free account. If you run two always-warm services you may need
+#    a Starter instance instead.
+
+on:
+  schedule:
+    # Every 10 minutes — comfortably under Render's ~15 min idle timeout.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping-backends:
+    name: Ping API + stream service
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Wake API backend
+        run: |
+          curl -sS --fail --max-time 90 \
+            -H "User-Agent: keepalive" \
+            "https://streamly-backend-9q7i.onrender.com/health" \
+            || echo "::warning::API backend health ping failed (may be mid cold-start)"
+
+      - name: Wake stream service
+        if: ${{ secrets.KEEPALIVE_STREAM_URL != '' }}
+        env:
+          KEEPALIVE_STREAM_URL: ${{ secrets.KEEPALIVE_STREAM_URL }}
+        run: |
+          curl -sS --fail --max-time 90 \
+            -H "User-Agent: keepalive" \
+            "${KEEPALIVE_STREAM_URL%/}/api/health" \
+            || echo "::warning::Stream service health ping failed (may be mid cold-start)"

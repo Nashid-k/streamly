@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { PLATFORMS, normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
+import React from "react";
+import { PLATFORMS, normalizePlatformKey } from "../api/platformAdapter";
 
 /**
  * PlatformIcon — renders a platform logo or branded fallback badge.
@@ -18,7 +18,6 @@ export default function PlatformIcon({
   small = false,
   xs = false,
   pill = false,
-  showName = false,
 }) {
   if (!platform) return null;
 
@@ -82,7 +81,7 @@ export default function PlatformIcon({
           decoding="async"
           onError={(e) => {
             e.target.style.display = "none";
-            e.target.nextSibling && (e.target.nextSibling.style.display = "flex");
+            if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
           }}
         />
         <span

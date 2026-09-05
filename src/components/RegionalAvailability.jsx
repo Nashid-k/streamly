@@ -21,7 +21,7 @@ const REGIONS = [
  *
  * Displays an expandable map with region × platform availability matrix.
  */
-export default function RegionalAvailability({ availablePlatforms = [], movie }) {
+export default function RegionalAvailability({ availablePlatforms = [] }) {
   const [expanded, setExpanded] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState("in"); // Default to India
 

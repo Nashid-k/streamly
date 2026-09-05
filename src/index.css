@@ -788,6 +788,14 @@ a {
 
 .movie-rail-item {
   width: 180px;
+  /* Rail hover lift lives on the wrapper (framer-motion owns the card's
+     transform for the Cinematic Curtain scale). Gives the shelf a netflix
+     feel without fighting Motion's inline transform. */
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.movie-rail-item:hover {
+  transform: translateY(-8px);
+  z-index: 2;
 }
 
 .movie-card {
@@ -798,7 +806,7 @@ a {
   flex-direction: column;
   cursor: pointer;
   position: relative;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 0;
   background: rgba(255,255,255,0.01);
 }
@@ -807,7 +815,7 @@ a {
   position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;
-  border-radius: 14px;
+  border-radius: 10px;
   overflow: hidden;
   background: #18181b;
   margin-bottom: var(--spacing-sm);
@@ -834,9 +842,10 @@ a {
     box-shadow 0.3s ease-out,
     border-color 0.3s ease-out;
   box-shadow:
-    0 20px 48px -8px rgba(0, 0, 0, 0.85),
-    0 0 0 1px rgba(244, 63, 94, 0.18);
-  border-color: rgba(255, 255, 255, 0.14);
+    0 24px 52px -8px rgba(0, 0, 0, 0.9),
+    0 0 0 1px rgba(244, 63, 94, 0.32),
+    0 0 32px -12px rgba(244, 63, 94, 0.35);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .movie-poster {
@@ -910,6 +919,10 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text-primary);
+  transition: color 0.25s ease;
+}
+.movie-card:hover .movie-title {
+  color: #fb7185;
 }
 .movie-meta {
   display: flex;
@@ -1276,7 +1289,9 @@ input:focus-visible {
 
 .movie-rail {
   gap: 0.9rem;
-  padding: 0.45rem 0 0.2rem;
+  /* Extra top padding gives the -8px hover-lift headroom inside the
+     scroll container (overflow-x:auto otherwise clips the transform). */
+  padding: 0.8rem 0 0.2rem;
   padding-left: 0;
   padding-right: 0;
 }

@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Tv, Film } from "lucide-react";
+import { Calendar, Tv } from "lucide-react";
 import { buildWeeklyCalendar, getWeekDays } from "../utils/releaseCalendar";
-import { PLATFORMS, normalizePlatformKey } from "../api/platformAdapter";
 import PlatformIcon from "./PlatformIcon";
 import { useNavigate } from "react-router-dom";
 import slugify from "slugify";

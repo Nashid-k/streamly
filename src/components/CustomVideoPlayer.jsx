@@ -74,14 +74,16 @@ const ASPECT_RATIOS = [
 ];
 
 /* Frame glyph dimensions [w, h] per aspect index — drawn in the aspect HUD
-   so the shape visibly morphs as the user cycles through ratios. */
+   so the shape visibly morphs as the user cycles through ratios.
+   These are proportional to the actual crop scales so the glyph resembles
+   what the viewer sees (wider = more cropped, taller = 4:3). */
 const AR_GLYPH = [
-  [42, 24], // Fit (16:9)
-  [38, 24], // Crop 16:10
-  [48, 20], // Crop 2.35:1
-  [48, 20], // Crop 2.39:1
-  [30, 24], // Crop 4:3
-  [42, 24], // Extra Zoom (same frame, more zoom)
+  [44, 25], // Fit (16:9)       — 1.78:1
+  [42, 25], // Crop 16:10       — 1.60:1
+  [50, 21], // Crop 2.35:1      — 2.35:1
+  [50, 21], // Crop 2.39:1      — 2.39:1
+  [34, 26], // Crop 4:3         — 1.33:1
+  [46, 25], // Extra Zoom       — 1.84:1 (zoomed 16:9)
 ];
 
 const KEYBOARD_SHORTCUTS = [
@@ -153,8 +155,9 @@ const R = {
   /* Container */
   controlRowPad: 'clamp(4px, 1vw, 14px)',
   progressBarPad: 'clamp(8px, 2vw, 20px)',
-  /* HUD top offset */
-  hudTop: 'clamp(8px, 2vw, 20px)',
+  /* HUD center-top offset — clears the toast/error pill (top ≈ 12–16px)
+     while staying inside the player container, even in fullscreen */
+  hudCenterTop: 'clamp(44px, 8vw, 68px)',
 };
 
 /* Circular Arc Component — the core Apple TV+ motif
@@ -357,7 +360,6 @@ const CustomVideoPlayer = ({
   const [useNativeControls, setUseNativeControls] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [, setSeekAccumulator] = useState(0);
   const [hoverTime, setHoverTime] = useState(null);
   const [hoverX, setHoverX] = useState(0);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -365,7 +367,6 @@ const CustomVideoPlayer = ({
   const [showSkipIntro, setShowSkipIntro] = useState(false);
   const [showUpNext, setShowUpNext] = useState(false);
   const [upNextCountdown, setUpNextCountdown] = useState(15);
-  const [activeSourceId, setActiveSourceId] = useState("");
   const [, setServerErrorCounts] = useState({});
   const [, setLastServer] = useState(() => localStorage.getItem("streamly_lastserver") || "");
   const [contextMenu, setContextMenu] = useState({ show: false, x: 0, y: 0 });
@@ -442,12 +443,9 @@ const CustomVideoPlayer = ({
   /* Netflix-style sprite previews from the CDN's thumbnail VTT */
   const vttTileRef = useRef([]);
   const vttSpriteMetaRef = useRef(new Map());
-  const [previewThumbUrl, setPreviewThumbUrl] = useState(null);
-  const [previewTime, setPreviewTime] = useState(null);
   const previewThumbTimerRef = useRef(null);
   const seekLongPressRef = useRef(null);
 
-  const isMobile = useIsMobile();
   const isTouch = useIsTouch();
   const isCineSrc = iframeUrl.includes("cinesrc.st");
   const isDirectStream = Boolean(directStreamUrl);
@@ -462,7 +460,7 @@ const CustomVideoPlayer = ({
       setShowPausedInfo(false);
     }
     return () => { if (pausedInfoTimerRef.current) clearTimeout(pausedInfoTimerRef.current); };
-  }, [isPlaying, isLoading, showCustomUI, hasInitiallyLoaded]);
+  }, [isPlaying, isLoading, showCustomUI, hasInitiallyLoaded, duration]);
 
   const autoPlayNextRef = useRef(autoPlayNext);
   useEffect(() => { autoPlayNextRef.current = autoPlayNext; }, [autoPlayNext]);
@@ -556,7 +554,7 @@ const CustomVideoPlayer = ({
         }
       }).catch(() => {});
     }
-  }, [movie]);
+  }, [movie, isTouch]);
 
   /* Switch tips when device type is known */
   useEffect(() => {
@@ -1698,14 +1696,7 @@ const CustomVideoPlayer = ({
       const hideDelay = isTouch ? 5000 : 3000;
       controlsTimeoutRef.current = setTimeout(() => setShowControls(false), hideDelay);
     }
-  }, [isPlaying, showSettings, showSubtitlesMenu, isLoading, isScrubbing, isTouch]);
-  const handleTouchInteraction = useCallback(() => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    if (isPlaying && !showSettings && !showSubtitlesMenu && !showAudioMenu && !isLoading && !isScrubbing) {
-      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 5000);
-    }
-  }, [isPlaying, showSettings, showSubtitlesMenu, isLoading, isScrubbing]);
+  }, [isPlaying, showSettings, showSubtitlesMenu, showAudioMenu, isLoading, isScrubbing, isTouch]);
 
   /* Touch double-tap to seek — uses touchend with preventDefault to block browser zoom */
   const lastTapRef = useRef(0);
@@ -2236,30 +2227,29 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ VOLUME HUD — bottom-center pill: state icon + segmented meter ═══ */}
+      {/* ═══ VOLUME HUD — center-top pill: state icon + segmented meter ═══ */}
       <AnimatePresence>
         {showVolumeArc && (
           <motion.div
             key="volume-hud"
-            initial={{ opacity: 0, y: 18, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.97 }}
+            initial={{ opacity: 0, y: -18, scale: 0.94, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: -10, scale: 0.97, x: "-50%" }}
             transition={SPRING_SNAPPY}
             style={{
               position: "absolute", left: "50%",
-              bottom: "clamp(88px, 15vh, 150px)",
-              transform: "translateX(-50%)",
+              top: R.hudCenterTop,
               zIndex: 65, pointerEvents: "none",
             }}
           >
             <div style={{
-              display: "flex", alignItems: "center", gap: 12,
+              display: "flex", alignItems: "center", gap: 10,
               background: "rgba(12,12,14,0.78)",
               backdropFilter: "blur(24px) saturate(160%)",
               WebkitBackdropFilter: "blur(24px) saturate(160%)",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 999,
-              padding: "10px 18px",
+              padding: "8px 14px",
               boxShadow: "0 12px 44px rgba(0,0,0,0.55), inset 0 0.5px 0 rgba(255,255,255,0.08)",
             }}>
               {/* State icon — swaps between muted / low / high */}
@@ -2323,30 +2313,29 @@ const CustomVideoPlayer = ({
         )}
       </AnimatePresence>
 
-      {/* ═══ ASPECT RATIO HUD — bottom-center pill: morphing frame + name ═══ */}
+      {/* ═══ ASPECT RATIO HUD — center-top pill: morphing frame + name ═══ */}
       <AnimatePresence>
         {showAspectRatioArc && (
           <motion.div
             key="aspect-hud"
-            initial={{ opacity: 0, y: 18, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.97 }}
+            initial={{ opacity: 0, y: -18, scale: 0.94, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: -10, scale: 0.97, x: "-50%" }}
             transition={SPRING_SNAPPY}
             style={{
               position: "absolute", left: "50%",
-              bottom: "clamp(88px, 15vh, 150px)",
-              transform: "translateX(-50%)",
+              top: R.hudCenterTop,
               zIndex: 65, pointerEvents: "none",
             }}
           >
             <div style={{
-              display: "flex", alignItems: "center", gap: 12,
+              display: "flex", alignItems: "center", gap: 10,
               background: "rgba(12,12,14,0.78)",
               backdropFilter: "blur(24px) saturate(160%)",
               WebkitBackdropFilter: "blur(24px) saturate(160%)",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 999,
-              padding: "10px 18px",
+              padding: "8px 14px",
               boxShadow: "0 12px 44px rgba(0,0,0,0.55), inset 0 0.5px 0 rgba(255,255,255,0.08)",
             }}>
               {/* Frame glyph — morphs to the active aspect ratio */}

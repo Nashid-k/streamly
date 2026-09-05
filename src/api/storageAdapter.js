@@ -183,7 +183,7 @@ export class CloudStorageAdapter {
       const updated = [...current, movie];
       await updateDoc(this.ref, { myList: updated });
       if (this._cache) this._cache.myList = updated;
-    } catch (e) {
+    } catch {
       // Doc might not exist yet
       await setDoc(this.ref, { myList: [movie] }, { merge: true });
     }
