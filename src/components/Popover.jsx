@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-const SPRING = { type: "spring", stiffness: 400, damping: 30 };
+const SPRING = { type: "spring", stiffness: 500, damping: 34, mass: 0.9 };
 
 export default function Popover({
   isOpen,

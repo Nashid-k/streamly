@@ -616,20 +616,10 @@ export function normalizeMovieSource(movie) {
   // Guard: never crash on null/undefined
   if (!movie || typeof movie !== 'object') return { source: null, sourceName: null };
 
-  // 1. If source is already a valid canonical key, use it — but always set sourceName to match
-  if (movie.source && PLATFORMS[movie.source]) {
-    return { ...movie, source: movie.source, sourceName: PLATFORMS[movie.source].name };
-  }
-
-  // 2. If source is a raw string, normalize it
-  if (movie.source && typeof movie.source === 'string') {
-    const key = normalizePlatformKey(movie.source);
-    if (key) {
-      return { ...movie, source: key, sourceName: PLATFORMS[key].name };
-    }
-  }
-
-  // 3. Try availablePlatforms — use the FIRST match (most relevant)
+  // 1. availablePlatforms is the source of truth — it lists every platform
+  //    a title is actually streaming on. Prefer it over `source` (which is only
+  //    which catalog the movie was fetched from, and is netflix-first when
+  //    aggregated). This is what makes platform labels correct on Home/rails.
   if (movie.availablePlatforms && Array.isArray(movie.availablePlatforms) && movie.availablePlatforms.length > 0) {
     for (const p of movie.availablePlatforms) {
       const match = PlatformAdapter.resolveFromRawName(p);
@@ -645,6 +635,19 @@ export function normalizeMovieSource(movie) {
         return { ...movie, source: rawKey, sourceName: PLATFORMS[rawKey].name };
       }
       return { ...movie, source: null, sourceName: rawFirst };
+    }
+  }
+
+  // 2. If source is already a valid canonical key, use it — but always set sourceName to match
+  if (movie.source && PLATFORMS[movie.source]) {
+    return { ...movie, source: movie.source, sourceName: PLATFORMS[movie.source].name };
+  }
+
+  // 3. If source is a raw string, normalize it
+  if (movie.source && typeof movie.source === 'string') {
+    const key = normalizePlatformKey(movie.source);
+    if (key) {
+      return { ...movie, source: key, sourceName: PLATFORMS[key].name };
     }
   }
 

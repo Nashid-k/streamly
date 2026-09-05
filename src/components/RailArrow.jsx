@@ -16,7 +16,7 @@ export default function RailArrow({ dir, onClick }) {
         top: "50%",
         transform: "translateY(-50%)",
         zIndex: 40,
-        background: "rgba(12,12,15,0.96)",
+        background: "rgba(12,12,15,0.9)",
         border: "1px solid rgba(255,255,255,0.16)",
         color: "rgba(255,255,255,0.92)",
         borderRadius: "50%",
@@ -26,8 +26,10 @@ export default function RailArrow({ dir, onClick }) {
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         boxShadow: "0 6px 20px rgba(0,0,0,0.6)",
-        transition: "background 0.2s, color 0.2s",
+        transition: "background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s",
       }}
     >
       {dir === "left" ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}

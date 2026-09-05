@@ -1026,7 +1026,10 @@ export default function Home({
             </AnimatePresence>
 
             <div className="hero-content">
-              <div
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 style={{
                   paddingBottom: "1rem",
                   willChange: "transform, opacity",
@@ -1146,7 +1149,7 @@ export default function Home({
                       : "My List"}
                   </motion.button>
                 </motion.div>
-              </div>
+              </motion.div>
             </div>
 
             {/* Navigation Dots — improved with larger touch targets */}

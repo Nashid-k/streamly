@@ -1242,13 +1242,13 @@ function Layout({ children }) {
 
       {/* Main Content Area with Page Transitions */}
       <main className="main-content" id="main-content">
-        <AnimatePresence mode="popLayout" initial={false}>
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             style={{ flex: 1 }}
           >
             {children}

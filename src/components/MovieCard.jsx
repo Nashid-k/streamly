@@ -7,6 +7,22 @@ import { getTMDBWeekdayShort } from "../utils/timezone";
 import { useNavigate } from "react-router-dom";
 import { movieService } from "../api/movieService";
 import { normalizePlatformKey, PlatformAdapter } from "../api/platformAdapter";
+
+// Resolve the badge platform for a card, matching normalizeMovieSource priority:
+// availablePlatforms (real availability) first, then the movie's own source.
+const normalizeAndResolvePlatform = (movie) => {
+  if (movie.availablePlatforms?.length) {
+    for (const p of movie.availablePlatforms) {
+      const key = normalizePlatformKey(p);
+      if (key) return key;
+    }
+  }
+  if (movie.source) {
+    const key = normalizePlatformKey(movie.source);
+    if (key) return key;
+  }
+  return null;
+};
 import { buildMovieAddedNotification } from "../utils/notificationEngine";
 import CountdownBadge from "./CountdownBadge";
 import { useAppAuth } from "../context/AuthContext";
@@ -24,31 +40,36 @@ import { useToast } from "./Toast";
    • Mouse enter/leave is on one element — can never get stuck
    ─────────────────────────────────────────────────────────────*/
 
-// Animation variants — defined outside component so they're stable refs
+// Animation variants — defined outside component so they're stable refs.
+// Stagger: scale first (instant lift), then dim + curtain slides up,
+// then title → meta → actions cascade in. Feels fast but layered.
+const EASE_OUT = [0.16, 1, 0.3, 1];
+
 const cardVariants = {
-  rest: { scale: 1, zIndex: 1, transition: { duration: 0.3, ease: "easeOut" } },
+  rest: { scale: 1, zIndex: 1, transition: { duration: 0.25, ease: "easeOut" } },
   hover: {
     scale: 1.06,
     zIndex: 20,
-    transition: { duration: 0.8, ease: "easeInOut" },
+    transition: { duration: 0.4, ease: EASE_OUT },
   },
 };
 const curtainVariants = {
-  rest: { opacity: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  rest: { opacity: 0, y: "24%", transition: { duration: 0.25, ease: "easeOut" } },
   hover: {
     opacity: 1,
-    transition: { duration: 0.6, delay: 0.8, ease: "easeOut" },
+    y: 0,
+    transition: { duration: 0.45, delay: 0.2, ease: EASE_OUT },
   },
 };
 
 const imageVariants = {
   rest: {
     filter: "brightness(1) saturate(1)",
-    transition: { duration: 0.4, ease: "easeOut" },
+    transition: { duration: 0.3, ease: "easeOut" },
   },
   hover: {
-    filter: "brightness(0.65) saturate(1.2)",
-    transition: { duration: 0.8, delay: 0.8, ease: "easeOut" },
+    filter: "brightness(0.6) saturate(1.25)",
+    transition: { duration: 0.45, delay: 0.18, ease: EASE_OUT },
   },
 };
 
@@ -57,7 +78,7 @@ const titleVariants = {
   hover: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: 0.85, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.35, delay: 0.35, ease: EASE_OUT },
   },
 };
 
@@ -66,7 +87,7 @@ const metaVariants = {
   hover: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: 0.9, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.35, delay: 0.43, ease: EASE_OUT },
   },
 };
 
@@ -75,7 +96,7 @@ const btnVariants = {
   hover: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: 0.95, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.35, delay: 0.5, ease: EASE_OUT },
   },
 };
 import { PrefetchAdapter } from "../api/prefetchAdapter";
@@ -257,11 +278,7 @@ export default function MovieCard({
 
             {/* Platform Badge */}
             {(() => {
-              const platformKey =
-                (movie.source && normalizePlatformKey(movie.source)) ||
-                (movie.availablePlatforms &&
-                  movie.availablePlatforms.length &&
-                  normalizePlatformKey(movie.availablePlatforms[0]));
+              const platformKey = normalizeAndResolvePlatform(movie);
               if (!platformKey) return null;
               const iconXs = platformBadge === "xs";
               return (
