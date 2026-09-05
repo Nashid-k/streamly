@@ -398,6 +398,7 @@ const CustomVideoPlayer = ({
   const controlsTimeoutRef = useRef(null);
   const clickTimeoutRef = useRef(null);
   const progressBarRef = useRef(null);
+  const progressTrackRef = useRef(null); // the actual bar (inside the padded hit area)
   const targetSeekTimeRef = useRef(null);
   const seekAccumulatorRef = useRef(0);
   const seekTimeoutRef = useRef(null);
@@ -847,17 +848,31 @@ const CustomVideoPlayer = ({
       video.addEventListener('loadedmetadata', handleLoadedMetadata);
 
       const handleTimeUpdate = () => {
-        setCurrentTime(video.currentTime);
+        const t = video.currentTime;
+        const target = targetSeekTimeRef.current;
+        if (target != null) {
+          // A programmatic seek is pending (bar click / keyboard / buttons).
+          // While the stream buffers toward the target the element can still
+          // report stale pre-seek positions — ignore frames far from the
+          // requested spot so the bar/loader never jump past where the user
+          // clicked. Accept + clear the marker once playback reaches it.
+          if (Math.abs(t - target) > 1.2) {
+            setDuration(video.duration || 0);
+            return;
+          }
+          targetSeekTimeRef.current = null; // reached the target
+        }
+        setCurrentTime(t);
         setDuration(video.duration || 0);
         if (hasSubtitlesRef.current) {
-          const cue = subtitleEngineRef.current.getActiveCue(video.currentTime);
+          const cue = subtitleEngineRef.current.getActiveCue(t);
           setActiveSubtitleCue((p) => p?.start === cue?.start && p?.end === cue?.end ? p : cue);
         }
         // Debounce progress writes to Firestore — max once per 10 seconds
         const now = Date.now();
         if (now - lastProgressWriteRef.current > 10000) {
           lastProgressWriteRef.current = now;
-          onProgressUpdate?.(video.currentTime, video.duration);
+          onProgressUpdate?.(t, video.duration);
         }
       };
       video.addEventListener('timeupdate', handleTimeUpdate);
@@ -872,8 +887,21 @@ const CustomVideoPlayer = ({
       const handlePlay = () => setIsPlaying(true);
       const handlePause = () => setIsPlaying(false);
       const handleWaiting = () => setIsLoading(true);
-      const handlePlaying = () => setIsLoading(false);
+      const handlePlaying = () => {
+        setIsLoading(false);
+        // Playback really resumed — drop any leftover seek marker and realign
+        // the UI to the element's actual position so it can't lag the stream.
+        if (targetSeekTimeRef.current != null) {
+          targetSeekTimeRef.current = null;
+          setCurrentTime(video.currentTime);
+        }
+      };
       const handleCanPlay = () => setIsLoading(false);
+      const handleSeeking = () => { /* loading is surfaced via 'waiting' */ };
+      const handleSeeked = () => {
+        targetSeekTimeRef.current = null;
+        setIsLoading(false);
+      };
       const handleEnded = () => {
         setIsPlaying(false);
         startUpNextCountdown();
@@ -885,6 +913,8 @@ const CustomVideoPlayer = ({
       video.addEventListener('waiting', handleWaiting);
       video.addEventListener('playing', handlePlaying);
       video.addEventListener('canplay', handleCanPlay);
+      video.addEventListener('seeking', handleSeeking);
+      video.addEventListener('seeked', handleSeeked);
       video.addEventListener('ended', handleEnded);
       video.addEventListener('error', handleError);
 
@@ -1018,6 +1048,8 @@ const CustomVideoPlayer = ({
         video.removeEventListener('waiting', handleWaiting);
         video.removeEventListener('playing', handlePlaying);
         video.removeEventListener('canplay', handleCanPlay);
+        video.removeEventListener('seeking', handleSeeking);
+        video.removeEventListener('seeked', handleSeeked);
         video.removeEventListener('ended', handleEnded);
         video.removeEventListener('error', handleError);
         if (thumbnailIntervalRef.current) clearInterval(thumbnailIntervalRef.current);
@@ -1436,8 +1468,11 @@ const CustomVideoPlayer = ({
 
   /* Progress Bar */
   const handleProgressScrub = useCallback((e) => {
-    if (!progressBarRef.current || !duration) return;
-    const r = progressBarRef.current.getBoundingClientRect();
+    // Measure against the actual TRACK — the outer element has horizontal
+    // padding, so this makes the seek land exactly where the pointer is.
+    const el = progressTrackRef.current || progressBarRef.current;
+    if (!el || !duration) return;
+    const r = el.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - r.left, r.width));
     const nt = (x / r.width) * duration;
     setCurrentTime(nt);
@@ -1450,13 +1485,17 @@ const CustomVideoPlayer = ({
   }, [duration, isDirectStream, sendCommand]);
 
   const handleProgressHover = useCallback((e) => {
-    if (!progressBarRef.current || !duration) return;
-    const r = progressBarRef.current.getBoundingClientRect();
-    let x = Math.max(0, Math.min(e.clientX - r.left, r.width));
-    // Keep the 170px preview tooltip fully on-screen (it's centered on x)
-    x = Math.max(90, Math.min(x, r.width - 90));
-    setHoverX(x);
+    const outer = progressBarRef.current;
+    const trackEl = progressTrackRef.current;
+    if (!outer || !trackEl || !duration) return;
+    // Time is derived from the real track; the tooltip is positioned at the
+    // pointer inside the padded hit area (clamped so it never leaves the screen).
+    const r = trackEl.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - r.left, r.width));
     setHoverTime((x / r.width) * duration);
+    const outerR = outer.getBoundingClientRect();
+    const tooltipX = Math.max(outerR.left + 90, Math.min(e.clientX, outerR.right - 90));
+    setHoverX(tooltipX - outerR.left);
   }, [duration]);
 
   const onProgressMouseDown = (e) => {
@@ -2872,16 +2911,22 @@ const CustomVideoPlayer = ({
                 )}
               </AnimatePresence>
               {/* Track */}
-              <div style={{
+              <div
+                ref={progressTrackRef}
+                style={{
                 position: isFullscreen ? "fixed" : "relative", width: "100%",
                 height: hoverTime != null || isScrubbing ? 5 : 3,
                 background: "rgba(255,255,255,0.12)",
                 borderRadius: 3,
                 transition: "height 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
               }}>
-                {duration > 0 && <div style={{
-                  position: "absolute", inset: 0, width: `${Math.min(bp, 100)}%`,
-                  background: "rgba(255,255,255,0.12)", borderRadius: 3,
+                {/* Buffered — drawn only AHEAD of the playhead so it can never
+                    extend past a scrubbed/clicked position. */}
+                {duration > 0 && bp > pp && <div style={{
+                  position: "absolute", inset: 0,
+                  left: `${Math.min(pp, 100)}%`,
+                  width: `${Math.min(bp - pp, 100 - pp)}%`,
+                  background: "rgba(255,255,255,0.14)", borderRadius: 3,
                   transition: "width 0.3s ease",
                 }} />}
                 {duration > 0 && <div style={{
