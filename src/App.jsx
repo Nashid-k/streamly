@@ -106,6 +106,15 @@ function Layout({ children }) {
 
   const unreadCount = useMemo(() => (notifications || []).filter((n) => !n.isRead).length, [notifications]);
 
+  // Close any signed-in-only menus if auth drops (prevents rendering menu
+  // content while `user` is undefined during the popover exit animation).
+  useEffect(() => {
+    if (!user) {
+      setShowUserMenu(false);
+      setShowNotifications(false);
+    }
+  }, [user]);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const userMenuRef = useRef(null);
@@ -1141,7 +1150,7 @@ function Layout({ children }) {
                         color: "#fff",
                       }}
                     >
-                      {user.displayName || "Streamer"}
+                      {user?.displayName || "Streamer"}
                     </div>
                     <div
                       style={{
@@ -1153,7 +1162,7 @@ function Layout({ children }) {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {user.email}
+                      {user?.email || ""}
                     </div>
                   </div>
 

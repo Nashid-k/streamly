@@ -1,7 +1,7 @@
 {
-  "installCommand": "cd streamly-frontend && npm install",
-  "buildCommand": "cd streamly-frontend && npm run build",
-  "outputDirectory": "streamly-frontend/dist",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/index.html",

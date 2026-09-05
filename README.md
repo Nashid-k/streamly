@@ -1,229 +1,299 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/Streamly-Streaming_Platform-FF6B00?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik04IDV2MTRsMTEtN3oiLz48L3N2Zz4=" />
-
-# Streamly
-
-### A modern, full-stack streaming discovery platform
+# 🎨 Streamly — Frontend
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
-[![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
+[![TanStack Query](https://img.shields.io/badge/TanStack_Query-v5-FF4154?logo=reactquery&logoColor=white)](https://tanstack.com/query)
+[![Framer Motion](https://img.shields.io/badge/Framer_Motion-13-0055FF?logo=framer&logoColor=white)](https://www.framer.com/motion)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth+Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
-[![TMDB](https://img.shields.io/badge/TMDB-API-01D277?logo=themoviedatabase&logoColor=white)](https://www.themoviedb.org)
-[![Vercel](https://img.shields.io/badge/Frontend-Vercel-000?logo=vercel)](https://vercel.com)
-[![Render](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
+[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000?logo=vercel)](https://vercel.com)
+
+**React 19 SPA — the Streamly user interface**
 
 </div>
 
 ---
 
-## ✨ What is Streamly?
+## 📋 Table of Contents
 
-Streamly is a Netflix-inspired streaming discovery platform that aggregates content from **7 OTT platforms** — Netflix, Prime Video, Hotstar, Apple TV+, Zee5, Sony LIV, and JioCinema — into one beautiful, fast interface.
-
-> Browse, search, watch trailers, track your progress, and manage your personal watchlist — all in one place.
-
----
-
-## 🗺️ Project Structure
-
-### Repositories
-
-| Repository | Description | Deployed To |
-|---|---|---|
-| [`streamly-frontend`](https://github.com/Nashid-k/streamly-frontend) | React 19 SPA + Vite | Vercel |
-| [`streamly-backend`](https://github.com/Nashid-k/streamly-backend) | NestJS API + Stream Service | Render |
-
-### Frontend Repo (`streamly-frontend`)
-
-```
-streamly-frontend/
-└── frontend/                ← React 19 SPA (Vite) in streamly-frontend/
-    ├── src/
-    │   ├── api/             ← fetch() wrappers for backend
-    │   ├── components/      ← Reusable UI (MovieCard, AuthModal, Toast…)
-    │   ├── context/         ← AuthContext (Firebase Auth + Firestore)
-    │   ├── hooks/           ← useAuth, useMyList, useContinueWatching
-    │   ├── pages/           ← Route-level pages
-    │   └── firebase.js      ← Firebase web SDK init
-    └── README.md
-```
-
-### Backend Repo (`streamly-backend`)
-
-```
-streamly-backend/
-├── src/                     ← NestJS API (TypeScript)
-│   ├── auth/                ← Firebase ID token verification + Firestore user data
-│   ├── movies/              ← TMDB catalog, search, streaming
-│   └── firebase/            ← Firebase Admin SDK module
-│
-└── stream-service/          ← Playwright m3u8 extraction service
-    ├── server.js            ← Express server (port 3001)
-    └── Dockerfile           ← Render deployment
-```
+- [Setup](#-setup)
+- [Environment Variables](#-environment-variables)
+- [Project Structure](#-project-structure)
+- [Firebase Integration](#-firebase-integration)
+- [Pages & Routes](#-pages--routes)
+- [Components](#-components)
+- [Hooks & Context](#-hooks--context)
+- [Keyboard Shortcuts](#-keyboard-shortcuts)
+- [Deployment](#-deployment)
 
 ---
 
-## 🏗️ Architecture
-
-```
-Browser (React 19 + Vite)
-    │
-    │  HTTPS / REST (via Vercel proxy)
-    ▼
-Vercel (Frontend)
-    │
-    │  /api/* → proxy to Render
-    ▼
-NestJS API (Render)
-    ├── Firebase Admin SDK  ←── verifies ID tokens from browser
-    ├── TMDB API            ←── movie metadata + catalog
-    └── Firestore           ←── myList, continueWatching per user
-
-Stream Service (Render) ←── Playwright extracts m3u8 URLs from CineSrc
-    └── Returns direct HLS streams for native <video> playback
-
-Firebase (Google Cloud)
-    ├── Authentication      ←── email/password sign-in
-    ├── Firestore           ←── user data storage
-    └── Analytics           ←── usage telemetry
-```
-
----
-
-## 🚀 Quick Start (Local Development)
-
-### Prerequisites
-
-| Tool | Version |
-|---|---|
-| Node.js | ≥ 18 |
-| npm | ≥ 9 |
-
-### 1. Clone the repos
+## ⚡ Setup
 
 ```bash
-# Frontend
-git clone https://github.com/Nashid-k/streamly-frontend.git
+# Install dependencies
+npm install
 
-# Backend (separate repo)
-git clone https://github.com/Nashid-k/streamly-backend.git
-```
-
-### 2. Install dependencies
-
-```bash
-# Frontend
-cd streamly-frontend/frontend && npm install
-
-# Backend
-cd streamly-backend && npm install
-
-# Stream Service
-cd streamly-backend/stream-service && npm install
-```
-
-### 3. Configure environment variables
-
-```bash
-# Frontend
-cp streamly-frontend/.env.example streamly-frontend/.env
-# → Fill in: VITE_FIREBASE_API_KEY, etc.
-
-# Backend
+# Copy env template and fill in your values
 cp .env.example .env
-# → Fill in: TMDB_API_KEY, FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
+
+# Start dev server → http://localhost:5173
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build locally
+npm run preview
+
+# Lint
+npm run lint
 ```
 
-### 4. Run locally
+---
+
+## 🔑 Environment Variables
+
+Create a `.env` file in `frontend/` with the following:
 
 ```bash
-# Backend (http://localhost:4000)
-cd streamly-backend && npm run start:dev
+# ─── Backend API ──────────────────────────────────────────────────────────────
+VITE_API_URL=http://localhost:4000/api
+# Production: VITE_API_URL=https://streamly-backend-9q7i.onrender.com/api
 
-# Frontend (http://localhost:5173)
-cd streamly-frontend/frontend && npm run dev
+# ─── Firebase Web SDK ─────────────────────────────────────────────────────────
+# Get from: Firebase Console → Project Settings → Your apps → Web app config
+VITE_FIREBASE_API_KEY=AIzaSy...
+VITE_FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-app-id
+VITE_FIREBASE_STORAGE_BUCKET=your-app.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abc123
+VITE_FIREBASE_MEASUREMENT_ID=G-XXXXXXXX
+```
 
-# Stream Service (http://localhost:3001) — optional, for direct HLS playback
-cd streamly-backend/stream-service && npm start
+> ✅ These are the **public web config** values — safe to commit and add to Vercel dashboard.
+> Only `VITE_`-prefixed variables are exposed to the browser bundle.
+
+---
+
+## 🗂️ Project Structure
+
+```
+frontend/src/
+├── main.jsx                         ← React root: QueryClient, AuthProvider, ToastProvider
+├── App.jsx                          ← Top-level router, navbar, page transitions
+├── ServerWakeupNotification.jsx     ← "Server waking up…" cold-start banner
+├── index.css                        ← Global CSS, variables, animations, skeleton loader
+├── utils.js                         ← Shared utility functions
+│
+├── firebase.js                      ← Firebase app init — exports auth & db singletons
+│
+├── api/
+│   └── movieService.js              ← fetch() wrappers for all backend /api/movies endpoints
+│
+├── context/
+│   └── AuthContext.jsx              ← AuthProvider + useAppAuth() — merges Firebase auth,
+│                                       myList, and continueWatching into one context
+│
+├── hooks/
+│   ├── useUserData.js               ← useAuth, useMyList, useContinueWatching
+│   │                                   (Firestore when signed in, localStorage for guests)
+│   └── useDebounce.js               ← Search input debounce
+│
+├── components/
+│   ├── AuthModal.jsx                ← Glass-panel Sign In / Sign Up modal (Firebase Auth)
+│   ├── MovieCard.jsx                ← Cinematic hover card with glass curtain effect
+│   ├── ConfirmDialog.jsx            ← Animated confirmation modal
+│   ├── Toast.jsx                    ← Notification toast system
+│   ├── GlobalShortcuts.jsx          ← Keyboard shortcut handler + help modal
+│   ├── Loader.jsx                   ← Full-page loading spinner
+│   ├── BackToTop.jsx                ← Scroll-to-top floating button
+│   └── ErrorBoundary.jsx            ← React error boundary
+│
+└── pages/
+    ├── Home.jsx                     ← Main landing: featured banner, category rows, Top 10
+    ├── MovieDetails.jsx             ← Video player + metadata, season/episode picker
+    ├── SearchPage.jsx               ← Search results with genre & platform filters
+    ├── GenrePage.jsx                ← Genre-filtered movie catalog
+    ├── CategoryPage.jsx             ← Single category drill-down
+    ├── WatchlistPage.jsx            ← My List page
+    ├── HistoryPage.jsx              ← Continue Watching / watch history
+    └── PersonDetails.jsx            ← Actor / director filmography page
 ```
 
 ---
 
-## 🔥 Features
+## 🔥 Firebase Integration
 
-| Feature | Detail |
-|---|---|
-| **7 Platforms** | Netflix, Prime Video, Hotstar, Apple TV+, Zee5, Sony LIV, JioCinema |
-| **Firebase Auth** | Email/password sign-up & sign-in |
-| **Cloud Sync** | My List & Continue Watching synced to Firestore |
-| **Guest Mode** | Full browsing with localStorage fallback (no sign-in required) |
-| **Search** | Cross-platform search with actor/director cards |
-| **Genres** | Dynamic genre pages per platform |
-| **Top 10** | Real-time TMDB popularity-based rankings |
-| **Direct HLS** | Native `<video>` playback via Playwright stream extraction |
-| **Keyboard Shortcuts** | Full keyboard navigation (`Ctrl+K`, `?`, arrow keys) |
-| **Responsive** | Mobile-first with a persistent bottom nav bar |
-| **Cinematic UI** | Glass-panel hover cards, Framer Motion animations |
+### Auth flow
+
+```
+User clicks sign-in icon in navbar
+    │
+    ▼
+AuthModal opens (Sign In / Sign Up tabs)
+    │  createUserWithEmailAndPassword()
+    │  signInWithEmailAndPassword()
+    ▼
+Firebase Auth → returns User + ID Token
+    │
+    │  onAuthStateChanged() listener in useAuth()
+    ▼
+AuthContext updates { user } across the whole app
+    │
+    ├── User avatar shows initials in navbar
+    ├── My List syncs to Firestore  /users/{uid}/myList
+    └── Continue Watching syncs to /users/{uid}/continueWatching
+```
+
+### Guest mode
+
+Users who are **not signed in** still get full functionality:
+- My List → stored in `localStorage` (`aios_my_list`)
+- Continue Watching → stored in `localStorage` (`aios_continue_watching`)
+- On sign-in, localStorage data is **automatically migrated** to Firestore
+
+### Firestore security rules
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
 
 ---
 
-## 🛠️ Tech Stack
+## 📄 Pages & Routes
 
-### Frontend
-- **React 19** — UI framework
-- **Vite 8** — Build tool & dev server
-- **TanStack Query v5** — Server state, caching, deduplication
-- **Framer Motion** — Animations & transitions
-- **React Router v7** — Client-side routing
-- **Firebase Web SDK** — Auth & Firestore client
-- **HLS.js** — Native HLS video playback
-- **Lucide React** — Icon library
-
-### Backend
-- **NestJS 10** — TypeScript API framework
-- **Firebase Admin SDK v14** — Token verification & Firestore server access
-- **TMDB API** — Movie & TV metadata
-- **@nestjs/cache-manager** — 4-hour in-memory response cache
-- **compression** — Gzip middleware
-
-### Stream Service
-- **Express** — Lightweight HTTP server
-- **Playwright** — Headless Chromium for m3u8 extraction
-- **Docker** — Containerized deployment on Render
-
----
-
-## 📡 Deployment
-
-| Service | Platform | URL |
+| Route | Page | Description |
 |---|---|---|
-| Frontend | **Vercel** | [streamlyvercelin.vercel.app](https://streamlyvercelin.vercel.app) |
-| Backend API | **Render** | [streamly-backend-9q7i.onrender.com](https://streamly-backend-9q7i.onrender.com) |
-| Stream Service | **Render** | Deploy separately using `stream-service/Dockerfile` |
+| `/` | Home | All platforms, featured banner, categories |
+| `/series` | Home (filter: series) | TV shows only |
+| `/movies` | Home (filter: movies) | Movies only |
+| `/new` | Home (filter: new) | New & popular arrivals |
+| `/anime` | Home (filter: anime) | Anime collection |
+| `/search` | SearchPage | Search with `?q=` query param |
+| `/genre/:genre` | GenrePage | Genre-filtered catalog |
+| `/category/:name` | CategoryPage | Single category drill-down |
+| `/movie/:platform/:id` | MovieDetails | Player + full metadata |
+| `/person/:id` | PersonDetails | Actor/director page |
+| `/mylist` | WatchlistPage | Saved movies |
+| `/history` | HistoryPage | Continue watching / history |
 
-### Vercel Environment Variables
+---
 
-Set these in Vercel Dashboard → Settings → Environment Variables:
+## 🧩 Components
+
+### `AuthModal`
+- Firebase email/password Sign In & Sign Up
+- Animated tab switcher, password visibility toggle
+- Inline error messages with Firebase error code mapping
+- Glass-morphism panel with spring animation
+
+### `MovieCard`
+- Cinematic curtain hover effect (Framer Motion `whileHover`)
+- Shows: title, rating, year, platform badge, genre tags
+- Quick-add to My List without leaving the page
+
+### `Toast`
+- Notification system with queue management
+- Auto-dismiss with configurable duration
+- Types: success, error, info
+
+### `GlobalShortcuts`
+- `Ctrl+K` / `Cmd+K` — focus search
+- `?` / `Shift+?` — open keyboard shortcuts modal
+- Arrow keys — navigate search dropdown results
+
+---
+
+## 🎹 Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+K` / `Cmd+K` | Focus search bar |
+| `Shift+?` | Open shortcuts reference modal |
+| `↑` / `↓` | Navigate search dropdown |
+| `Enter` | Open selected search result |
+| `Escape` | Close any open dropdown / modal |
+
+---
+
+## 🪝 Hooks & Context
+
+### `useAppAuth()` — primary hook (use this everywhere)
+
+```js
+import { useAppAuth } from '../context/AuthContext';
+
+const {
+  user,               // Firebase User | null
+  loading,            // boolean — auth state resolving
+  register,           // (email, password, name) => Promise<User>
+  login,              // (email, password) => Promise<User>
+  logout,             // () => Promise<void>
+  myList,             // movie[] — from Firestore or localStorage
+  toggleMyList,       // (movie) => void
+  isInList,           // (id) => boolean
+  continueWatching,   // item[] — sorted by lastWatched
+  updateProgress,     // (movie, season?, episode?) => void
+  removeFromContinueWatching, // (movieId) => void
+} = useAppAuth();
+```
+
+### `useDebounce(value, delay)`
+
+```js
+import { useDebounce } from '../hooks/useDebounce';
+const debouncedQuery = useDebounce(searchQuery, 400);
+```
+
+### `movieService` — API client
+
+```js
+import { movieService } from '../api/movieService';
+
+await movieService.searchMovies(query);
+await movieService.getFeaturedMovies();
+await movieService.getCategories(platform);
+await movieService.getMovieDetails(id, platform);
+await movieService.getSimilarMovies(id, platform);
+await movieService.getSeasonEpisodes(id, seasonNumber, platform);
+await movieService.getPersonDetails(id);
+```
+
+---
+
+## 🚀 Deployment
+
+Deployed on **Vercel** with automatic preview deployments for every pull request.
+
+### Vercel environment variables (add in dashboard)
 
 | Variable | Value |
 |---|---|
-| `VITE_API_URL` | `/api` (proxied via vercel.json) |
-| `VITE_STREAM_SERVICE_URL` | `https://your-stream-service.onrender.com` |
+| `VITE_API_URL` | `https://streamly-backend-9q7i.onrender.com/api` |
+| `VITE_FIREBASE_API_KEY` | from Firebase console |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `streamly-731c4.firebaseapp.com` |
+| `VITE_FIREBASE_PROJECT_ID` | `streamly-731c4` |
+| `VITE_FIREBASE_STORAGE_BUCKET` | `streamly-731c4.firebasestorage.app` |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | from Firebase console |
+| `VITE_FIREBASE_APP_ID` | from Firebase console |
+| `VITE_FIREBASE_MEASUREMENT_ID` | from Firebase console |
+
+### `vercel.json`
+
+The included `vercel.json` configures SPA routing — all paths fall back to `index.html` so React Router handles navigation.
 
 ---
 
-## 📄 Documentation
+## 📖 More Documentation
 
-| Document | Location |
-|---|---|
-| Frontend setup | [`streamly-frontend/README.md`](streamly-frontend/README.md) |
-| Frontend Git guide | [`streamly-frontend/GIT.md`](streamly-frontend/GIT.md) |
-| Backend API & setup | [`streamly-backend` repo](https://github.com/Nashid-k/streamly-backend) |
-
----
-
-## 📜 License
-
-MIT © Nashid-k
+- [Git workflow guide](GIT.md)
