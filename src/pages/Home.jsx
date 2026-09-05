@@ -63,6 +63,7 @@ const MovieRail = React.memo(
     const isDynamicRail =
       category.name === "Continue Watching" ||
       category.name === "My List" ||
+      category.name === "Releases This Month" ||
       category.name === "Coming This Month" ||
       category.name.startsWith("Because you watched");
 
@@ -764,12 +765,7 @@ export default function Home({
     });
   }, [platformLookup]);
 
-  // Real cross-platform Top 10 from the backend (ranked, not a client-side shuffle)
-  const top10Movies = useMemo(
-    () => enrichWithPlatforms(applyPageFilter(asArray(top10Data)).slice(0, 10)).map(normalizeMovieSource),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [top10Data, filter, enrichWithPlatforms],
-  );
+  // Real cross-platform Top 10 from the backend (ranked, not a client-side shuffle).
 
   const trendingThisWeek = useMemo(
     () => enrichWithPlatforms(applyPageFilter(asArray(trendingData)).slice(0, 20)).map(normalizeMovieSource),
@@ -809,6 +805,30 @@ export default function Home({
       .map(enrichWithPlatforms);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [airingData, airingThisWeek, trendingData, top10Data, featuredData, rawCategories, filter, enrichWithPlatforms]);
+
+  // Top 10 — backend rank first, padded to a full 10 per tab. The backend
+  // list is filtered per page type, which can leave fewer than 10 (e.g. only a
+  // handful of movies on the "Movies" tab). Pad the rest with tab-filtered
+  // trending/airing/upcoming entries, deduped by id so the real backend
+  // ranking keeps leading and the rank badges always count 1–10.
+  const top10Movies = useMemo(() => {
+    const ranked = enrichWithPlatforms(applyPageFilter(asArray(top10Data)))
+      .map(normalizeMovieSource)
+      .slice(0, 10);
+    if (ranked.length >= 10) return ranked;
+
+    const seen = new Set(ranked.map((m) => m.id));
+    const padded = [...ranked];
+    for (const m of [...trendingThisWeek, ...airingThisWeek, ...comingThisMonth]) {
+      if (m && m.id && !seen.has(m.id)) {
+        seen.add(m.id);
+        padded.push(m);
+        if (padded.length >= 10) break;
+      }
+    }
+    return padded;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [top10Data, filter, trendingThisWeek, airingThisWeek, comingThisMonth, enrichWithPlatforms]);
 
   const lastWatched =
     continueWatching && continueWatching.length > 0
@@ -1353,26 +1373,25 @@ export default function Home({
         </div>
       )}
 
-      {/* Releases This Week + Leaving Soon — only on home page */}
+      {/* Leaving Soon — home page only */}
       {!loading && filter === 'all' && activeGenre === 'All' && (
-        <>
-          {/* Leaving Soon Alerts */}
-          <LeavingSoonBanner items={detectLeavingSoon(
-            categories.flatMap(c => c.movies || []), 14
+<LeavingSoonBanner items={detectLeavingSoon(
+            categories.flatMap(c => (Array.isArray(c.movies) ? c.movies : [])), 14
           )} />
+      )}
 
-          {/* Releases This Week — standard rail UI, identical to the other rails */}
-          {airingThisWeek.length > 0 && (
-            <FadeInSection>
-              <ErrorBoundary>
-                <MovieRail
-                  railIndex={0}
-                  category={{ name: "Releases This Week", movies: airingThisWeek }}
-                />
-              </ErrorBoundary>
-            </FadeInSection>
-          )}
-        </>
+      {/* Releases This Month — standard rail UI on every tab; tab-filtered
+          (all on Home, movies/series/anime on their pages) exactly like the
+          Coming This Month rail. */}
+      {!loading && filter !== "new" && activeGenre === "All" && comingThisMonth.length > 0 && (
+        <FadeInSection>
+          <ErrorBoundary>
+            <MovieRail
+              railIndex={0}
+              category={{ name: "Releases This Month", movies: comingThisMonth }}
+            />
+          </ErrorBoundary>
+        </FadeInSection>
       )}
 
       {/* Categories Section */}
@@ -1461,29 +1480,7 @@ export default function Home({
                 </ErrorBoundary>
               </FadeInSection>
             )}
-            {/* 5. Airing This Week — only outside Home, where Releases This Week isn't shown */}
-            {filter !== "all" && filter !== "movies" && filter !== "anime" && airingThisWeek.length > 0 && activeGenre === "All" && (
-              <FadeInSection>
-                <ErrorBoundary>
-                  <MovieRail
-                    railIndex={4}
-                    category={{ name: 'Airing This Week', movies: airingThisWeek }}
-                  />
-                </ErrorBoundary>
-              </FadeInSection>
-            )}
-            {/* 5b. Coming This Month — premieres + new episodes with real dates */}
-            {filter !== "new" && activeGenre === "All" && comingThisMonth.length > 0 && (
-              <FadeInSection>
-                <ErrorBoundary>
-                  <MovieRail
-                    railIndex={5}
-                    category={{ name: 'Coming This Month', movies: comingThisMonth }}
-                  />
-                </ErrorBoundary>
-              </FadeInSection>
-            )}
-            {/* 6. My List */}
+            {/* 5. My List */}
             {myList && myList.length > 0 && filter === "all" && (
               <FadeInSection>
                 <ErrorBoundary>
