@@ -17,7 +17,6 @@ import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
 import RailArrow from "../components/RailArrow";
 import { PLATFORMS, normalizePlatformKey, normalizeMovieSource } from "../api/platformAdapter";
-import WeeklyCalendar from "../components/WeeklyCalendar";
 import LeavingSoonBanner from "../components/LeavingSoonBanner";
 import { detectLeavingSoon, buildUpcomingThisMonth } from "../utils/releaseCalendar";
 
@@ -1354,7 +1353,7 @@ export default function Home({
         </div>
       )}
 
-      {/* Weekly Calendar + Leaving Soon — only on home page */}
+      {/* Releases This Week + Leaving Soon — only on home page */}
       {!loading && filter === 'all' && activeGenre === 'All' && (
         <>
           {/* Leaving Soon Alerts */}
@@ -1362,11 +1361,17 @@ export default function Home({
             categories.flatMap(c => c.movies || []), 14
           )} />
 
-          {/* Weekly Release Calendar */}
-          <WeeklyCalendar
-            items={airingThisWeek.length > 0 ? airingThisWeek : categories.flatMap(c => c.movies || [])}
-            title="Releases This Week"
-          />
+          {/* Releases This Week — standard rail UI, identical to the other rails */}
+          {airingThisWeek.length > 0 && (
+            <FadeInSection>
+              <ErrorBoundary>
+                <MovieRail
+                  railIndex={0}
+                  category={{ name: "Releases This Week", movies: airingThisWeek }}
+                />
+              </ErrorBoundary>
+            </FadeInSection>
+          )}
         </>
       )}
 
@@ -1456,8 +1461,8 @@ export default function Home({
                 </ErrorBoundary>
               </FadeInSection>
             )}
-            {/* 5. Airing This Week */}
-            {filter !== "movies" && filter !== "anime" && airingThisWeek.length > 0 && activeGenre === "All" && (
+            {/* 5. Airing This Week — only outside Home, where Releases This Week isn't shown */}
+            {filter !== "all" && filter !== "movies" && filter !== "anime" && airingThisWeek.length > 0 && activeGenre === "All" && (
               <FadeInSection>
                 <ErrorBoundary>
                   <MovieRail
