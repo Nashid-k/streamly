@@ -172,11 +172,12 @@ export default function SearchPage() {
                 }
               }}
               placeholder="Search movies, shows..."
+              aria-label="Refine search"
               style={{
                 width: "100%",
-                background: "rgba(24,24,27,0.8)",
+                background: "rgba(255,255,255,0.06)",
                 border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "12px",
+                borderRadius: "var(--radius-lg)",
                 padding: "0.75rem 1rem 0.75rem 2.75rem",
                 fontSize: "1rem",
                 color: "#fff",
@@ -240,23 +241,8 @@ export default function SearchPage() {
                     onClick={() => setFilterType(f)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    style={{
-                      background:
-                        filterType === f ? "#fff" : "rgba(255,255,255,0.08)",
-                      color: filterType === f ? "#000" : "#fff",
-                      border:
-                        "1px solid " +
-                        (filterType === f
-                          ? "transparent"
-                          : "rgba(255,255,255,0.1)"),
-                      padding: "6px 16px",
-                      borderRadius: "100px",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition:
-                        "background 0.2s, color 0.2s, border-color 0.2s",
-                    }}
+                    aria-pressed={filterType === f}
+                    className={`chip ${filterType === f ? "chip--active" : ""}`}
                   >
                     {f}
                   </motion.button>
@@ -280,24 +266,10 @@ export default function SearchPage() {
                     onClick={() => setSortBy(opt.value)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    aria-pressed={sortBy === opt.value}
+                    className={`chip ${sortBy === opt.value ? "chip--active" : ""}`}
                     style={{
-                      background:
-                        sortBy === opt.value
-                          ? "rgba(255,255,255,0.13)"
-                          : "rgba(255,255,255,0.05)",
-                      color: sortBy === opt.value ? "#fff" : "#a1a1aa",
-                      border:
-                        "1px solid " +
-                        (sortBy === opt.value
-                          ? "rgba(255,255,255,0.28)"
-                          : "rgba(255,255,255,0.08)"),
-                      padding: "5px 13px",
-                      borderRadius: "100px",
                       fontSize: "0.82rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.15s",
                     }}
                   >
                     {opt.label}

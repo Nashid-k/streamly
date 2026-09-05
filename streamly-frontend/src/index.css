@@ -321,6 +321,114 @@ a {
   border-color: rgba(255,255,255,0.15);
 }
 
+/* ── Design System Primitives ─────────────────────────────── */
+/* Shared glass popover/dropdown surface. Replaces the repeatedly
+   copy-pasted inline recipe (rgba(9,9,11,0.85) + blur(24px) + border). */
+.glass-popover {
+  position: absolute;
+  top: 120%;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 255, 255, 0.05);
+  z-index: var(--z-modal);
+  overflow: hidden;
+}
+
+.glass-popover--scrollable {
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+/* Shared menu item row (used by user menu, dropdown options). */
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  outline: none;
+}
+.menu-item--danger {
+  color: var(--error-color);
+}
+.menu-item--danger:hover,
+.menu-item--danger:focus-visible {
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+}
+
+.menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
+  border: none;
+}
+
+/* Shared filter/pill chip — one source of truth for active state. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.chip:hover,
+.chip:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.18);
+  outline: none;
+}
+.chip:active {
+  transform: scale(0.97);
+}
+.chip--active {
+  background: var(--accent-gradient);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.28);
+}
+.chip--active:hover,
+.chip--active:focus-visible {
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
+/* Small uppercase meta label used in dropdown headers. */
+.label-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 /* Main Content */
 .main-content {
   flex: 1;
@@ -719,6 +827,36 @@ a {
   background: rgba(244, 63, 94, 0.22) !important;
   border-color: rgba(244, 63, 94, 0.6) !important;
   color: #f43f5e !important;
+}
+
+/* Mobile-only quick list toggle — appears on the poster corner for
+   touch devices where the hover curtain (Watch/List buttons) is unreachable. */
+.card-quick-list {
+  display: none;
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 12;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  background: rgba(9, 9, 11, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.card-quick-list:active {
+  transform: scale(0.92);
+}
+@media (hover: none) {
+  .card-quick-list {
+    display: flex;
+  }
 }
 
 .movie-info {

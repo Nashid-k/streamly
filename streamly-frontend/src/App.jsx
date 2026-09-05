@@ -40,6 +40,7 @@ import Loader from "./components/Loader";
 import BackToTop from "./components/BackToTop";
 import AuthModal from "./components/AuthModal";
 import PlatformIcon from "./components/PlatformIcon";
+import Popover from "./components/Popover";
 import { useScrollRestoration } from "./hooks/useScrollRestoration";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 
@@ -317,34 +318,17 @@ function Layout({ children }) {
                   </motion.button>
                 )}
 
-                <AnimatePresence>
-                  {showDropdown && query && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 30,
-                      }}
-                      style={{
-                        position: "absolute",
-                        top: "120%",
-                        right: 0,
-                        width: isDesktop ? "min(450px, calc(100vw - 2rem))" : "100%",
-                        background: "rgba(9, 9, 11, 0.85)",
-                        backdropFilter: "blur(24px)",
-                        border: "1px solid rgba(255,255,255,0.15)",
-                        borderRadius: "16px",
-                        boxShadow:
-                          "0 30px 60px -12px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05)",
-                        overflow: "hidden",
-                        zIndex: 10000,
-                        maxHeight: "65vh",
-                        overflowY: "auto",
-                      }}
-                    >
+                <Popover
+                  isOpen={!!(showDropdown && query)}
+                  onClose={() => setShowDropdown(false)}
+                  triggerRef={mobileSearchRef}
+                  role={null}
+                  style={{
+                    width: "100%",
+                    maxHeight: "65vh",
+                    overflowY: "auto",
+                  }}
+                >
                       {loading ? (
                         <div
                           role="status"
@@ -490,10 +474,10 @@ function Layout({ children }) {
                               select
                             </span>
                           </div>
-                          {/* See all results link */}
-                          <div
-                            role="button"
-                            tabIndex={0}
+                          <button
+                            type="button"
+                            className="menu-item"
+                            style={{ textAlign: "center", color: "var(--accent-secondary)", fontWeight: 600, borderTop: "1px solid rgba(255,255,255,0.08)" }}
                             onClick={() => {
                               addSearch(query); // Fix #21: save to history on mobile see-all
                               navigate(
@@ -503,36 +487,9 @@ function Layout({ children }) {
                               setShowDropdown(false);
                               setMobileMenuOpen(false);
                             }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                addSearch(query);
-                                navigate(`/search?q=${encodeURIComponent(query)}`);
-                                setQuery("");
-                                setShowDropdown(false);
-                                setMobileMenuOpen(false);
-                              }
-                            }}
-                            style={{
-                              padding: "0.85rem 1rem",
-                              textAlign: "center",
-                              color: "#fb923c",
-                              fontWeight: 600,
-                              fontSize: "0.9rem",
-                              cursor: "pointer",
-                              borderTop: "1px solid rgba(255,255,255,0.08)",
-                              transition: "background 0.2s",
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background =
-                                "rgba(255,255,255,0.05)")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background = "transparent")
-                            }
                           >
                             See all results for "{query}" →
-                          </div>
+                          </button>
                         </div>
                       ) : (
                         <div
@@ -545,9 +502,7 @@ function Layout({ children }) {
                           No results found for "{query}"
                         </div>
                       )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  </Popover>
               </div>
             </div>
             <Link
@@ -651,31 +606,17 @@ function Layout({ children }) {
               </motion.button>
             )}
 
-            <AnimatePresence>
-              {showDropdown &&
-                (query || (searchHistory && searchHistory.length > 0)) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    style={{
-                      position: "absolute",
-                      top: "120%",
-                      right: 0,
-                      width: isDesktop ? "min(450px, calc(100vw - 2rem))" : "100%",
-                      background: "rgba(9, 9, 11, 0.85)",
-                      backdropFilter: "blur(24px)",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      borderRadius: "16px",
-                      boxShadow:
-                        "0 30px 60px -12px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05)",
-                      overflow: "hidden",
-                      zIndex: 10000,
-                      maxHeight: "65vh",
-                      overflowY: "auto",
-                    }}
-                  >
+            <Popover
+              isOpen={!!(showDropdown && (query || (searchHistory && searchHistory.length > 0)))}
+              onClose={() => setShowDropdown(false)}
+              triggerRef={searchRef}
+              role={null}
+              style={{
+                width: isDesktop ? "min(450px, calc(100vw - 2rem))" : "100%",
+                maxHeight: "65vh",
+                overflowY: "auto",
+              }}
+            >
                     {!query && searchHistory && searchHistory.length > 0 ? (
                       <div style={{ padding: "0.75rem" }}>
                         <div
@@ -687,34 +628,17 @@ function Layout({ children }) {
                             padding: "0 0.25rem",
                           }}
                         >
-                          <span
-                            style={{
-                              fontSize: "0.75rem",
-                              fontWeight: 700,
-                              color: "#71717a",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                            }}
-                          >
+                          <span className="label-eyebrow">
                             Recent Searches
                           </span>
                           <button
                             onClick={() => clearSearchHistory()}
+                            className="menu-item"
                             style={{
                               fontSize: "0.75rem",
-                              color: "#71717a",
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
                               padding: "2px 6px",
-                              borderRadius: "4px",
+                              width: "auto",
                             }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.color = "#fff")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.color = "#71717a")
-                            }
                           >
                             Clear all
                           </button>
@@ -731,6 +655,7 @@ function Layout({ children }) {
                               key={term}
                               whileHover={{ scale: 1.03 }}
                               whileTap={{ scale: 0.97 }}
+                              className="chip"
                               onClick={() => {
                                 setQuery(term);
                                 addSearch(term);
@@ -739,39 +664,28 @@ function Layout({ children }) {
                                 );
                                 setShowDropdown(false);
                               }}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                background: "rgba(255,255,255,0.07)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                borderRadius: "100px",
-                                padding: "5px 12px",
-                                fontSize: "0.82rem",
-                                color: "#e4e4e7",
-                                cursor: "pointer",
-                                fontWeight: 500,
-                              }}
                             >
                               <span>{term}</span>
                               <span
+                                role="button"
+                                tabIndex={0}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   removeSearch(term);
                                 }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.stopPropagation();
+                                    removeSearch(term);
+                                  }
+                                }}
                                 style={{
-                                  color: "#71717a",
-                                  marginLeft: "2px",
+                                  color: "var(--text-muted)",
                                   fontSize: "0.75rem",
                                   display: "flex",
                                   alignItems: "center",
+                                  marginLeft: "2px",
                                 }}
-                                onMouseEnter={(e) =>
-                                  (e.currentTarget.style.color = "#f87171")
-                                }
-                                onMouseLeave={(e) =>
-                                  (e.currentTarget.style.color = "#71717a")
-                                }
                               >
                                 ×
                               </span>
@@ -914,9 +828,10 @@ function Layout({ children }) {
                           </span>
                         </div>
                         {/* See all results link */}
-                        <div
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          type="button"
+                          className="menu-item"
+                          style={{ textAlign: "center", color: "var(--accent-secondary)", fontWeight: 600, borderTop: "1px solid rgba(255,255,255,0.08)" }}
                           onClick={() => {
                             addSearch(query);
                             navigate(`/search?q=${encodeURIComponent(query)}`);
@@ -924,36 +839,9 @@ function Layout({ children }) {
                             setShowDropdown(false);
                             setMobileMenuOpen(false);
                           }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              addSearch(query);
-                              navigate(`/search?q=${encodeURIComponent(query)}`);
-                              setQuery("");
-                              setShowDropdown(false);
-                              setMobileMenuOpen(false);
-                            }
-                          }}
-                          style={{
-                            padding: "0.85rem 1rem",
-                            textAlign: "center",
-                            color: "#fb923c",
-                            fontWeight: 600,
-                            fontSize: "0.9rem",
-                            cursor: "pointer",
-                            borderTop: "1px solid rgba(255,255,255,0.08)",
-                            transition: "background 0.2s",
-                          }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "rgba(255,255,255,0.05)")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.background = "transparent")
-                          }
                         >
                           See all results for "{query}" →
-                        </div>
+                        </button>
                       </div>
                     ) : (
                       <div
@@ -964,11 +852,9 @@ function Layout({ children }) {
                         }}
                       >
                         No results found for "{query}"
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-            </AnimatePresence>
+</div>
+                      )}
+                  </Popover>
           </div>
 
           {/* Notifications Dropdown */}
@@ -1039,30 +925,18 @@ function Layout({ children }) {
                 </div>
               )}
             </div>
-            <AnimatePresence>
-              {showNotifications && (
-                <motion.div
-                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  style={{
-                    position: "absolute",
-                    top: "120%",
-                    right: -10,
-                    background: "rgba(9, 9, 11, 0.85)",
-                    backdropFilter: "blur(24px)",
-                    border: "1px solid rgba(255,255,255,0.15)",
-                    borderRadius: "16px",
-                    boxShadow:
-                      "0 30px 60px -12px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05)",
-                    padding: "8px 0",
-                    width: "min(320px, calc(100vw - 2rem))",
-                    zIndex: 10000,
-                    maxHeight: "70vh",
-                    overflowY: "auto",
-                  }}
-                >
+            <Popover
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+              triggerRef={notificationsRef}
+              className="notifications-popover"
+              scrollable
+              style={{
+                padding: "8px 0",
+                width: "min(320px, calc(100vw - 2rem))",
+                right: -10,
+              }}
+            >
                   <div
                     style={{
                       padding: "12px 16px",
@@ -1205,12 +1079,10 @@ function Layout({ children }) {
                             </div>
                           </div>
                         </div>
-                      );
-                    })
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    );
+                  })
+                )}
+              </Popover>
           </div>
 
           {/* User Avatar with Dropdown */}
@@ -1236,18 +1108,10 @@ function Layout({ children }) {
             >
               {user ? (
                 <div
+                  className="user-avatar"
                   style={{
-                    width: "32px",
-                    height: "32px",
                     borderRadius: "50%",
-                    background: "linear-gradient(135deg, #f97316, #fb923c)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 700,
-                    fontSize: "0.8rem",
-                    color: "#fff",
-                    flexShrink: 0,
+                    background: "var(--accent-gradient)",
                   }}
                 >
                   {(user.displayName || user.email || "?")[0].toUpperCase()}
@@ -1256,28 +1120,12 @@ function Layout({ children }) {
                 <User size={20} aria-label="Sign In" />
               )}
             </div>
-            <AnimatePresence>
-              {showUserMenu && user && (
-                <motion.div
-                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  style={{
-                    position: "absolute",
-                    top: "120%",
-                    right: 0,
-                    background: "rgba(9, 9, 11, 0.85)",
-                    backdropFilter: "blur(24px)",
-                    border: "1px solid rgba(255,255,255,0.15)",
-                    borderRadius: "16px",
-                    boxShadow:
-                      "0 30px 60px -12px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05)",
-                    padding: "8px 0",
-                    minWidth: "200px",
-                    zIndex: 10000,
-                  }}
-                >
+            <Popover
+              isOpen={!!(showUserMenu && user)}
+              onClose={() => setShowUserMenu(false)}
+              triggerRef={userMenuRef}
+              style={{ padding: "8px 0", minWidth: "220px" }}
+            >
                   {/* Signed-in user info */}
                   <div
                     style={{
@@ -1312,57 +1160,21 @@ function Layout({ children }) {
                   <Link
                     to="/mylist"
                     onClick={() => setShowUserMenu(false)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      padding: "10px 16px",
-                      fontSize: "0.9rem",
-                      color: "#e4e4e7",
-                      transition: "background 0.2s",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "rgba(255,255,255,0.05)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
+                    className="menu-item"
                   >
                     <Bookmark size={16} /> My List
                   </Link>
                   <Link
                     to="/history"
                     onClick={() => setShowUserMenu(false)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      padding: "10px 16px",
-                      fontSize: "0.9rem",
-                      color: "#e4e4e7",
-                      transition: "background 0.2s",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "rgba(255,255,255,0.05)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
+                    className="menu-item"
                   >
                     <Clock size={16} /> Watch History
                   </Link>
-                  <div
-                    style={{
-                      height: "1px",
-                      background: "rgba(255,255,255,0.08)",
-                      margin: "4px 0",
-                    }}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0}
+                  <hr className="menu-divider" />
+                  <button
+                    type="button"
+                    className="menu-item"
                     onClick={() => {
                       setShowUserMenu(false);
                       window.dispatchEvent(
@@ -1372,80 +1184,21 @@ function Layout({ children }) {
                         }),
                       );
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setShowUserMenu(false);
-                        window.dispatchEvent(
-                          new KeyboardEvent("keydown", { key: "?", shiftKey: true }),
-                        );
-                      }
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      padding: "10px 16px",
-                      fontSize: "0.9rem",
-                      color: "#e4e4e7",
-                      cursor: "pointer",
-                      transition: "background 0.2s",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "rgba(255,255,255,0.05)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
                   >
                     <Keyboard size={16} /> Keyboard Shortcuts
-                  </div>
-                  <div
-                    style={{
-                      height: "1px",
-                      background: "rgba(255,255,255,0.08)",
-                      margin: "4px 0",
-                    }}
-                  />
-                  {/* Sign Out */}
-                  <div
-                    role="button"
-                    tabIndex={0}
+                  </button>
+                  <hr className="menu-divider" />
+                  <button
+                    type="button"
+                    className="menu-item menu-item--danger"
                     onClick={async () => {
                       setShowUserMenu(false);
                       await logout();
                     }}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setShowUserMenu(false);
-                        await logout();
-                      }
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      padding: "10px 16px",
-                      fontSize: "0.9rem",
-                      color: "#f87171",
-                      cursor: "pointer",
-                      transition: "background 0.2s",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "rgba(239,68,68,0.08)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
                   >
                     <LogOut size={16} /> Sign Out
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  </button>
+                  </Popover>
           </div>
 
           {/* Auth Modal */}

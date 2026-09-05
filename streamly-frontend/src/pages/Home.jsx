@@ -282,7 +282,7 @@ const Top10Rail = React.memo(
             letterSpacing: "-0.02em",
           }}
         >
-          <span style={{ color: "#e50914", marginRight: "6px" }}>Top 10</span>
+          <span style={{ background: "var(--accent-gradient)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginRight: "6px" }}>Top 10</span>
           {filter === "series" || filter === "tv shows"
             ? "TV Shows"
             : filter === "movies"
@@ -1235,20 +1235,10 @@ export default function Home({
             onClick={() => setActivePlatform("all")}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.95 }}
+            className={`chip ${activePlatform === "all" ? "chip--active" : ""}`}
             style={{
-              background: activePlatform === "all" ? "linear-gradient(135deg, #f43f5e, #fb923c)" : "rgba(255,255,255,0.08)",
-              color: "#fff",
-              border: `1px solid ${activePlatform === "all" ? "transparent" : "rgba(255,255,255,0.1)"}`,
-              padding: "6px 14px",
-              borderRadius: "100px",
               fontSize: "0.8rem",
-              fontWeight: 600,
-              cursor: "pointer",
               flexShrink: 0,
-              whiteSpace: "nowrap",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
             }}
           >
             All Platforms
@@ -1260,21 +1250,13 @@ export default function Home({
               onClick={() => setActivePlatform(key)}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
+              className="chip"
               style={{
-                background: activePlatform === key ? (p.gradient || p.color) : "rgba(255,255,255,0.08)",
+                background: activePlatform === key ? (p.gradient || p.color) : undefined,
+                borderColor: activePlatform === key ? "transparent" : undefined,
                 color: "#fff",
-                border: `1px solid ${activePlatform === key ? "transparent" : "rgba(255,255,255,0.1)"}`,
-                padding: "5px 12px",
-                borderRadius: "100px",
                 fontSize: "0.75rem",
-                fontWeight: 600,
-                cursor: "pointer",
                 flexShrink: 0,
-                whiteSpace: "nowrap",
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                transition: "all 0.2s",
               }}
             >
               <PlatformIcon platform={key} xs />
@@ -1304,25 +1286,10 @@ export default function Home({
               onClick={() => setActiveGenre(genre)}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
+              className={`chip ${activeGenre === genre ? "chip--active" : ""}`}
               style={{
-                background:
-                  activeGenre === genre
-                    ? "linear-gradient(135deg, #f43f5e, #fb923c)"
-                    : "rgba(255,255,255,0.08)",
-                color: activeGenre === genre ? "#fff" : "#fff",
-                border:
-                  "1px solid " +
-                  (activeGenre === genre
-                    ? "transparent"
-                    : "rgba(255,255,255,0.1)"),
-                padding: "6px 16px",
-                borderRadius: "100px",
                 fontSize: "0.85rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "background 0.2s, color 0.2s, border-color 0.2s",
                 flexShrink: 0,
-                whiteSpace: "nowrap",
               }}
             >
               {genre}

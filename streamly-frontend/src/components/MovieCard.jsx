@@ -225,7 +225,7 @@ export default function MovieCard({
             className="poster-wrapper"
             style={{
               overflow: "hidden",
-              background: "#121217",
+              background: "var(--bg-surface)",
               position: "relative",
             }}
           >
@@ -338,7 +338,7 @@ export default function MovieCard({
                 {isTvContent && movie.nextEpisode?.releaseDate && (
                   <div
                     style={{
-                      background: "linear-gradient(135deg, rgba(244,63,94,0.9), rgba(239,68,68,0.9))",
+                      background: "var(--accent-gradient)",
                       color: "#fff",
                       padding: "2px 6px",
                       borderRadius: "3px",
@@ -358,6 +358,21 @@ export default function MovieCard({
                 )}
               </div>
             )}
+
+            {/* Mobile quick action — only visible on touch devices where
+                the hover curtain is unreachable. Tapping navigates to
+                details; this button toggles the watchlist. */}
+            <button
+              onClick={handleToggleMyList}
+              className="card-quick-list"
+              aria-label={
+                inList
+                  ? `Remove ${movie.title} from My List`
+                  : `Add ${movie.title} to My List`
+              }
+            >
+              {inList ? <Check size={18} /> : <Plus size={18} />}
+            </button>
 
             {/* Poster image (Always visible, darkens on hover) */}
             <motion.img
@@ -405,7 +420,7 @@ export default function MovieCard({
                 <motion.img
                   variants={titleVariants}
                   src={movie.logoUrl || detailedLogo}
-                  alt={movie.title}
+                  alt=""
                   style={{
                     width: "85%",
                     maxHeight: "65px",
@@ -577,15 +592,14 @@ export default function MovieCard({
                     gap: "4px",
                     padding: compact ? "5px 0" : "7px 0",
                     borderRadius: "100px",
-                    background:
-                      "linear-gradient(135deg, #f43f5e 0%, #fb923c 100%)",
+                    background: "var(--accent-gradient)",
                     border: "none",
                     color: "#fff",
                     fontSize: compact ? "0.68rem" : "0.78rem",
                     fontWeight: 700,
                     cursor: "pointer",
                     letterSpacing: "0.01em",
-                    boxShadow: "0 3px 12px rgba(244,63,94,0.4)",
+                    boxShadow: "var(--shadow-glow)",
                   }}
                 >
                   <Play size={compact ? 12 : 14} fill="currentColor" stroke="none" />
@@ -616,7 +630,7 @@ export default function MovieCard({
                     border: inList
                       ? "1.5px solid rgba(244,63,94,0.55)"
                       : "1.5px solid rgba(255,255,255,0.2)",
-                    color: inList ? "#f43f5e" : "#e4e4e7",
+                    color: inList ? "var(--accent-primary)" : "var(--text-secondary)",
                     cursor: "pointer",
                     backdropFilter: "blur(4px)",
                   }}
@@ -642,7 +656,7 @@ export default function MovieCard({
                 <div
                   style={{
                     height: "100%",
-                    background: "linear-gradient(90deg,#f43f5e,#fb923c)",
+                    background: "var(--accent-gradient)",
                     width: `${progressValue}%`,
                     borderRadius: "0 2px 2px 0",
                   }}

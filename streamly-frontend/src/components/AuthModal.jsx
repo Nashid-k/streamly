@@ -43,6 +43,56 @@ export default function AuthModal({ isOpen, onClose }) {
   const lastAttemptRef = useRef(0); // Rate limit ref
   const failedAttemptsRef = useRef(0); // Track consecutive failures for progressive backoff
   const successTimerRef = useRef(null);
+  const focusRestoreRef = useRef(null);
+  const dialogRef = useRef(null);
+
+  // Restore focus to previously focused element when the modal closes
+  useEffect(() => {
+    if (isOpen) {
+      focusRestoreRef.current = document.activeElement;
+      // Move focus into the dialog for screen reader / keyboard users
+      requestAnimationFrame(() => {
+        dialogRef.current
+          ?.querySelector(
+            'input:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          )
+          ?.focus();
+      });
+    } else if (focusRestoreRef.current) {
+      focusRestoreRef.current.focus?.();
+      focusRestoreRef.current = null;
+    }
+  }, [isOpen]);
+
+  // Close on Escape, trap focus within the dialog
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const scope = dialogRef.current;
+      const focusables = Array.from(
+        scope?.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        ) || [],
+      ).filter((el) => el.offsetParent !== null);
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Cleanup success timer on unmount
   useEffect(() => {
@@ -141,12 +191,16 @@ export default function AuthModal({ isOpen, onClose }) {
           }}
         >
           <motion.div
+            ref={dialogRef}
             className="modal-content"
             variants={panel}
             initial="hidden"
             animate="visible"
             exit="exit"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="auth-modal-title"
             style={{
               background: "rgba(9,9,11,0.95)",
               border: "1px solid rgba(255,255,255,0.12)",
@@ -161,6 +215,7 @@ export default function AuthModal({ isOpen, onClose }) {
             {/* Close button */}
             <motion.button
               onClick={onClose}
+              aria-label="Close sign in dialog"
               style={{
                 position: "absolute",
                 top: "1rem",
@@ -183,13 +238,14 @@ export default function AuthModal({ isOpen, onClose }) {
             {/* Logo */}
             <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
               <div
+                id="auth-modal-title"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "8px",
                   fontSize: "1.4rem",
                   fontWeight: 700,
-                  background: "linear-gradient(135deg, #f97316, #fb923c)",
+                  background: "var(--accent-gradient)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}
@@ -198,7 +254,7 @@ export default function AuthModal({ isOpen, onClose }) {
               </div>
               <p
                 style={{
-                  color: "#71717a",
+                  color: "var(--text-muted)",
                   fontSize: "0.85rem",
                   marginTop: "4px",
                 }}
@@ -211,6 +267,7 @@ export default function AuthModal({ isOpen, onClose }) {
 
             {/* Tab switcher */}
             <div
+              role="tablist"
               style={{
                 display: "flex",
                 background: "rgba(255,255,255,0.04)",
@@ -222,6 +279,8 @@ export default function AuthModal({ isOpen, onClose }) {
               {["login", "register"].map((m) => (
                 <motion.button
                   key={m}
+                  role="tab"
+                  aria-selected={mode === m}
                   onClick={() => switchMode(m)}
                   style={{
                     flex: 1,
@@ -232,9 +291,8 @@ export default function AuthModal({ isOpen, onClose }) {
                     fontSize: "0.875rem",
                     fontWeight: 500,
                     transition: "all 0.2s",
-                    background:
-                      mode === m ? "rgba(249,115,22,0.15)" : "transparent",
-                    color: mode === m ? "#fb923c" : "#71717a",
+                    background: mode === m ? "rgba(244,63,94,0.15)" : "transparent",
+                    color: mode === m ? "var(--accent-secondary)" : "var(--text-muted)",
                   }}
                 >
                   {m === "login" ? "Sign In" : "Sign Up"}
@@ -339,6 +397,8 @@ export default function AuthModal({ isOpen, onClose }) {
                   />
                   <motion.button
                     type="button"
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                    aria-pressed={showPw}
                     onClick={() => setShowPw(!showPw)}
                     style={{
                       position: "absolute",
@@ -402,8 +462,8 @@ export default function AuthModal({ isOpen, onClose }) {
                   marginTop: "4px",
                   padding: "12px",
                   background: busy
-                    ? "rgba(249,115,22,0.5)"
-                    : "linear-gradient(135deg, #f97316, #fb923c)",
+                    ? "rgba(244,63,94,0.5)"
+                    : "var(--accent-gradient)",
                   border: "none",
                   borderRadius: "10px",
                   color: "#fff",
@@ -444,7 +504,7 @@ export default function AuthModal({ isOpen, onClose }) {
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#fb923c",
+                  color: "var(--accent-secondary)",
                   cursor: "pointer",
                   fontWeight: 600,
                   fontSize: "0.78rem",

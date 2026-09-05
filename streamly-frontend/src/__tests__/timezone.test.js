@@ -127,13 +127,15 @@ describe('getTimeUntil', () => {
 
   it('returns "today" for today\'s date', () => {
     const today = new Date().toISOString().split('T')[0];
-    const result = getTimeUntil(today);
+    // Pass explicit UTC viewer + midnight-local platform so the date is
+    // not shifted by the default 8pm-ET broadcast rule or the machine TZ.
+    const result = getTimeUntil(today, 'UTC', 'netflix');
     expect(result).toBe('today');
   });
 
   it('returns "yesterday" for yesterday\'s date', () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    const result = getTimeUntil(yesterday);
+    const result = getTimeUntil(yesterday, 'UTC', 'netflix');
     expect(result).toBe('yesterday');
   });
 

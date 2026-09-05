@@ -205,7 +205,7 @@ function SeasonDropdown({ seasonsCount, selectedSeason, onSelect }) {
               width: "8px",
               height: "8px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg, #f43f5e, #fb923c)",
+              background: "var(--accent-gradient)",
               flexShrink: 0,
             }}
           />
@@ -285,7 +285,7 @@ function SeasonDropdown({ seasonsCount, selectedSeason, onSelect }) {
                           height: "6px",
                           borderRadius: "50%",
                           background:
-                            "linear-gradient(135deg, #f43f5e, #fb923c)",
+                            "var(--accent-gradient)",
                           flexShrink: 0,
                         }}
                       />
@@ -413,7 +413,7 @@ function ServerDropdown({ servers, selectedIndex, onSelect }) {
                         width: "6px",
                         height: "6px",
                         borderRadius: "50%",
-                        background: "linear-gradient(135deg, #f43f5e, #fb923c)",
+                        background: "var(--accent-gradient)",
                         flexShrink: 0,
                       }}
                     />
@@ -776,7 +776,7 @@ export default function TitleDetails() {
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/")}
             style={{
-              background: "linear-gradient(135deg, #f43f5e, #fb923c)",
+              background: "var(--accent-gradient)",
               border: "none",
               color: "#fff",
               padding: "10px 24px",
@@ -1151,7 +1151,7 @@ export default function TitleDetails() {
                 >
                   <span
                     style={{
-                      background: resolvedPlatform ? PlatformAdapter.getColor(resolvedPlatform) : 'linear-gradient(135deg, #f43f5e, #fb923c)',
+                      background: resolvedPlatform ? PlatformAdapter.getColor(resolvedPlatform) : 'var(--accent-gradient)',
                       color: "white",
                       padding: "4px 8px",
                       borderRadius: "4px",
@@ -1978,11 +1978,11 @@ export default function TitleDetails() {
                             )}
                             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 50%)', pointerEvents: 'none' }} />
                             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} className="ep-play-overlay">
-                              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #f43f5e, #fb923c)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 8px 24px rgba(244,63,94,0.5)' }}>
+                              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 8px 24px rgba(244,63,94,0.5)' }}>
                                 <Play size={22} fill="currentColor" stroke="none" style={{ marginLeft: '3px' }} />
                               </div>
                             </div>
-                            {isEpPlaying && <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'linear-gradient(135deg, #f43f5e, #fb923c)', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', zIndex: 10 }}>Playing</div>}
+                            {isEpPlaying && <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'var(--accent-gradient)', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', zIndex: 10 }}>Playing</div>}
                             <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '2px 7px', borderRadius: '5px', fontSize: '0.65rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.08)' }}>{ep.duration}</div>
                           </div>
                           <div style={{ padding: '0.7rem 0.9rem', position: 'relative', zIndex: 2 }}>
@@ -2427,7 +2427,7 @@ export default function TitleDetails() {
                       }}
                       disabled={playingEpisode >= episodes.length}
                       style={{
-                        background: "linear-gradient(135deg, #f43f5e, #fb923c)",
+                        background: "var(--accent-gradient)",
                         border: "none",
                         color: "white",
                         padding: "0.5rem 1.1rem",
