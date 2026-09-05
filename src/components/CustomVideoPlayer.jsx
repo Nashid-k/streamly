@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { VideoSourceAdapter } from "../api/videoSourceAdapter";
 import { PlatformAdapter } from "../api/platformAdapter";
 import { movieService } from "../api/movieService";
-import Hls from "hls.js";
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Settings, AlertCircle, Check, RotateCcw, RotateCw,
@@ -253,6 +252,18 @@ const LoadingArc = ({ size = 56, strokeWidth = 2.5, progress = 0 }) => {
   );
 };
 
+/* hls.js is ~150 KB minified — never import it statically. It is fetched
+   lazily the first time a Direct HLS stream actually starts, so iframe-server
+   titles, native-HLS (Safari/iOS) playback, and every other page never pay
+   for it. Subsequent plays reuse the cached module. */
+let hlsModulePromise = null;
+const loadHls = () => {
+  if (!hlsModulePromise) {
+    hlsModulePromise = import("hls.js").then((m) => m.default);
+  }
+  return hlsModulePromise;
+};
+
 /* ═══ Main Player ═══════════════════════════════════════════════ */
 /* Detect mobile: no physical keyboard, so shortcuts button is useless */
 const useIsMobile = (breakpoint = 640) => {
@@ -276,6 +287,12 @@ const useIsTouch = () => {
   }, []);
   return isTouch;
 };
+
+/* Upper bound for the in-memory thumbnail frame cache. Buckets are 5s of
+   playback, so 600 buckets ≈ 50 minutes — plenty for scrubbing back through
+   everything already watched, without letting dataURLs accumulate forever
+   during long binges. */
+const MAX_THUMBNAIL_BUCKETS = 600;
 
 const CustomVideoPlayer = ({
   movie, season, episode, preferredServerIndex = 0, onServerChange,
@@ -608,6 +625,7 @@ const CustomVideoPlayer = ({
       const isNew = contentSignatureRef.current !== sig;
       contentSignatureRef.current = sig;
       if (isNew) { setCurrentTime(0); setDuration(0); setBuffered(0); targetSeekTimeRef.current = null; }
+      if (isNew) thumbnailCacheRef.current.clear(); // Drop frames captured for the previous title
       vttTileRef.current = [];
       vttSpriteMetaRef.current = new Map();
 
@@ -803,14 +821,18 @@ const CustomVideoPlayer = ({
     } catch { /* thumbnail VTT optional */ }
   }, []);
 
-  /* HLS.js — direct stream playback */
+  /* HLS.js — direct stream playback. hls.js itself is lazy-loaded above;
+     Safari/iOS (native HLS) and unmounts during the load are handled so we
+     never fetch the module unless a desktop Direct stream is really playing. */
   useEffect(() => {
     if (!directStreamUrl || !videoRef.current) return;
 
     const video = videoRef.current;
     let hls = null;
+    let cancelled = false;
+    let cleanup = null;
 
-    const attachPlayer = () => {
+    const attachPlayer = (Hls) => {
       setDuration(0);
       setCurrentTime(0);
       setBuffered(0);
@@ -866,7 +888,7 @@ const CustomVideoPlayer = ({
       video.addEventListener('ended', handleEnded);
       video.addEventListener('error', handleError);
 
-      if (Hls.isSupported()) {
+      if (Hls && Hls.isSupported()) {
         hls = new Hls({ enableWorker: true, startPosition: startTimeRef.current || -1 });
         hlsRef.current = hls;
         hls.loadSource(directStreamUrl);
@@ -928,6 +950,13 @@ const CustomVideoPlayer = ({
           try {
             thumbCtx.drawImage(video, 0, 0, 160, 90);
             const bucket = Math.floor(video.currentTime / 5) * 5;
+            // Cap the in-memory frame cache (dataURLs). Once past the limit,
+            // drop the OLDEST bucket (Map preserves insertion order, and buckets
+            // are inserted chronologically while playing forward).
+            if (thumbnailCacheRef.current.size >= MAX_THUMBNAIL_BUCKETS) {
+              const oldest = thumbnailCacheRef.current.keys().next().value;
+              if (oldest !== undefined) thumbnailCacheRef.current.delete(oldest);
+            }
             thumbnailCacheRef.current.set(bucket, thumbCanvas.toDataURL('image/jpeg', 0.5));
           } catch {}
         }, 5000);
@@ -998,8 +1027,29 @@ const CustomVideoPlayer = ({
       };
     };
 
-    const cleanup = attachPlayer();
-    return cleanup;
+    const supportsNativeHls =
+      typeof video.canPlayType === "function" &&
+      video.canPlayType("application/vnd.apple.mpegurl");
+
+    (async () => {
+      try {
+        // Native HLS (Safari/iOS): no hls.js module needed at all.
+        if (supportsNativeHls) {
+          if (!cancelled && videoRef.current) cleanup = attachPlayer(null);
+          return;
+        }
+        const Hls = await loadHls();
+        if (cancelled || !videoRef.current || !directStreamUrl) return; // changed while loading
+        cleanup = attachPlayer(Hls);
+      } catch {
+        if (!cancelled) setErrorMessage("Failed to load the player engine.");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (cleanup) { cleanup(); cleanup = null; }
+    };
   }, [directStreamUrl, failoverToNextServer]);
 
   /* Up Next */

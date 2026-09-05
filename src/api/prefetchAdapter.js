@@ -6,13 +6,18 @@ const inFlightPrefetches = new Set();
 
 export class PrefetchAdapter {
   /**
-   * Prefetches full movie details (and episodes if it's a TV show)
+   * Prefetches full movie details (and similar movies) on hover.
    * Call this on onMouseEnter of a MovieCard.
+   *
+   * IMPORTANT: the query keys MUST match what TitleDetails consumes
+   * (["movie", id] / ["similar", id] with no platform qualifier),
+   * otherwise every hover fires backend requests whose results are cached
+   * under keys nothing reads — wasted load + cache garbage.
    */
-  static prefetchMovieDetails(movieId, platform) {
+  static prefetchMovieDetails(movieId) {
     if (!movieId) return;
 
-    const key = `${movieId}-${platform}`;
+    const key = `${movieId}`;
     if (inFlightPrefetches.has(key)) return; // Already prefetching
     inFlightPrefetches.add(key);
 
@@ -21,8 +26,8 @@ export class PrefetchAdapter {
 
     // 1. Prefetch core movie details
     const p1 = queryClient.prefetchQuery({
-      queryKey: ["movie", movieId, platform],
-      queryFn: () => movieService.getMovieDetails(movieId, platform),
+      queryKey: ["movie", movieId],
+      queryFn: () => movieService.getMovieDetails(movieId),
       staleTime: 10 * 60 * 1000,
     });
     if (p1 && typeof p1.finally === 'function') {
@@ -34,8 +39,8 @@ export class PrefetchAdapter {
 
     // 2. Prefetch similar movies to make the bottom of the page feel instant
     queryClient.prefetchQuery({
-      queryKey: ["similar", movieId, platform],
-      queryFn: () => movieService.getSimilarMovies(movieId, platform),
+      queryKey: ["similar", movieId],
+      queryFn: () => movieService.getSimilarMovies(movieId),
       staleTime: 10 * 60 * 1000,
     });
   }

@@ -56,7 +56,11 @@ const MovieRail = React.memo(
   function MovieRail({ category, railIndex = 0 }) {
     const railRef = useRef(null);
     const containerRef = useRef(null);
+    // Windowing: render the rail's cards only while it is near the viewport.
+    // Rails scrolled far away unmount (releasing their DOM + decoded images),
+    // keeping total Home memory bounded no matter how long the page is.
     const [inView, setInView] = useState(false);
+    const scrollPosRef = useRef(0);
     const isDynamicRail =
       category.name === "Continue Watching" ||
       category.name === "My List" ||
@@ -65,18 +69,29 @@ const MovieRail = React.memo(
     useEffect(() => {
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (entry.isIntersecting) {
-            setInView(true);
-            observer.disconnect();
+          const visible = entry.isIntersecting;
+          // Keep the horizontal scroll position across unmount/remount cycles
+          if (!visible && railRef.current) {
+            scrollPosRef.current = railRef.current.scrollLeft;
           }
+          setInView(visible);
         },
-        { rootMargin: "300px 0px" },
+        // Generous band (±2200px) so remounting happens well before the rail
+        // is actually on screen — no visible pop-in while scrolling.
+        { rootMargin: "2200px 0px 2200px 0px" },
       );
       if (containerRef.current) {
         observer.observe(containerRef.current);
       }
       return () => observer.disconnect();
     }, []);
+
+    // Restore horizontal position after the rail is windowed back in
+    useEffect(() => {
+      if (inView && railRef.current && scrollPosRef.current > 0) {
+        railRef.current.scrollLeft = scrollPosRef.current;
+      }
+    }, [inView]);
 
     const [visibleCount, setVisibleCount] = useState(15);
     const inThrottle = useRef(false);
@@ -217,25 +232,35 @@ const Top10Rail = React.memo(
   function Top10Rail({ movies, filter, railIndex = 0 }) {
     const railRef = useRef(null);
     const containerRef = useRef(null);
+    // Windowing identical to MovieRail — unmount when far offscreen
     const [inView, setInView] = useState(false);
+    const scrollPosRef = useRef(0);
     const [showArrows, setShowArrows] = useState(false);
     const top10 = movies.slice(0, 10);
 
     useEffect(() => {
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (entry.isIntersecting) {
-            setInView(true);
-            observer.disconnect();
+          const visible = entry.isIntersecting;
+          if (!visible && railRef.current) {
+            scrollPosRef.current = railRef.current.scrollLeft;
           }
+          setInView(visible);
         },
-        { rootMargin: "300px 0px" },
+        { rootMargin: "2200px 0px 2200px 0px" },
       );
       if (containerRef.current) {
         observer.observe(containerRef.current);
       }
       return () => observer.disconnect();
     }, []);
+
+    // Restore horizontal position after the rail is windowed back in
+    useEffect(() => {
+      if (inView && railRef.current && scrollPosRef.current > 0) {
+        railRef.current.scrollLeft = scrollPosRef.current;
+      }
+    }, [inView]);
 
     useEffect(() => {
       if (railRef.current) {

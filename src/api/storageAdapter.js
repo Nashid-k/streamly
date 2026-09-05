@@ -78,7 +78,14 @@ export class CloudStorageAdapter {
     this.uid = uid;
     this.ref = doc(db, "users", uid);
     this._cache = null;
-    this._unsubscribe = null;
+    // Multiplexed listeners: every consumer (myList, continueWatching,
+    // searchHistory, notifications) subscribes through the same adapter, but
+    // only ONE onSnapshot is opened per user doc. Each subscriber gets the
+    // full doc snapshot and picks out the slice it needs.
+    this._subscribers = new Set();
+    this._snapshotUnsub = null;
+    this._reconnectPending = false;
+    this._reconnectTimeout = null;
   }
 
   /**
@@ -86,21 +93,38 @@ export class CloudStorageAdapter {
    * Returns an unsubscribe function.
    */
   subscribe(callback) {
-    if (this._unsubscribe) this._unsubscribe();
-    let reconnectTimeout = null;
+    this._subscribers.add(callback);
+    this._ensureListening();
+    let unsubscribed = false;
+    return () => {
+      if (unsubscribed) return;
+      unsubscribed = true;
+      this._subscribers.delete(callback);
+      if (this._subscribers.size === 0) this._teardown();
+    };
+  }
+
+  _ensureListening() {
+    if (this._snapshotUnsub || this._subscribers.size === 0 || this._reconnectPending) return;
     const reconnect = () => {
-      if (reconnectTimeout) return;
-      reconnectTimeout = setTimeout(() => {
-        reconnectTimeout = null;
-        this._unsubscribe = null;
-        this.subscribe(callback);
+      if (this._reconnectPending) return;
+      this._reconnectPending = true;
+      this._reconnectTimeout = setTimeout(() => {
+        this._reconnectPending = false;
+        this._reconnectTimeout = null;
+        this._stopListening();
+        this._ensureListening();
       }, 3000);
     };
-    this._unsubscribe = onSnapshot(
+    this._snapshotUnsub = onSnapshot(
       this.ref,
       (snap) => {
         this._cache = snap.exists() ? snap.data() : null;
-        callback(this._cache);
+        const data = this._cache;
+        // Copy so a subscriber that unsubscribes mid-iteration can't break us
+        for (const cb of Array.from(this._subscribers)) {
+          try { cb(data); } catch { /* one bad observer must not kill the stream */ }
+        }
       },
       (err) => {
         console.warn("Firestore onSnapshot error:", err);
@@ -110,16 +134,29 @@ export class CloudStorageAdapter {
         }
       },
     );
-    return () => {
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-        reconnectTimeout = null;
-      }
-      if (this._unsubscribe) {
-        this._unsubscribe();
-        this._unsubscribe = null;
-      }
-    };
+  }
+
+  _stopListening() {
+    if (this._snapshotUnsub) {
+      this._snapshotUnsub();
+      this._snapshotUnsub = null;
+    }
+  }
+
+  _teardown() {
+    if (this._reconnectPending) {
+      clearTimeout(this._reconnectTimeout);
+      this._reconnectPending = false;
+      this._reconnectTimeout = null;
+    }
+    this._stopListening();
+    this._subscribers.clear();
+  }
+
+  /** Release every listener and cached state (call on logout). */
+  destroy() {
+    this._teardown();
+    this._cache = null;
   }
 
   async getDocData() {
@@ -260,7 +297,8 @@ let localAdapter = null;
 export function clearAdapterCache() {
   // Unsubscribe any active Firestore listeners
   for (const adapter of adapterCache.values()) {
-    if (adapter._unsubscribe) adapter._unsubscribe();
+    if (typeof adapter.destroy === "function") adapter.destroy();
+    else if (adapter._snapshotUnsub) adapter._snapshotUnsub();
   }
   adapterCache.clear();
   localAdapter = null;

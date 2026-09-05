@@ -131,7 +131,7 @@ export default function MovieCard({
 
   const handleMouseEnter = useCallback(() => {
     // 1. Instantly trigger background data prefetch for 0ms load times if clicked
-    PrefetchAdapter.prefetchMovieDetails(movie.id, movie.source || "all");
+    PrefetchAdapter.prefetchMovieDetails(movie.id);
 
     // 2. Debounce the hover animation state to prevent UI thrashing on quick swipes
     hoverTimeoutRef.current = setTimeout(() => {

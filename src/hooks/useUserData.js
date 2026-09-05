@@ -114,18 +114,28 @@ export function useContinueWatching(user) {
 
   useEffect(() => {
     const adapter = getStorageAdapter(user);
-    adapter.getContinueWatching().then(setContinueWatching);
 
-    if (!user) {
-      const handleSync = () =>
-        adapter.getContinueWatching().then(setContinueWatching);
-      window.addEventListener("aios_sync_cw", handleSync);
-      window.addEventListener("storage", handleSync);
-      return () => {
-        window.removeEventListener("aios_sync_cw", handleSync);
-        window.removeEventListener("storage", handleSync);
-      };
+    if (user && adapter.subscribe) {
+      // Live sync through the shared Firestore snapshot (multiplexed in the adapter)
+      const unsub = adapter.subscribe((data) => {
+        setContinueWatching(
+          (data?.continueWatching ?? []).sort(
+            (a, b) => b.lastWatched - a.lastWatched,
+          ),
+        );
+      });
+      return unsub;
     }
+
+    adapter.getContinueWatching().then(setContinueWatching);
+    const handleSync = () =>
+      adapter.getContinueWatching().then(setContinueWatching);
+    window.addEventListener("aios_sync_cw", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      window.removeEventListener("aios_sync_cw", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
   }, [user]);
 
   // Debounced Firestore write — prevents race conditions from rapid updates
@@ -222,18 +232,24 @@ export function useSearchHistory(user) {
 
   useEffect(() => {
     const adapter = getStorageAdapter(user);
-    adapter.getSearchHistory().then(setSearchHistory);
 
-    if (!user) {
-      const handleSync = () =>
-        adapter.getSearchHistory().then(setSearchHistory);
-      window.addEventListener("aios_sync_sh", handleSync);
-      window.addEventListener("storage", handleSync);
-      return () => {
-        window.removeEventListener("aios_sync_sh", handleSync);
-        window.removeEventListener("storage", handleSync);
-      };
+    if (user && adapter.subscribe) {
+      // Live sync through the shared Firestore snapshot (multiplexed in the adapter)
+      const unsub = adapter.subscribe((data) => {
+        setSearchHistory(data?.searchHistory ?? []);
+      });
+      return unsub;
     }
+
+    adapter.getSearchHistory().then(setSearchHistory);
+    const handleSync = () =>
+      adapter.getSearchHistory().then(setSearchHistory);
+    window.addEventListener("aios_sync_sh", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      window.removeEventListener("aios_sync_sh", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
   }, [user]);
 
   const addSearch = useCallback(

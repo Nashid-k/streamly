@@ -1319,16 +1319,15 @@ function Layout({ children }) {
 import { ServerWakeupNotification } from "./ServerWakeupNotification";
 import GlobalShortcuts from "./components/GlobalShortcuts";
 
-function App() {
+/* Routes wrapped in a route-keyed ErrorBoundary + Suspense so a page that
+   crashes shows the fallback once but recovers automatically the moment the
+   user navigates (without requiring a hard reload). */
+function AppRoutes() {
+  const location = useLocation();
   return (
-    <Router>
-      <ServerWakeupNotification />
-      <Loader variant="global" />
-      <GlobalShortcuts />
-      <Layout>
-        <ErrorBoundary>
-          <Suspense fallback={<Loader />}>
-            <Routes>
+    <ErrorBoundary key={location.pathname}>
+      <Suspense fallback={<Loader />}>
+        <Routes>
               <Route
                 path="/"
                 element={
@@ -1362,9 +1361,20 @@ function App() {
               <Route path="/genre/:genre" element={<GenrePage />} />
               <Route path="/watch/:id/:slug?" element={<TitleDetails />} />
               <Route path="/person/:id/:slug?" element={<PersonDetails />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <ServerWakeupNotification />
+      <Loader variant="global" />
+      <GlobalShortcuts />
+      <Layout>
+        <AppRoutes />
       </Layout>
     </Router>
   );
