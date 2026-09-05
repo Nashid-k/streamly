@@ -38,12 +38,12 @@ function faviconIcon(domain) {
 
 export const PLATFORMS = {
   // ── Global giants ──
-  // VERIFIED: cdn.simpleicons.org/netflix → 200 ✓
+  // VERIFIED: google.com/s2/favicons?domain=netflix.com → 200 ✓ (red "N" logomark)
   netflix: {
     id: "netflix",
     name: "Netflix",
     shortName: "Netflix",
-    iconUrl: simpleIcon("netflix", "#E50914"),
+    iconUrl: faviconIcon("netflix.com"),
     iconHeight: "20px",
     color: "#E50914",
     gradient: "linear-gradient(135deg, #E50914, #b20710)",
@@ -677,4 +677,15 @@ export function resolveAllPlatforms(movie) {
     }
   }
   return result;
+}
+
+/**
+ * Whether content from this platform should be served through NetMirror's
+ * multi-audio HLS. NetMirror mirrors Netflix, Prime Video, and other OTT
+ * catalogs; Netflix/Prime are the primary request.
+ */
+export function isNetMirrorSuitable(platform) {
+  if (!platform) return false;
+  const key = normalizePlatformKey(platform);
+  return key === "netflix" || key === "prime";
 }

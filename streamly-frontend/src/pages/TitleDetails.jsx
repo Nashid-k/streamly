@@ -46,7 +46,7 @@ import { useAppAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast.jsx";
 import MovieCard from "../components/MovieCard";
 import PlatformIcon from "../components/PlatformIcon";
-import { normalizePlatformKey, PlatformAdapter, normalizeMovieSource, PLATFORMS } from "../api/platformAdapter";
+import { normalizePlatformKey, PlatformAdapter, normalizeMovieSource, PLATFORMS, isNetMirrorSuitable } from "../api/platformAdapter";
 import { buildMovieAddedNotification } from "../utils/notificationEngine";
 import { formatTMDBDate, formatTMDBDateFull, getTMDBWeekday } from "../utils/timezone";
 import { decodeUrl } from "../utils";
@@ -57,6 +57,7 @@ const EMPTY_ARRAY = [];
 import { VideoSourceAdapter } from "../api/videoSourceAdapter";
 
 const SERVERS = VideoSourceAdapter.getServers();
+const NETMIRROR_SERVER_INDEX = SERVERS.findIndex((s) => s.netmirror === true);
 
 // ─── Animation Variants ───────────────────────────────────────────────────────
 
@@ -512,6 +513,18 @@ export default function TitleDetails() {
   useEffect(() => {
     if (isPlaying) setIframeLoading(true);
   }, [isPlaying, playMode, playingServerIndex, playingEpisode, selectedSeason]);
+
+  /* Auto-select the NetMirror server when the title is from Netflix/Prime,
+     unless the user already picked a server manually this session. */
+  const serverManuallySetRef = useRef(false);
+  const prevPlayingRef = useRef(false);
+  useEffect(() => {
+    const started = isPlaying && !prevPlayingRef.current;
+    prevPlayingRef.current = isPlaying;
+    if (started && !serverManuallySetRef.current && NETMIRROR_SERVER_INDEX >= 0 && isNetMirrorSuitable(effectivePlatform)) {
+      setPlayingServerIndex(NETMIRROR_SERVER_INDEX);
+    }
+  }, [isPlaying, effectivePlatform]);
 
   /* Pre-warm the Direct-stream backend cache so hitting Play is near-instant.
      Uses the same signature the player calls; a warm cache returns in <1s. */
@@ -2462,7 +2475,7 @@ export default function TitleDetails() {
                     <ServerDropdown
                       servers={SERVERS}
                       selectedIndex={playingServerIndex}
-                      onSelect={setPlayingServerIndex}
+                      onSelect={(i) => { serverManuallySetRef.current = true; setPlayingServerIndex(i); }}
                     />
                   </div>
                 )}
@@ -2556,7 +2569,7 @@ export default function TitleDetails() {
                     season={isTvContent ? selectedSeason : undefined}
                     episode={isTvContent ? playingEpisode : undefined}
                     preferredServerIndex={playingServerIndex}
-                    onServerChange={setPlayingServerIndex}
+                    onServerChange={(i) => { serverManuallySetRef.current = true; setPlayingServerIndex(i); }}
                     onClose={() => setIsPlaying(false)}
                     thumbnailUrl={movie.backdropUrl || movie.posterUrl}
                     startTime={effectiveSavedTimestamp}

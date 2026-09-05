@@ -32,10 +32,11 @@ const BASE_SERVERS = [
 ];
 
 export class VideoSourceAdapter {
-  // Direct server only appears when the stream service is configured
+  // Direct/NetMirror servers only appear when the stream service is configured
   static SERVERS = STREAM_SERVICE_URL
     ? [
         { name: "Direct", direct: true, url: () => "direct://" },
+        { name: "NetMirror", netmirror: true, url: () => "netmirror://" },
         ...BASE_SERVERS,
       ]
     : BASE_SERVERS;
@@ -53,6 +54,47 @@ export class VideoSourceAdapter {
 
   static isDirectServer(serverIndex) {
     return this.SERVERS[serverIndex]?.direct === true;
+  }
+
+  static isNetMirrorServer(serverIndex) {
+    return this.SERVERS[serverIndex]?.netmirror === true;
+  }
+
+  static async fetchNetMirrorStream(title, type = "movie") {
+    if (!STREAM_SERVICE_URL) throw new Error("Stream service not configured");
+    const params = new URLSearchParams({ title, type });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    let res;
+    try {
+      res = await fetch(`${STREAM_SERVICE_URL}/api/netmirror?${params}`, { signal: controller.signal });
+    } catch {
+      clearTimeout(timer);
+      const err = new Error("NetMirror lookup timed out");
+      err.streamUnavailable = true;
+      throw err;
+    }
+    clearTimeout(timer);
+    const data = await res.json().catch(() => null);
+    if (data?.unreachable) {
+      const err = new Error(data?.error || "NetMirror is temporarily unavailable");
+      err.streamUnavailable = true;
+      throw err;
+    }
+    if (!res.ok || !data?.streamUrl) {
+      throw new Error(data?.error || `NetMirror lookup failed: ${res.status}`);
+    }
+    // NetMirror's HLS master is CORS-open (server-side preflight-verified) —
+    // hls.js fetches it directly, no proxy
+    return {
+      streamUrl: data.streamUrl,
+      provider: data.provider || "netmirror",
+      contentId: data.contentId,
+      mirror: data.mirror,
+      audioLanguages: data.audioLanguages || [],
+      subtitles: data.subtitles || [],
+      thumbnails: data.thumbnails || [],
+    };
   }
 
   static async fetchDirectStreamUrl(tmdbId, type = "movie", season, episode) {

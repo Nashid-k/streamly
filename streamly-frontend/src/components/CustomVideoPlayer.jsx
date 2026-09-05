@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { VideoSourceAdapter } from "../api/videoSourceAdapter";
+import { PlatformAdapter } from "../api/platformAdapter";
 import { movieService } from "../api/movieService";
 import Hls from "hls.js";
 import {
@@ -347,6 +348,8 @@ const CustomVideoPlayer = ({
   const [audioTracks, setAudioTracks] = useState([]);
   const [currentAudioTrack, setCurrentAudioTrack] = useState(null);
   const [directStreamProvider, setDirectStreamProvider] = useState(null);
+  // Languages advertised by the NetMirror master (shown even before hls.js loads its audio tracks)
+  const [streamAudioLanguages, setStreamAudioLanguages] = useState([]);
   const [showPausedInfo, setShowPausedInfo] = useState(false);
   const pausedInfoTimerRef = useRef(null);
 
@@ -595,6 +598,60 @@ const CustomVideoPlayer = ({
       if (isNew) { setCurrentTime(0); setDuration(0); setBuffered(0); targetSeekTimeRef.current = null; }
       vttTileRef.current = [];
       vttSpriteMetaRef.current = new Map();
+
+      /* NetMirror server — CORS-open multi-audio HLS. Resolved by title via the
+         stream service (its JSON lookups carry no CORS headers), then the master
+         plays directly — no proxy needed for the m3u8 or its segments. */
+      if (VideoSourceAdapter.isNetMirrorServer(activeServerIndex)) {
+        setIframeUrl("");
+        try {
+          const streamData = await VideoSourceAdapter.fetchNetMirrorStream(
+            movie?.title || movie?.name,
+            String(movie?.id || "").startsWith("tmdb-tv-") ? "tv" : "movie"
+          );
+          if (!cancelled) {
+            setDirectStreamUrl(streamData.streamUrl);
+            setDirectStreamProvider("netmirror");
+            setStreamAudioLanguages(streamData.audioLanguages || []);
+            // Pre-load the English (or first available) SRT caption track
+            const subs = streamData.subtitles || [];
+            if (subs.length > 0) {
+              const en = subs.find(s => /^(en|eng|en-US|en-GB)$/i.test(s.label) || /english/i.test(s.label)) || subs[0];
+              try {
+                const subUrl = en.url || en;
+                const subRes = await fetch(proxyUrl(subUrl));
+                if (subRes.ok) {
+                  const subText = await subRes.text();
+                  const parsed = (String(subUrl).includes(".vtt") || subText.trim().startsWith("WEBVTT"))
+                    ? SubtitleEngine.parseVTT(subText)
+                    : SubtitleEngine.parseSRT(subText);
+                  if (parsed.length > 0) {
+                    subtitleEngineRef.current.setCues(parsed);
+                    setHasSubtitles(true);
+                    setSubtitleEnabled(true);
+                    setSubtitleFileName(`Auto (${en.label || "English"})`);
+                  }
+                }
+              } catch {}
+            }
+            // Load the thumbnail sprite sheet (VTT) for Netflix-style previews
+            if (streamData.thumbnails?.length > 0) {
+              setupThumbnailVTT(streamData.thumbnails[0]);
+            }
+            setIsLoading(false);
+          }
+        } catch (extractErr) {
+          if (!cancelled) {
+            setStreamAudioLanguages([]);
+            failoverToNextServer(
+              extractErr?.streamUnavailable
+                ? "NetMirror is temporarily down, switching server..."
+                : "NetMirror unavailable, switching server..."
+            );
+          }
+        }
+        return;
+      }
 
       /* Direct streaming server — fetch m3u8 via stream service */
       if (VideoSourceAdapter.isDirectServer(activeServerIndex)) {
@@ -2842,8 +2899,37 @@ const CustomVideoPlayer = ({
                     fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                   }}>{movie.releaseYear}</span>
                 )}
-                {/* Direct stream provider badge */}
-                {isDirectStream && directStreamProvider && (
+                {/* Direct stream provider badge (branded for NetMirror multi-audio) */}
+                {isDirectStream && directStreamProvider === "netmirror" ? (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    color: "#fff", fontSize: "10px", fontWeight: 700,
+                    background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                    padding: "3px 8px", borderRadius: 100, flexShrink: 0, letterSpacing: "0.5px",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+                    textTransform: "uppercase",
+                  }}>
+                    {(() => {
+                      const src = movie?.source || (movie?.availablePlatforms && movie.availablePlatforms[0]);
+                      const icon = src ? PlatformAdapter.getIconUrl(src) : "";
+                      return icon ? (
+                        <img
+                          src={icon}
+                          alt=""
+                          style={{ height: 13, width: 13, objectFit: "contain", borderRadius: 2, flexShrink: 0 }}
+                        />
+                      ) : null;
+                    })()}
+                    <span>{streamAudioLanguages.length > 0 ? `${streamAudioLanguages.length}-Audio` : "NetMirror"}</span>
+                    {streamAudioLanguages.length > 0 && (
+                      <span style={{ color: "rgba(255,255,255,0.55)", fontWeight: 500, textTransform: "none" }}>
+                        {streamAudioLanguages.slice(0, 4).map(l => l.language || l.name).filter(Boolean).join(" / ")}
+                        {streamAudioLanguages.length > 4 ? " +" : ""}
+                      </span>
+                    )}
+                  </span>
+                ) : isDirectStream && directStreamProvider ? (
                   <span style={{
                     color: "rgba(0,200,120,0.7)", fontSize: "10px", fontWeight: 700,
                     background: "rgba(0,200,120,0.08)", padding: "2px 7px",
@@ -2852,7 +2938,7 @@ const CustomVideoPlayer = ({
                     fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
                     textTransform: "uppercase",
                   }}>{directStreamProvider}</span>
-                )}
+                ) : null}
               </div>
               <div style={{ flexShrink: 0, minWidth: "clamp(50px, 10vw, 70px)" }} />
             </div>
