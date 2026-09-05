@@ -200,7 +200,7 @@ const MovieRail = React.memo(
                 padding: "0.25rem 1.4rem",
               }}
             >
-              {category.movies.slice(0, visibleCount).map((movie, i) => (
+              {(Array.isArray(category.movies) ? category.movies : []).slice(0, visibleCount).map((movie, i) => (
                 <motion.div
                   key={`${movie.id}-${i}`}
                   initial={{ opacity: 0, y: 10 }}
@@ -410,6 +410,11 @@ const Top10Rail = React.memo(
 
 const EMPTY_ARRAY = [];
 
+/* Backend endpoints can briefly return non-array payloads (cold-start error
+   bodies, an object envelope, a 503 stub). Route everything through this so
+   a single truthy-but-not-array value can never crash Home's renders. */
+const asArray = (x) => (Array.isArray(x) ? x : EMPTY_ARRAY);
+
 export default function Home({
   filter = "all",
   title = "Trending Across Platforms",
@@ -457,12 +462,12 @@ export default function Home({
     refetchOnWindowFocus: false,
   });
 
-  const rawCategories = categoriesData || EMPTY_ARRAY;
+  const rawCategories = asArray(categoriesData);
   const featuredMovies = useMemo(
     () => {
       try {
         return featuredData
-          ? (featuredData || []).filter(Boolean).map(normalizeMovieSource)
+          ? asArray(featuredData).filter(Boolean).map(normalizeMovieSource)
           : EMPTY_ARRAY;
       } catch (e) {
         console.error('featuredMovies useMemo error:', e);
@@ -528,8 +533,8 @@ export default function Home({
     try {
     // 1. Collect all unique movies for dynamic rails
     const allUniqueMovies = new Map();
-    for (const cat of (rawCategories || [])) {
-      for (const m of (cat.movies || [])) {
+    for (const cat of asArray(rawCategories)) {
+      for (const m of (Array.isArray(cat.movies) ? cat.movies : [])) {
         if (m && m.id && !allUniqueMovies.has(m.id)) allUniqueMovies.set(m.id, m);
       }
     }
@@ -597,7 +602,7 @@ export default function Home({
     const standardCategories = [];
     for (const cat of rawCategories) {
       // Normalize every movie's source/sourceName from availablePlatforms
-      let filtered = (cat.movies || []).filter(Boolean).map(normalizeMovieSource);
+      let filtered = (Array.isArray(cat.movies) ? cat.movies : []).filter(Boolean).map(normalizeMovieSource);
       let dynamicName = cat.name;
 
       if (filter === "series" || filter === "tv shows") {
@@ -734,15 +739,15 @@ export default function Home({
       return (list || []).filter(isSeriesMovie);
     if (filter === "movies") return (list || []).filter((m) => !isSeriesMovie(m));
     if (filter === "anime") return (list || []).filter(isAnimeMovie);
-    return list || [];
+    return Array.isArray(list) ? list : [];
   };
 
   // Platform lookup map: categories have pre-resolved source data, trending/recommendations don't.
   // Build a map from movie id → source, so we can enrich rails that lack platform data.
   const platformLookup = useMemo(() => {
     const map = new Map();
-    for (const cat of (rawCategories || [])) {
-      for (const m of (cat.movies || []).filter(Boolean)) {
+    for (const cat of asArray(rawCategories)) {
+      for (const m of (Array.isArray(cat.movies) ? cat.movies : []).filter(Boolean)) {
         if (m.id && m.source && !map.has(m.id)) {
           map.set(m.id, m.source);
         }
@@ -753,7 +758,7 @@ export default function Home({
 
   // Enrich a movie array: for movies with source=null, look up platform from categories
   const enrichWithPlatforms = useCallback((movies) => {
-    return (movies || []).map(m => {
+    return (Array.isArray(movies) ? movies : []).map(m => {
       if (!m || m.source) return m;
       const lookupSource = platformLookup.get(m.id);
       if (lookupSource) return { ...m, source: lookupSource };
@@ -763,19 +768,19 @@ export default function Home({
 
   // Real cross-platform Top 10 from the backend (ranked, not a client-side shuffle)
   const top10Movies = useMemo(
-    () => enrichWithPlatforms(applyPageFilter(top10Data || EMPTY_ARRAY).slice(0, 10)).map(normalizeMovieSource),
+    () => enrichWithPlatforms(applyPageFilter(asArray(top10Data)).slice(0, 10)).map(normalizeMovieSource),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [top10Data, filter, enrichWithPlatforms],
   );
 
   const trendingThisWeek = useMemo(
-    () => enrichWithPlatforms(applyPageFilter(trendingData || EMPTY_ARRAY).slice(0, 20)).map(normalizeMovieSource),
+    () => enrichWithPlatforms(applyPageFilter(asArray(trendingData)).slice(0, 20)).map(normalizeMovieSource),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [trendingData, filter, enrichWithPlatforms],
   );
 
   const airingThisWeek = useMemo(
-    () => enrichWithPlatforms(applyPageFilter(airingData || EMPTY_ARRAY).slice(0, 20)).map(normalizeMovieSource),
+    () => enrichWithPlatforms(applyPageFilter(asArray(airingData)).slice(0, 20)).map(normalizeMovieSource),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [airingData, filter, enrichWithPlatforms],
   );
@@ -785,11 +790,11 @@ export default function Home({
   // date (and S/E for series). Dedupes + sorts soonest-first client-side.
   const comingThisMonth = useMemo(() => {
     const pool = [
-      ...(airingData || []),
-      ...(trendingData || []),
-      ...(top10Data || []),
-      ...(featuredData || []),
-      ...(rawCategories || []).flatMap((c) => c.movies || []),
+      ...asArray(airingData),
+      ...asArray(trendingData),
+      ...asArray(top10Data),
+      ...asArray(featuredData),
+      ...asArray(rawCategories).flatMap((c) => (Array.isArray(c.movies) ? c.movies : [])),
     ];
     // The airing rail above already surfaces next-episode airings within its
     // 14-day window — drop those exact (id + date) pairs so the month rail
@@ -849,7 +854,7 @@ export default function Home({
     if (categories.length > 0) {
       const allCategoryMovies = [];
       categories.forEach((c) => {
-        (c.movies || []).filter(Boolean).forEach((m) => {
+        (Array.isArray(c.movies) ? c.movies : []).filter(Boolean).forEach((m) => {
           if (m.backdropUrl && !allCategoryMovies.find((p) => p.id === m.id)) {
             allCategoryMovies.push(m);
           }
